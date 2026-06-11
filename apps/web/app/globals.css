@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink-900: #0A1E4D;
+  --ink-800: #14245F;
+  --ink-700: #1F2E5C;
+  --ink-500: #5B6480;
+  --ink-400: #8089A3;
+  --ink-300: #B0B6C8;
+  --ink-200: #D6DAE5;
+  --ink-100: #ECEEF4;
+  --ink-50:  #F5F6FA;
+  --paper:   #F7F8FB;
+  --amber:   #FFC72C;
+  --amber-dark: #C99100;
+  --amber-soft: #FFF1B8;
+  --ember:   #F47B20;
+  --earth:   #051438;
+  --verified: #1F7A4C;
+  --verified-soft: #D6EBDD;
+  --pending: #B45309;
+  --pending-soft: #FDE6CD;
+  --reject:  #9B1C1C;
+  --reject-soft: #FBDCD2;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: "Geist", Inter, system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography helpers */
+.display {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.mono {
+  font-family: "Geist Mono", monospace;
+}
+
+/* Badge system */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-amber {
+  background: var(--amber);
+  color: var(--ink-900);
+}
+.btn-amber:hover { background: var(--amber-dark); color: #fff; }
+.btn-ink {
+  background: var(--ink-900);
+  color: #fff;
+}
+.btn-ink:hover { background: var(--ink-800); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-500);
+}
+.btn-ghost:hover { background: var(--ink-100); }
+.btn-outline {
+  background: transparent;
+  color: var(--ink-900);
+  border: 1.5px solid var(--ink-200);
+}
+.btn-outline:hover { border-color: var(--ink-300); background: var(--ink-50); }
+
+/* Car stage */
+.car-stage {
+  background: linear-gradient(135deg, var(--ink-800) 0%, var(--ink-900) 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Table */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ink-100);
+}
+.tbl td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--ink-700);
+  border-bottom: 1px solid var(--ink-100);
+}
+.tbl tr:hover td { background: var(--ink-50); }
+
+/* Progress segment */
+.progress-seg {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--ink-100);
+  overflow: hidden;
+}
+.progress-seg > div {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--amber);
+}

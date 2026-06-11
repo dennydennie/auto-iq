@@ -1,0 +1,32 @@
+node_modules
+.pnpm-store
+.turbo
+.next
+dist
+build
+coverage
+output
+.env
+.env.*
+!.env.example
+
+# Flutter / Dart
+.dart_tool
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.metadata
+**/android/.gradle
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Pods
+
+# IDE / OS
+.DS_Store
+.idea
+.vscode
+.agent
+.playwright-cli

@@ -1,0 +1,15 @@
+{
+  "name": "@auto-iq/types",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'Build shared types placeholder'",
+    "lint": "echo 'Lint shared types placeholder'",
+    "test": "echo 'Test shared types placeholder'",
+    "typecheck": "echo 'Typecheck shared types placeholder'",
+    "clean": "rm -rf dist"
+  }
+}

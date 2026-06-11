@@ -1,0 +1,30 @@
+name: autoiq_mobile
+description: BiSell AutoIQ - Zimbabwe's trust-first vehicle marketplace
+version: 1.0.0+1
+publish_to: "none"
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cached_network_image: ^3.4.1
+  cookie_jar: ^4.0.8
+  dio: ^5.7.0
+  dio_cookie_manager: ^3.1.1
+  file_picker: ^8.1.2
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+  path_provider: ^2.1.5
+  provider: ^6.1.2
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

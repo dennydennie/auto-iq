@@ -1,0 +1,34 @@
+{
+  "name": "@auto-iq/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enums": "./src/enums.ts",
+    "./identity": "./src/identity.ts",
+    "./listings": "./src/listings.ts",
+    "./catalogue": "./src/catalogue.ts",
+    "./inspections": "./src/inspections.ts",
+    "./admin": "./src/admin.ts",
+    "./quotes": "./src/quotes.ts",
+    "./viewings": "./src/viewings.ts",
+    "./vehicle-requests": "./src/vehicle-requests.ts",
+    "./notifications": "./src/notifications.ts",
+    "./storage": "./src/storage.ts",
+    "./reference-data": "./src/reference-data.ts",
+    "./routes": "./src/routes.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'lint placeholder'",
+    "build": "echo 'source-only package — no build step'",
+    "test": "echo 'no tests yet'"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
