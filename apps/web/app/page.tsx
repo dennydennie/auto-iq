@@ -138,15 +138,15 @@ export default function HomePage() {
               <h3 className="display mt-4 text-xl">Verified listings</h3>
               <p className="mt-2 text-sm leading-6 text-[var(--ink-500)]">
                 Every vehicle goes through admin review and inspection before it reaches
-                buyers, so you know what you're looking at.
+                buyers, so you know what you&apos;re looking at.
               </p>
             </div>
             <div className="rounded-[1.35rem] bg-[var(--ink-50)]/80 p-5">
               <Sparkles className="h-6 w-6 text-[var(--ink-900)]" />
               <h3 className="display mt-4 text-xl">Clear next steps</h3>
               <p className="mt-2 text-sm leading-6 text-[var(--ink-500)]">
-                Whether you're a buyer shortlisting, a seller waiting on review, or an
-                admin running the queue — the platform always shows you what's next.
+                Whether you&apos;re a buyer shortlisting, a seller waiting on review, or an
+                admin running the queue - the platform always shows you what&apos;s next.
               </p>
             </div>
           </CardContent>
@@ -182,7 +182,7 @@ export default function HomePage() {
                 The car market you deserve.
               </h2>
               <p className="mt-4 text-sm leading-7 text-[var(--ink-500)]">
-                Private car sales in Zimbabwe shouldn't depend on guesswork and word of
+                Private car sales in Zimbabwe shouldn&apos;t depend on guesswork and word of
                 mouth. AutoIQ puts inspection data, verified identities, and clear process
                 steps in the hands of buyers and sellers alike.
               </p>

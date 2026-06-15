@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowRight, Mail } from "lucide-react";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 
 import { isApiFailure, postJson } from "@/lib/web-api";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -44,9 +45,7 @@ export function ForgotPasswordForm() {
       ) : null}
 
       {notice ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-          {notice}
-        </div>
+        <NoticeBanner message={notice} />
       ) : null}
 
       <div className="space-y-2">

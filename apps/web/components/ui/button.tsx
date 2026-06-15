@@ -6,8 +6,8 @@ const variantClasses = {
   secondary: "bg-[var(--ink-50)] text-[var(--ink-900)] hover:bg-[var(--ink-100)]",
   outline: "border border-[var(--ink-200)] bg-white text-[var(--ink-900)] hover:bg-[var(--ink-50)]",
   ghost: "text-[var(--ink-900)] hover:bg-[var(--ink-50)]",
-  amber: "bg-[#FFC72C] text-[var(--ink-900)] shadow-[0_18px_40px_-18px_rgba(214,155,29,0.45)] hover:bg-[#f1bc25]",
-  destructive: "bg-[#C2410C] text-white hover:bg-[#9A3412]",
+  amber: "bg-[var(--amber)] text-[var(--ink-900)] shadow-[0_18px_40px_-18px_rgba(214,155,29,0.45)] hover:bg-[var(--amber-dark)] hover:text-white",
+  destructive: "bg-[var(--reject)] text-white hover:bg-[var(--reject-dark)]",
 } as const;
 
 const sizeClasses = {
@@ -30,7 +30,7 @@ export function buttonVariants({
   className?: string;
 } = {}) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFC72C]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)] disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)] disabled:pointer-events-none disabled:opacity-50",
     variantClasses[variant],
     sizeClasses[size],
     className,

@@ -26,7 +26,7 @@ export default async function OtpPage({
     <AuthShell
       eyebrow="Phone verification"
       title="Confirm your identity with a one-time code."
-      description="We sent a 6-digit code to your registered phone number. Enter it below to complete verification."
+      description="We send a 6-digit code to the contact channels on file. Enter it below to complete verification."
       ctaLabel="Wrong phone number?"
       ctaHref="/auth/signup"
       highlight={
@@ -35,8 +35,8 @@ export default async function OtpPage({
             Didn&apos;t receive a code?
           </p>
           <p className="text-sm leading-7 text-white/72">
-            Check your SMS inbox or tap &ldquo;Resend code&rdquo; below. Codes expire after
-            10 minutes. Make sure the number you registered is correct.
+            Check your SMS inbox and account email, or tap &ldquo;Resend code&rdquo; below.
+            Codes expire after 5 minutes. Make sure the number you registered is correct.
           </p>
         </div>
       }
@@ -49,7 +49,7 @@ export default async function OtpPage({
           <p className="text-sm leading-7 text-[var(--ink-500)]">
             {phone ? (
               <>
-                We&apos;ve sent a one-time code to{" "}
+                We&apos;ve sent a one-time code tied to{" "}
                 <span className="font-semibold text-[var(--ink-700)]">{phone}</span>.
               </>
             ) : (

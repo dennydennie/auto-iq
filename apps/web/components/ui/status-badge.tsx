@@ -4,18 +4,18 @@ type Status =
   | "rejected" | "delisted" | "verified";
 
 const STATUS_CONFIG: Record<Status, { label: string; dot: string; bg: string; text: string }> = {
-  draft:      { label: "Draft",        dot: "#8089A3", bg: "#F5F6FA", text: "#5B6480" },
-  submitted:  { label: "Submitted",    dot: "#FFC72C", bg: "#FFF1B8", text: "#C99100" },
-  inspection: { label: "Inspection",   dot: "#F47B20", bg: "#FDE6CD", text: "#B45309" },
-  verifying:  { label: "Verifying",    dot: "#FFC72C", bg: "#FFF1B8", text: "#C99100" },
-  changes:    { label: "Changes req.", dot: "#F47B20", bg: "#FDE6CD", text: "#B45309" },
-  approved:   { label: "Approved",     dot: "#1F7A4C", bg: "#D6EBDD", text: "#1F7A4C" },
-  published:  { label: "Published",    dot: "#1F7A4C", bg: "#D6EBDD", text: "#1F7A4C" },
-  reserved:   { label: "Reserved",     dot: "#0A1E4D", bg: "#ECEEF4", text: "#1F2E5C" },
-  sold:       { label: "Sold",         dot: "#0A1E4D", bg: "#D6DAE5", text: "#0A1E4D" },
-  rejected:   { label: "Rejected",     dot: "#9B1C1C", bg: "#FBDCD2", text: "#9B1C1C" },
-  delisted:   { label: "Delisted",     dot: "#8089A3", bg: "#F5F6FA", text: "#5B6480" },
-  verified:   { label: "BiSell Verified", dot: "#1F7A4C", bg: "#D6EBDD", text: "#1F7A4C" },
+  draft:      { label: "Draft",        dot: "var(--ink-400)", bg: "var(--ink-50)", text: "var(--ink-500)" },
+  submitted:  { label: "Submitted",    dot: "var(--amber)", bg: "var(--amber-soft)", text: "var(--amber-dark)" },
+  inspection: { label: "Inspection",   dot: "var(--ember)", bg: "var(--pending-soft)", text: "var(--pending)" },
+  verifying:  { label: "Verifying",    dot: "var(--amber)", bg: "var(--amber-soft)", text: "var(--amber-dark)" },
+  changes:    { label: "Changes req.", dot: "var(--ember)", bg: "var(--pending-soft)", text: "var(--pending)" },
+  approved:   { label: "Approved",     dot: "var(--verified)", bg: "var(--verified-soft)", text: "var(--verified)" },
+  published:  { label: "Published",    dot: "var(--verified)", bg: "var(--verified-soft)", text: "var(--verified)" },
+  reserved:   { label: "Reserved",     dot: "var(--ink-900)", bg: "var(--ink-100)", text: "var(--ink-700)" },
+  sold:       { label: "Sold",         dot: "var(--ink-900)", bg: "var(--ink-200)", text: "var(--ink-900)" },
+  rejected:   { label: "Rejected",     dot: "var(--reject)", bg: "var(--reject-soft)", text: "var(--reject)" },
+  delisted:   { label: "Delisted",     dot: "var(--ink-400)", bg: "var(--ink-50)", text: "var(--ink-500)" },
+  verified:   { label: "BiSell Verified", dot: "var(--verified)", bg: "var(--verified-soft)", text: "var(--verified)" },
 };
 
 export function StatusBadge({ status }: { status: Status }) {

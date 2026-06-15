@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Heart, MapPin, ShieldCheck } from "lucide-react";
 import type { PublicListingCardDto } from "@auto-iq/contracts/catalogue";
@@ -73,17 +74,27 @@ export function VehicleCard({
     <Card className="overflow-hidden">
       <div className="relative overflow-hidden rounded-t-[1.5rem] bg-[radial-gradient(circle_at_top,rgba(255,205,83,0.18),transparent_40%),linear-gradient(180deg,#18233e_0%,#0f1830_100%)] px-5 py-7">
         <div className="absolute right-4 top-4">
-          <Button variant="ghost" size="icon" className="rounded-full bg-white/8 text-white hover:bg-white/16">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full bg-white/8 text-white hover:bg-white/16"
+            aria-label={`Save ${year} ${make} ${model}`}
+          >
             <Heart className="h-4 w-4" />
           </Button>
         </div>
         <div className="mx-auto flex h-36 max-w-[16rem] items-center justify-center overflow-hidden rounded-[1.25rem]">
           {coverImageUrl ? (
-            <img
-              src={coverImageUrl}
-              alt={`${year} ${make} ${model}`}
-              className="h-full w-full object-cover"
-            />
+            <div className="relative h-full w-full">
+              <Image
+                src={coverImageUrl}
+                alt={`${year} ${make} ${model}`}
+                fill
+                unoptimized
+                sizes="(min-width: 1280px) 16rem, (min-width: 768px) 18rem, 100vw"
+                className="object-cover"
+              />
+            </div>
           ) : (
             <CarSilhouette type={bodyTone} width={250} shadow={false} />
           )}
@@ -98,7 +109,7 @@ export function VehicleCard({
             </h3>
           </div>
           {scoreValue !== null ? (
-            <ScoreGauge score={scoreValue} size={64} />
+            <ScoreGauge score={scoreValue} size={64} ariaLabel={`${year} ${make} ${model} inspection score ${scoreValue} out of 100`} />
           ) : (
             <Badge variant="outline">No score yet</Badge>
           )}

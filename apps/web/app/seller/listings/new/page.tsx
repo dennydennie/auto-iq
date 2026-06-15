@@ -13,8 +13,8 @@ export default function SellerListingNewPage() {
             List your vehicle
           </h1>
           <p className="max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-            Complete the steps below to create your listing. Your progress is saved
-            automatically — come back any time to continue.
+            Complete the steps below to create your listing. Save the draft at the end of this
+            step to persist your progress before you leave the page.
           </p>
         </div>
         <CreateListingForm />

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { AdminListingDto } from "@auto-iq/contracts/admin";
 import { ROUTES } from "@auto-iq/contracts/routes";
@@ -99,11 +100,16 @@ export default async function AdminListingReviewPage({
                 </div>
                 <div className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/8">
                   {coverImage ? (
-                    <img
-                      src={coverImage}
-                      alt={`${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`}
-                      className="h-[18rem] w-full object-cover"
-                    />
+                    <div className="relative h-[18rem] w-full">
+                      <Image
+                        src={coverImage}
+                        alt={`${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`}
+                        fill
+                        unoptimized
+                        sizes="(min-width: 1024px) 40vw, 100vw"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="flex h-[18rem] items-center justify-center">
                       <CarSilhouette type={mapBodyType(listing.specs.bodyType)} width={320} shadow={false} />
@@ -214,7 +220,12 @@ export default async function AdminListingReviewPage({
               {listing.inspectionReport ? (
                 <div className="rounded-[1.2rem] bg-[linear-gradient(180deg,#18233e_0%,#0f1830_100%)] p-4 text-white">
                   <div className="flex items-center gap-4">
-                    <ScoreGauge score={listing.inspectionReport.overallScore} size={72} light />
+                    <ScoreGauge
+                      score={listing.inspectionReport.overallScore}
+                      size={72}
+                      light
+                      ariaLabel={`${listing.specs.year} ${listing.specs.make} ${listing.specs.model} inspection score ${listing.inspectionReport.overallScore} out of 100`}
+                    />
                     <div>
                       <p className="text-xs uppercase tracking-[0.14em] text-white/45">Buyer summary</p>
                       <p className="mt-2 text-lg font-semibold text-white">

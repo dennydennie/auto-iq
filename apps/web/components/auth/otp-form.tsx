@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clock3, RefreshCcw } from "lucide-react";
 import type { SendOtpResponse, VerifyOtpResponse } from "@auto-iq/contracts/identity";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 import { isApiFailure, postJson } from "@/lib/web-api";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,23 +31,19 @@ export function OtpForm({
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const autoSentPhone = useRef<string | null>(null);
 
   function applyOtpMeta(payload: SendOtpResponse) {
     setExpiresIn(payload.expiresIn);
     setAttemptsRemaining(payload.attemptsRemaining);
   }
 
-  function sendOtp() {
-    if (!phone) {
-      setError({ message: "A phone number is required before an OTP can be sent." });
-      return;
-    }
-
+  const requestOtp = useCallback((phoneNumber: string) => {
     setError(null);
     setNotice(null);
 
     startTransition(async () => {
-      const result = await postJson<SendOtpResponse>("/api/auth/otp/send", { phone });
+      const result = await postJson<SendOtpResponse>("/api/auth/otp/send", { phone: phoneNumber });
       if (isApiFailure(result)) {
         setError(result.error);
         return;
@@ -55,6 +52,15 @@ export function OtpForm({
       applyOtpMeta(result.data);
       setNotice("A fresh verification code has been sent.");
     });
+  }, []);
+
+  function sendOtp() {
+    if (!phone) {
+      setError({ message: "A phone number is required before an OTP can be sent." });
+      return;
+    }
+
+    requestOtp(phone);
   }
 
   function verifyOtp(event: React.FormEvent<HTMLFormElement>) {
@@ -84,12 +90,17 @@ export function OtpForm({
   }
 
   useEffect(() => {
-    if (autoSend && phone) {
-      sendOtp();
+    if (!autoSend || !phone || autoSentPhone.current === phone) {
+      return;
     }
-    // autoSend is a one-shot trigger from the route query state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSend, phone]);
+
+    autoSentPhone.current = phone;
+    const timer = window.setTimeout(() => {
+      requestOtp(phone);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [autoSend, phone, requestOtp]);
 
   return (
     <form className="space-y-6" onSubmit={verifyOtp}>
@@ -98,9 +109,7 @@ export function OtpForm({
       ) : null}
 
       {notice ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-          {notice}
-        </div>
+        <NoticeBanner message={notice} />
       ) : null}
 
       <div className="space-y-2">

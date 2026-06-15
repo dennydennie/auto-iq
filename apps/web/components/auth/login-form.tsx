@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
+import type { ApiError } from "@auto-iq/contracts/error";
 import type { LoginRequest, LoginResponse } from "@auto-iq/contracts/identity";
 import { ErrorBanner } from "@/components/shared/error-banner";
 
@@ -37,7 +38,12 @@ function validateAdmin(role: LoginResponse["role"]) {
 export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
   const router = useRouter();
   const [form, setForm] = useState<LoginRequest>({ identifier: "", password: "" });
-  const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
+  const [error, setError] = useState<{
+    message: string;
+    correlationId?: string;
+    code?: string;
+    details?: ApiError["details"];
+  } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -52,6 +58,15 @@ export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
     startTransition(async () => {
       const result = await postJson<LoginResponse>("/api/auth/login", form);
       if (isApiFailure(result)) {
+        if (result.error.code === "OTP_REQUIRED") {
+          const phone = otpPhone(result.error, form.identifier);
+          if (phone) {
+            const params = new URLSearchParams({ phone, registered: "0" });
+            router.push(`/auth/otp?${params.toString()}`);
+            return;
+          }
+        }
+
         setError(result.error);
         return;
       }
@@ -169,4 +184,13 @@ export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
       ) : null}
     </form>
   );
+}
+
+function otpPhone(error: ApiError, identifier: string) {
+  const fromDetails = error.details?.find((detail) => detail.field === "phone")?.value;
+  if (typeof fromDetails === "string" && fromDetails.trim().length > 0) {
+    return fromDetails;
+  }
+
+  return identifier.startsWith("+") ? identifier : null;
 }

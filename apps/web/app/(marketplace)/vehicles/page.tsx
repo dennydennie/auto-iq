@@ -8,6 +8,8 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { VehicleCard } from "@/components/marketplace/vehicle-card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { getPublicJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
@@ -79,24 +81,21 @@ export default async function VehiclesPage({
         </p>
 
         <form className="mt-8 grid gap-4 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-5 md:grid-cols-5">
-          <input
+          <Input
             type="text"
             name="make"
             defaultValue={make}
             placeholder="Make"
-            className="flex h-11 rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
           />
-          <input
+          <Input
             type="text"
             name="city"
             defaultValue={city}
             placeholder="City"
-            className="flex h-11 rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
           />
-          <select
+          <Select
             name="bodyType"
             defaultValue={bodyType}
-            className="flex h-11 rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
           >
             <option value="">All body types</option>
             {BODY_TYPES.map((value) => (
@@ -104,26 +103,25 @@ export default async function VehiclesPage({
                 {labelizeEnum(value)}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             name="verified"
             defaultValue={verified}
-            className="flex h-11 rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
           >
             <option value="">Any verification</option>
             <option value="true">BiSell verified</option>
-          </select>
+          </Select>
           <div className="flex gap-3">
-            <select
+            <Select
               name="sortBy"
               defaultValue={sortBy}
-              className="flex h-11 flex-1 rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
+              className="flex-1"
             >
               <option value="publishedAt">Newest</option>
               <option value="askPriceUsd">Price</option>
               <option value="year">Year</option>
               <option value="inspectionScore">Inspection score</option>
-            </select>
+            </Select>
             <button className={buttonVariants({ variant: "amber" })}>Apply</button>
           </div>
         </form>

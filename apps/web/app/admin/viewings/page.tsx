@@ -8,6 +8,8 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/format";
 import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 import { viewingStatusTone } from "@/lib/vehicle-ui";
@@ -112,24 +114,23 @@ export default async function AdminViewingsPage({
       <form className="mt-6 grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[14rem_12rem_auto]">
         <div className="flex items-center gap-2 rounded-xl border border-[var(--ink-200)] bg-white px-3">
           <Search className="h-4 w-4 text-[var(--ink-400)]" />
-          <input
+          <Input
             type="date"
             name="date"
             defaultValue={date}
-            className="h-11 w-full bg-transparent text-sm text-[var(--ink-900)] outline-none"
+            className="border-0 bg-transparent px-0 shadow-none focus:ring-0"
           />
         </div>
-        <select
+        <Select
           name="status"
           defaultValue={status}
-          className="flex h-11 rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
         >
           <option value="">All statuses</option>
           <option value="REQUESTED">Requested</option>
           <option value="PENDING_SELLER_CONFIRMATION">Pending seller</option>
           <option value="CONFIRMED">Confirmed</option>
           <option value="RESCHEDULED">Rescheduled</option>
-        </select>
+        </Select>
         <button className={buttonVariants({ variant: "amber" })}>Apply</button>
       </form>
 

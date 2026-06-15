@@ -12,6 +12,9 @@ export function ErrorBanner({
 }) {
   return (
     <div
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
       className={cn(
         "flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950",
         className,

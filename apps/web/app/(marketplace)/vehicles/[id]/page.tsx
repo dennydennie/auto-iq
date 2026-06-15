@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { PublicListingDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
@@ -125,11 +126,16 @@ export default async function VehicleDetailPage({
 
             <div className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/8 shadow-[0_20px_60px_-40px_rgba(5,10,26,0.85)]">
               {coverImage ? (
-                <img
-                  src={coverImage}
-                  alt={`${listing.year} ${listing.make} ${listing.model}`}
-                  className="h-[18rem] w-full object-cover"
-                />
+                <div className="relative h-[18rem] w-full">
+                  <Image
+                    src={coverImage}
+                    alt={`${listing.year} ${listing.make} ${listing.model}`}
+                    fill
+                    unoptimized
+                    sizes="(min-width: 1024px) 42vw, 100vw"
+                    className="object-cover"
+                  />
+                </div>
               ) : (
                 <div className="flex h-[18rem] items-center justify-center">
                   <CarSilhouette type={mapBodyType(listing.bodyType)} width={320} shadow={false} />
@@ -193,7 +199,12 @@ export default async function VehicleDetailPage({
               {summary ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <ScoreGauge score={summary.overallScore} size={76} light />
+                    <ScoreGauge
+                      score={summary.overallScore}
+                      size={76}
+                      light
+                      ariaLabel={`${listing.year} ${listing.make} ${listing.model} inspection score ${summary.overallScore} out of 100`}
+                    />
                     <div>
                       <p className="text-xs uppercase tracking-[0.14em] text-white/45">BiSell health check</p>
                       <h2 className="display mt-2 text-2xl text-white">{summary.overallScore}/100</h2>

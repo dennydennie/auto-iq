@@ -8,7 +8,7 @@ export default function ForgotPasswordPage() {
     <AuthShell
       eyebrow="Account recovery"
       title="Reset your password in one step."
-      description="Enter your registered email address and we'll send a secure link to create a new password."
+      description="Enter your registered email address and we&apos;ll send a secure link to create a new password."
       ctaLabel="Remembered your password?"
       ctaHref="/auth/login"
       highlight={
@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
             How it works
           </p>
           <p className="text-sm leading-7 text-white/72">
-            We'll email you a secure reset link valid for 30 minutes. For security, the
+            We&apos;ll email you a secure reset link valid for 30 minutes. For security, the
             response is the same whether or not an account exists for that address.
           </p>
         </div>

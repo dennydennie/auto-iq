@@ -8,6 +8,8 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 import { mapListingStatus } from "@/lib/vehicle-ui";
@@ -124,27 +126,27 @@ export default async function AdminListingsPage({
         <form className="grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_14rem_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
-            <input
+            <Input
               type="text"
               name="search"
               defaultValue={search}
               placeholder="Search slug, make, or model"
-              className="flex h-11 w-full rounded-xl border border-[var(--ink-200)] bg-white pl-11 pr-3.5 text-sm text-[var(--ink-900)] outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
+              className="border-transparent pl-11 shadow-none focus:border-[var(--ink-900)]"
             />
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-[var(--ink-200)] bg-white px-3">
             <Filter className="h-4 w-4 text-[var(--ink-400)]" />
-            <select
+            <Select
               name="status"
               defaultValue={status}
-              className="h-11 w-full bg-transparent text-sm text-[var(--ink-900)] outline-none"
+              className="border-0 bg-transparent px-0 shadow-none focus:ring-0"
             >
               <option value="">All statuses</option>
               <option value="SUBMITTED">Submitted</option>
               <option value="CHANGES_REQUESTED">Changes requested</option>
               <option value="APPROVED">Approved</option>
               <option value="PUBLISHED">Published</option>
-            </select>
+            </Select>
           </div>
           <button className={buttonVariants({ variant: "amber" })}>Apply</button>
         </form>

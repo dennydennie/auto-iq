@@ -17,8 +17,8 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-md"
           {...props}
         />
-        <span className="pointer-events-none absolute inset-0 rounded-md border-2 border-transparent peer-checked:border-[#FFC72C] peer-checked:bg-[var(--ink-900)]" />
-        <Check className="pointer-events-none relative z-10 h-3.5 w-3.5 text-[#FFC72C] opacity-0 transition peer-checked:opacity-100" />
+        <span className="pointer-events-none absolute inset-0 rounded-md border-2 border-transparent peer-checked:border-[var(--amber)] peer-checked:bg-[var(--ink-900)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--amber)]/45 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white" />
+        <Check className="pointer-events-none relative z-10 h-3.5 w-3.5 text-[var(--amber)] opacity-0 transition peer-checked:opacity-100" />
       </span>
       {label ? <span className="leading-6">{label}</span> : null}
     </label>

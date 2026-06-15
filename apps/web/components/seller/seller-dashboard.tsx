@@ -1,29 +1,13 @@
-"use client";
-
-import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Calendar, Eye, MessageSquare, Plus, Sparkles } from "lucide-react";
 import type { BodyType, ListingStatus } from "@auto-iq/contracts/enums";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { SellerListingSummaryDto } from "@auto-iq/contracts/listings";
-import { ErrorBanner } from "@/components/shared/error-banner";
 import { EmptyState } from "@/components/shared/empty-state";
-import { PageSpinner } from "@/components/shared/page-spinner";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SellerListingCard } from "@/components/listing/seller-listing-card";
-import { getJson, isApiFailure } from "@/lib/web-api";
-
-type SellerListingsResponse = {
-  data: SellerListingSummaryDto[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-};
 
 function firstName(fullName: string) {
   return fullName.trim().split(/\s+/)[0] || "Seller";
@@ -71,71 +55,13 @@ function sumBy(listings: SellerListingSummaryDto[], key: "viewCount" | "viewingC
   return listings.reduce((total, listing) => total + listing[key], 0);
 }
 
-export function SellerDashboard() {
-  const [profile, setProfile] = useState<MeResponse | null>(null);
-  const [listings, setListings] = useState<SellerListingSummaryDto[]>([]);
-  const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
-  const [unauthorized, setUnauthorized] = useState(false);
-  const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    startTransition(async () => {
-      const profileResult = await getJson<MeResponse>("/api/me");
-      if (isApiFailure(profileResult)) {
-        if (profileResult.error.statusCode === 401) {
-          setUnauthorized(true);
-          return;
-        }
-
-        setError(profileResult.error);
-        return;
-      }
-
-      const listingsResult = await getJson<SellerListingsResponse>("/api/seller/listings");
-      if (isApiFailure(listingsResult)) {
-        if (listingsResult.error.statusCode === 401) {
-          setUnauthorized(true);
-          return;
-        }
-
-        setError(listingsResult.error);
-        return;
-      }
-
-      setProfile(profileResult.data);
-      setListings(listingsResult.data.data);
-    });
-  }, []);
-
-  if (isPending && !profile && !unauthorized && !error) {
-    return <PageSpinner label="Loading seller workspace" />;
-  }
-
-  if (unauthorized) {
-    return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <EmptyState
-          icon={Plus}
-          headline="Sign in as a seller to load live data"
-          body="This workspace now reads from the real API. Use a seller account first, then come back here to see your saved listings."
-          cta={{ label: "Go to login", href: "/auth/login" }}
-        />
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <ErrorBanner message={error.message} correlationId={error.correlationId} />
-      </main>
-    );
-  }
-
-  if (!profile) {
-    return <PageSpinner label="Loading seller workspace" />;
-  }
-
+export function SellerDashboard({
+  profile,
+  listings,
+}: {
+  profile: MeResponse;
+  listings: SellerListingSummaryDto[];
+}) {
   const metrics = [
     { label: "Views", value: sumBy(listings, "viewCount"), icon: Eye },
     { label: "Viewings", value: sumBy(listings, "viewingCount"), icon: Calendar },

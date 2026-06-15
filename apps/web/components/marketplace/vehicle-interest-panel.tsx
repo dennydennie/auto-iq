@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CalendarClock, MessageSquareQuote, ShieldCheck } from "lucide-react";
 import type { QuoteDto, CreateQuoteRequest } from "@auto-iq/contracts/quotes";
 import type { ApprovedViewingLocationDto } from "@auto-iq/contracts/reference-data";
 import type { RequestViewingRequest, ViewingDto } from "@auto-iq/contracts/viewings";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { isApiFailure, postJson } from "@/lib/web-api";
 
@@ -56,17 +58,6 @@ export function VehicleInterestPanel({
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isPending, startTransition] = useTransition();
   const canBookViewing = viewerState === "buyer" && viewingLocations.length > 0;
-
-  useEffect(() => {
-    if (viewingForm.locationId || viewingLocations.length === 0) {
-      return;
-    }
-
-    setViewingForm((current) => ({
-      ...current,
-      locationId: defaultLocationId(viewingLocations),
-    }));
-  }, [viewingForm.locationId, viewingLocations]);
 
   function setQuoteField<K extends keyof CreateQuoteRequest>(key: K, value: CreateQuoteRequest[K]) {
     setQuoteForm((current) => ({ ...current, [key]: value }));
@@ -182,16 +173,15 @@ export function VehicleInterestPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="paymentPlan">Payment plan</Label>
-              <select
+              <Select
                 id="paymentPlan"
-                className="flex h-11 w-full rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] shadow-sm outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
                 value={quoteForm.paymentPlan}
                 onChange={(event) => setQuoteField("paymentPlan", event.target.value as CreateQuoteRequest["paymentPlan"])}
               >
                 <option value="FULL_CASH">Full cash</option>
                 <option value="BANK_TRANSFER">Bank transfer</option>
                 <option value="OTHER">Other</option>
-              </select>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="quoteMessage">Message</Label>
@@ -249,9 +239,8 @@ export function VehicleInterestPanel({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="locationId">Approved location</Label>
-                <select
+                <Select
                   id="locationId"
-                  className="flex h-11 w-full rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] shadow-sm outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35"
                   value={viewingForm.locationId}
                   onChange={(event) => setViewingField("locationId", event.target.value)}
                 >
@@ -260,7 +249,7 @@ export function VehicleInterestPanel({
                       {location.name} · {location.city}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="viewingNote">Note</Label>
@@ -290,9 +279,7 @@ export function VehicleInterestPanel({
           correlationId={feedback.correlationId}
         />
       ) : (
-        <div className="lg:col-span-2 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-          {feedback.message}
-        </div>
+        <NoticeBanner className="lg:col-span-2" message={feedback.message} />
       ) : null}
     </div>
   );

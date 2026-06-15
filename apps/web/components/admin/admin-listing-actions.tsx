@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ListingStatus } from "@auto-iq/contracts/enums";
 import type { AdminListingDto } from "@auto-iq/contracts/admin";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,9 +69,7 @@ export function AdminListingActions({
       {feedback ? feedback.kind === "error" ? (
         <ErrorBanner message={feedback.message} correlationId={feedback.correlationId} />
       ) : (
-        <div className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-          {feedback.message}
-        </div>
+        <NoticeBanner message={feedback.message} />
       ) : null}
 
       <div className="space-y-2">

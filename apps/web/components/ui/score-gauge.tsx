@@ -2,9 +2,10 @@ interface ScoreGaugeProps {
   score: number;
   size?: number;
   light?: boolean;
+  ariaLabel?: string;
 }
 
-export function ScoreGauge({ score, size = 80, light = false }: ScoreGaugeProps) {
+export function ScoreGauge({ score, size = 80, light = false, ariaLabel }: ScoreGaugeProps) {
   const r = (size / 2) - 8;
   const cx = size / 2;
   const cy = size / 2;
@@ -12,13 +13,19 @@ export function ScoreGauge({ score, size = 80, light = false }: ScoreGaugeProps)
   const fraction = Math.max(0, Math.min(100, score)) / 100;
   const dash = fraction * circumference;
 
-  const color = score >= 80 ? "#1F7A4C" : score >= 60 ? "#FFC72C" : "#9B1C1C";
-  const trackColor = light ? "rgba(255,255,255,0.15)" : "#ECEEF4";
-  const textColor = light ? "#FFFFFF" : "#0A1E4D";
-  const labelColor = light ? "rgba(255,255,255,0.6)" : "#8089A3";
+  const color = score >= 80 ? "var(--verified)" : score >= 60 ? "var(--amber)" : "var(--reject)";
+  const trackColor = light ? "rgba(255,255,255,0.15)" : "var(--ink-100)";
+  const textColor = light ? "#FFFFFF" : "var(--ink-900)";
+  const labelColor = light ? "rgba(255,255,255,0.6)" : "var(--ink-400)";
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      role="img"
+      aria-label={ariaLabel ?? `Inspection score ${score} out of 100`}
+    >
       {/* Track */}
       <circle
         cx={cx} cy={cy} r={r}

@@ -19,6 +19,7 @@ import type {
 import type { CreateListingRequest, SellerListingDto } from "@auto-iq/contracts/listings";
 import { ArrowRight } from "lucide-react";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 
 import { isApiFailure, postJson } from "@/lib/web-api";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 
 type ListingFormState = {
   make: string;
@@ -45,9 +47,6 @@ type ListingFormState = {
   hasAccidentHistory: boolean;
   accidentNote: string;
 };
-
-const SELECT_CLASS_NAME =
-  "flex h-11 w-full rounded-xl border border-[var(--ink-200)] bg-white px-3.5 text-sm text-[var(--ink-900)] shadow-sm outline-none transition focus:border-[var(--ink-900)] focus:ring-2 focus:ring-[#FFC72C]/35";
 
 const INITIAL_FORM: ListingFormState = {
   make: "",
@@ -125,14 +124,7 @@ export function CreateListingForm() {
       ) : null}
 
       {createdListing ? (
-        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-950">
-          <p className="font-semibold">
-            Draft listing created: {createdListing.id} ({createdListing.slug})
-          </p>
-          <p className="mt-1">
-            The record was saved through the live staging API and is ready for the next wizard steps.
-          </p>
-        </div>
+        <NoticeBanner message={`Draft listing created: ${createdListing.id} (${createdListing.slug}). The record was saved through the live staging API and is ready for the next wizard steps.`} />
       ) : null}
 
       <form className="space-y-5" onSubmit={handleSubmit}>
@@ -174,9 +166,8 @@ export function CreateListingForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="body-type">Body type</Label>
-            <select
+            <Select
               id="body-type"
-              className={SELECT_CLASS_NAME}
               value={form.bodyType}
               onChange={(event) => setField("bodyType", event.target.value as BodyType)}
             >
@@ -185,7 +176,7 @@ export function CreateListingForm() {
                   {optionLabel(value)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="colour">Colour</Label>
@@ -202,9 +193,8 @@ export function CreateListingForm() {
         <div className="grid gap-5 md:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="fuel-type">Fuel type</Label>
-            <select
+            <Select
               id="fuel-type"
-              className={SELECT_CLASS_NAME}
               value={form.fuelType}
               onChange={(event) => setField("fuelType", event.target.value as FuelType)}
             >
@@ -213,13 +203,12 @@ export function CreateListingForm() {
                   {optionLabel(value)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="transmission">Transmission</Label>
-            <select
+            <Select
               id="transmission"
-              className={SELECT_CLASS_NAME}
               value={form.transmission}
               onChange={(event) => setField("transmission", event.target.value as TransmissionType)}
             >
@@ -228,13 +217,12 @@ export function CreateListingForm() {
                   {optionLabel(value)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="drive-type">Drive type</Label>
-            <select
+            <Select
               id="drive-type"
-              className={SELECT_CLASS_NAME}
               value={form.driveType}
               onChange={(event) => setField("driveType", event.target.value as DriveType)}
             >
@@ -243,7 +231,7 @@ export function CreateListingForm() {
                   {optionLabel(value)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
@@ -270,9 +258,8 @@ export function CreateListingForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="condition">Condition</Label>
-            <select
+            <Select
               id="condition"
-              className={SELECT_CLASS_NAME}
               value={form.condition}
               onChange={(event) => setField("condition", event.target.value as ConditionGrade)}
             >
@@ -281,7 +268,7 @@ export function CreateListingForm() {
                   {optionLabel(value)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
@@ -301,7 +288,8 @@ export function CreateListingForm() {
           </div>
           <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 text-sm leading-6 text-[var(--ink-500)]">
             <p className="mt-2">
-              Your draft is saved automatically. You can return any time to continue.
+              Your draft is only saved when you submit this step. Save before leaving if you want
+              to continue later.
             </p>
           </div>
         </div>
