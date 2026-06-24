@@ -36,7 +36,7 @@ export class SessionService {
       return null;
     }
     const user = await this.userRepository.findProfileById(userId);
-    if (!user || user.status === "SUSPENDED") {
+    if (!user || user.status !== "ACTIVE") {
       return null;
     }
     return {

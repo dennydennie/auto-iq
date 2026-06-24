@@ -1,7 +1,10 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
+  forwardRef,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
@@ -13,6 +16,7 @@ import { UserEntity } from "../../db/entity/user.entity";
 import { AuditLogRepository } from "../../db/repository/audit-log.repository";
 import { UserRepository } from "../../db/repository/user.repository";
 import { RedisService } from "../redis/redis.service";
+import { NotificationService } from "../notifications/notification.service";
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from "./dto/auth.dto";
 import { PasswordService } from "./password.service";
 import { RateLimitService } from "./rate-limit.service";
@@ -30,6 +34,8 @@ export class AuthService {
     private readonly rateLimitService: RateLimitService,
     private readonly redisService: RedisService,
     private readonly userRepository: UserRepository,
+    @Inject(forwardRef(() => NotificationService))
+    private readonly notificationService: NotificationService,
   ) {}
 
   async register(body: RegisterDto) {
@@ -82,6 +88,14 @@ export class AuthService {
         message: "Invalid credentials",
       });
     }
+    if (user.status !== "ACTIVE") {
+      await this.audit("auth.login", user.id, "failure");
+      throw new UnauthorizedException({
+        code: "OTP_REQUIRED",
+        message: "Verify your phone number before signing in.",
+        details: [{ field: "phone", message: "Registered phone number", value: user.phone }],
+      });
+    }
     await this.audit("auth.login", user.id, "success");
     return {
       userId: user.id,
@@ -97,11 +111,38 @@ export class AuthService {
     if (!user) {
       return;
     }
+
     const token = randomBytes(32).toString("base64url");
     await this.redisService.set(`reset:${token}`, user.id, RESET_TTL_SECONDS);
+
+    const resetUrl = this.resetUrl(token);
+    const deliveries = await this.notificationService.notifyUser({
+      userId: user.id,
+      email: user.email,
+      phone: user.phone,
+      template: "PASSWORD_RESET",
+      idempotencyKeyBase: `password-reset:${user.id}:${token}`,
+      payload: {
+        email: user.email,
+        expiresInMinutes: Math.round(RESET_TTL_SECONDS / 60),
+        resetUrl,
+      },
+      channels: ["EMAIL"],
+    });
+
     if (this.config.get<string>("NODE_ENV") !== "production") {
       await this.redisService.set(`reset_delivery:${user.email}`, token, RESET_TTL_SECONDS);
     }
+
+    if (!deliveries.some((delivery) => delivery.status === "SENT")) {
+      await this.redisService.del(`reset:${token}`);
+      await this.redisService.del(`reset_delivery:${user.email}`);
+      throw new ServiceUnavailableException({
+        code: "DELIVERY_UNAVAILABLE",
+        message: "Password reset is temporarily unavailable. Please try again shortly.",
+      });
+    }
+
     await this.audit("auth.password_reset_requested", user.id, "success");
   }
 
@@ -148,5 +189,14 @@ export class AuthService {
         outcome,
       }),
     );
+  }
+
+  private resetUrl(token: string) {
+    const baseUrl = this.config.get<string>("WEB_BASE_URL")
+      ?? this.config.get<string>("CORS_ORIGINS", "http://localhost:3000").split(",")[0]?.trim()
+      ?? "http://localhost:3000";
+    const url = new URL("/auth/reset-password", baseUrl);
+    url.searchParams.set("token", token);
+    return url.toString();
   }
 }

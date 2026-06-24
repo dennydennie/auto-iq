@@ -132,7 +132,7 @@ ensure_smoke_password() {
     return
   fi
 
-  node -e "const crypto=require('node:crypto'); process.stdout.write(`auto-iq-smoke-${crypto.randomBytes(9).toString('base64url')}`);"
+  node -e "const crypto=require('node:crypto'); process.stdout.write(\`AutoIQ!\${crypto.randomBytes(6).toString('base64url')}9\`);"
 }
 
 extract_public_domain() {
@@ -225,8 +225,6 @@ main() {
   require_command node
   require_command pnpm
 
-  SMOKE_PASSWORD="$(ensure_smoke_password)"
-
   log_step "Checking Railway authentication"
   ensure_logged_in
 
@@ -243,6 +241,10 @@ main() {
 
   log_step "Configuring API variables"
   configure_api_variables "$(ensure_session_secret)"
+
+  local smoke_password
+  smoke_password="$(ensure_smoke_password)"
+  SMOKE_PASSWORD="$smoke_password"
 
   log_step "Deploying API service"
   deploy_api
@@ -261,10 +263,10 @@ main() {
 
   log_step "Running remote smoke checks"
   API_BASE="${api_origin}/api/v1" \
-  SMOKE_PASSWORD="$SMOKE_PASSWORD" \
+  SMOKE_PASSWORD="$smoke_password" \
   SMOKE_EMAIL="$(printf '%s' "$seed_output" | node -e 'const fs=require("node:fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); process.stdout.write(data.users.seller);')" \
   ADMIN_EMAIL="$(printf '%s' "$seed_output" | node -e 'const fs=require("node:fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); process.stdout.write(data.users.admin);')" \
-  ADMIN_PASSWORD="$SMOKE_PASSWORD" \
+  ADMIN_PASSWORD="$smoke_password" \
   "$ROOT_DIR/scripts/smoke-remote.sh"
 
   printf '\nAPI_ORIGIN=%s\n' "$api_origin"

@@ -24,7 +24,7 @@ describe("scrubSentryEvent", () => {
     const authEvent = scrubSentryEvent({
       request: {
         url: "https://api.example.com/api/v1/auth/login",
-        data: { password: "LocalFixtureA9" },
+        data: { password: "<redacted>" },
       },
     } as never);
     const storageEvent = scrubSentryEvent({

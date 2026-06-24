@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { Injectable, NotFoundException, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
 import { UserRepository } from "../../db/repository/user.repository";
@@ -32,15 +32,24 @@ export class OtpService {
     }
     const user = await this.userRepository.findByPhone(phone);
     if (user) {
-      await this.notificationService.notifyUser({
+      const deliveries = await this.notificationService.notifyUser({
         userId: user.id,
         email: user.email,
         phone: user.phone,
         template: "OTP_VERIFY",
         idempotencyKeyBase: `otp:${phone}:${code}`,
-        payload: { phone, expiresIn: OTP_TTL_SECONDS },
-        channels: ["SMS"],
+        payload: { code, expiresIn: OTP_TTL_SECONDS, phone },
+        channels: ["SMS", "EMAIL"],
       });
+
+      if (!deliveries.some((delivery) => delivery.status === "SENT")) {
+        await this.redisService.del(this.key(phone));
+        await this.redisService.del(this.deliveryKey(phone));
+        throw new ServiceUnavailableException({
+          code: "DELIVERY_UNAVAILABLE",
+          message: "Unable to deliver a verification code right now. Please try again shortly.",
+        });
+      }
     }
     return { expiresIn: OTP_TTL_SECONDS, attemptsRemaining };
   }

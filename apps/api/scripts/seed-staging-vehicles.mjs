@@ -1,10 +1,13 @@
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 
 const apiBase = process.env.API_BASE ?? 'http://api:4000/api/v1';
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  'postgresql://auto_iq:auto_iq_dev@postgres:5432/auto_iq';
+const password = process.env.PASSWORD ?? generatedPassword();
 const runId = process.env.RUN_ID ?? `${Date.now()}`;
-const databaseUrl = readRequiredEnv('DATABASE_URL');
-const password = process.env.PASSWORD ?? `auto-iq-seed-${runId}-A9`;
 
 const sellerEmail = `staging-seller-${runId}@example.com`;
 const sellerPhone = `+26377${runId.slice(-4)}4111`;
@@ -18,12 +21,8 @@ const pdfBytes = new TextEncoder().encode(
   '%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n',
 );
 
-function readRequiredEnv(name) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Set ${name} before running seed-staging-vehicles.mjs.`);
-  }
-  return value;
+function generatedPassword() {
+  return `AutoIQ!${randomBytes(6).toString('base64url')}9`;
 }
 
 const VEHICLES = [

@@ -1,10 +1,13 @@
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 
 const apiBase = process.env.API_BASE ?? 'http://api:4000/api/v1';
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  'postgresql://auto_iq:auto_iq_dev@postgres:5432/auto_iq';
+const password = process.env.PASSWORD ?? generatedPassword();
 const runId = process.env.RUN_ID ?? `${Date.now()}`;
-const databaseUrl = readRequiredEnv('DATABASE_URL');
-const password = process.env.PASSWORD ?? `auto-iq-seed-${runId}-A9`;
 
 const sellerEmail = `mobile-seller-${runId}@example.com`;
 const sellerPhone = `+26377${runId.slice(-4)}1111`;
@@ -15,12 +18,8 @@ const inspectorPhone = `+26377${runId.slice(-4)}3333`;
 
 const client = new Client({ connectionString: databaseUrl });
 
-function readRequiredEnv(name) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Set ${name} before running seed-mobile-demo.mjs.`);
-  }
-  return value;
+function generatedPassword() {
+  return `AutoIQ!${randomBytes(6).toString('base64url')}9`;
 }
 
 async function registerSeller() {

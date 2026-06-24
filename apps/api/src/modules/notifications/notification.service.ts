@@ -6,7 +6,7 @@ import { NotificationRepository } from "../../db/repository/notification.reposit
 import { ViewingAppointmentRepository } from "../../db/repository/viewing-appointment.repository";
 import { AuditService } from "../audit/audit.service";
 import { NotificationListQueryDto } from "./dto/notifications.dto";
-import { ProviderSendInput, SandboxNotificationProvider } from "./sandbox-notification.provider";
+import { NotificationProvider, type ProviderSendInput } from "./notification-provider";
 
 const MAX_NOTIFICATION_ATTEMPTS = 3;
 const RETRY_DELAY_SECONDS = 300;
@@ -63,7 +63,7 @@ export class NotificationService {
     private readonly configService: ConfigService,
     private readonly notificationAttemptRepository: NotificationAttemptRepository,
     private readonly notificationRepository: NotificationRepository,
-    private readonly provider: SandboxNotificationProvider,
+    private readonly provider: NotificationProvider,
     private readonly viewingRepository: ViewingAppointmentRepository,
   ) {}
 

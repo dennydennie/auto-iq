@@ -19,6 +19,7 @@ interface ApiErrorEnvelope {
 interface FieldError {
   field: string;
   message: string;
+  value?: unknown;
 }
 
 @Catch()
@@ -89,10 +90,30 @@ function getErrorMessage(exception: unknown): string {
 
 function getDetails(exception: unknown): FieldError[] | undefined {
   const body = getExceptionBody(exception);
-  if (!isRecord(body) || !Array.isArray(body.message)) {
+  if (!isRecord(body)) {
+    return undefined;
+  }
+  if (Array.isArray(body.details)) {
+    return body.details
+      .map((detail) => normalizeFieldError(detail))
+      .filter((detail): detail is FieldError => detail !== null);
+  }
+  if (!Array.isArray(body.message)) {
     return undefined;
   }
   return body.message.map((message) => ({ field: "request", message: String(message) }));
+}
+
+function normalizeFieldError(value: unknown): FieldError | null {
+  if (!isRecord(value) || typeof value.field !== "string" || typeof value.message !== "string") {
+    return null;
+  }
+
+  return {
+    field: value.field,
+    message: value.message,
+    value: value.value,
+  };
 }
 
 function getExceptionBody(exception: unknown): unknown {

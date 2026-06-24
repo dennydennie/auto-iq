@@ -77,7 +77,7 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  SESSION_SECRET!: string;
+  SESSION_SECRET = "dev-auto-iq-session-secret-change-me";
 
   @IsString()
   @IsNotEmpty()
@@ -89,11 +89,11 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  STORAGE_ACCESS_KEY!: string;
+  STORAGE_ACCESS_KEY = "minioadmin";
 
   @IsString()
   @IsNotEmpty()
-  STORAGE_SECRET_KEY!: string;
+  STORAGE_SECRET_KEY = "minioadmin";
 
   @IsString()
   @IsNotEmpty()
@@ -104,6 +104,10 @@ class EnvironmentVariables {
   STORAGE_PUBLIC_BASE_URL?: string;
 
   @IsOptional()
+  @IsString()
+  WEB_BASE_URL?: string;
+
+  @IsOptional()
   @IsBoolean()
   @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
   STORAGE_FORCE_PATH_STYLE = true;
@@ -111,6 +115,101 @@ class EnvironmentVariables {
   @Transform(({ value }: { value: unknown }) => Number(value ?? 900))
   @IsInt()
   STORAGE_PRESIGN_TTL_SECONDS = 900;
+
+  @IsOptional()
+  @IsIn(["sandbox", "resend", "sendgrid"])
+  NOTIFICATION_EMAIL_PROVIDER?: "sandbox" | "resend" | "sendgrid";
+
+  @IsOptional()
+  @IsString()
+  NOTIFICATION_EMAIL_FROM?: string;
+
+  @IsOptional()
+  @IsString()
+  NOTIFICATION_EMAIL_REPLY_TO?: string;
+
+  @IsOptional()
+  @IsString()
+  RESEND_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDGRID_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDGRID_API_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  SENDGRID_SENDER_EMAIL?: string;
+
+  @IsOptional()
+  @IsString()
+  EMAIL_SENDER_EMAIL?: string;
+
+  @IsOptional()
+  @IsIn(["sandbox", "twilio", "gikko"])
+  NOTIFICATION_SMS_PROVIDER?: "sandbox" | "twilio" | "gikko";
+
+  @IsOptional()
+  @IsString()
+  TWILIO_ACCOUNT_SID?: string;
+
+  @IsOptional()
+  @IsString()
+  TWILIO_AUTH_TOKEN?: string;
+
+  @IsOptional()
+  @IsString()
+  TWILIO_FROM_PHONE?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_SMS_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_SMS_SEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_SENDER_NAME?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_SMS_SENDER?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_DELIVERY_REPORT_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_SMS_NOTIFY_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  GIKKO_SMS_AUTH_SCHEME?: string;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => Number(value))
+  @IsInt()
+  @Min(1)
+  GIKKO_SMS_TIMEOUT_MS?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  GIKKO_SMS_ENABLED?: boolean;
 
   @IsOptional()
   @IsBoolean()

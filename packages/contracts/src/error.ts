@@ -31,10 +31,12 @@ export type ApiResult<T> =
 export const API_ERROR_CODES = {
   // Auth
   INVALID_CREDENTIALS:        'INVALID_CREDENTIALS',
+  OTP_REQUIRED:              'OTP_REQUIRED',
   OTP_INVALID:                'OTP_INVALID',
   OTP_EXPIRED:                'OTP_EXPIRED',
   OTP_MAX_ATTEMPTS:           'OTP_MAX_ATTEMPTS',
   SESSION_EXPIRED:            'SESSION_EXPIRED',
+  DELIVERY_UNAVAILABLE:      'DELIVERY_UNAVAILABLE',
   // Authorization
   FORBIDDEN:                  'FORBIDDEN',
   RESOURCE_NOT_FOUND:         'RESOURCE_NOT_FOUND',
