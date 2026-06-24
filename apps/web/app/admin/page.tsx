@@ -19,7 +19,7 @@ export default async function AdminHomePage() {
           <EmptyState
             icon={ListTodo}
             headline="Admin sign-in required"
-            body="The admin overview is now backed by the live operations endpoint. Sign in with an admin account to load queue counts."
+            body="Sign in with an admin account to load queue counts and moderation activity."
             cta={{ label: "Go to admin login", href: "/admin/login" }}
           />
         ) : (
@@ -45,7 +45,8 @@ export default async function AdminHomePage() {
             Operations dashboard
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-            This dashboard is now reading from the real admin operations endpoint in `apps/api` rather than static placeholder counts.
+            Review moderation queues, viewing activity, and buyer requests that need
+            operator attention.
           </p>
         </div>
 

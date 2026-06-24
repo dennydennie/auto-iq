@@ -82,8 +82,8 @@ export function SellerDashboard({
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="max-w-2xl text-sm leading-7 text-white/72">
-              This dashboard is reading from the staging API and reflects records saved in
-              the real database instead of placeholder inventory.
+              Track listing activity, buyer interest, and review progress from one seller
+              workspace.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               {metrics.map(({ label, value, icon: Icon }) => (
@@ -107,8 +107,8 @@ export function SellerDashboard({
                 Add a new vehicle
               </h2>
               <p className="mt-3 text-sm leading-7 text-[var(--ink-500)]">
-                The create flow now writes a real draft listing through the live API and
-                brings it straight back into this workspace.
+                Capture the core vehicle details first, then continue with photos,
+                documents, and review when the draft is ready.
               </p>
             </div>
             <Link
@@ -127,11 +127,11 @@ export function SellerDashboard({
           <Sparkles className="mt-1 h-5 w-5 text-[var(--amber-dark)]" />
           <div>
             <h2 className="display text-2xl text-[var(--ink-900)]">
-              The seller view is reading from the database now
+              Keep each listing moving
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-              Listing summaries, counts, and updated timestamps are no longer static copy.
-              They are coming back from the staging API behind the app proxy.
+              Listings stay in draft until you complete the required information and send
+              them for review.
             </p>
           </div>
         </div>
@@ -154,7 +154,7 @@ export function SellerDashboard({
           <EmptyState
             icon={Plus}
             headline="No live listings yet"
-            body="Create your first draft listing and it will appear here as soon as the API saves it."
+            body="Create your first draft listing to start building your seller workspace."
             cta={{ label: "Create a listing", href: "/seller/listings/new" }}
           />
         ) : (

@@ -6,8 +6,8 @@ export default function AdminUsersPage() {
     <main className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
       <EmptyState
         icon={Users}
-        headline="User administration coming soon."
-        body="Account management, role assignment, and support tooling will appear here."
+        headline="No user actions available"
+        body="User access is controlled by account roles. Return to the overview when there are moderation tasks to review."
         cta={{ label: "Return to admin home", href: "/admin" }}
       />
     </main>

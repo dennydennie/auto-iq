@@ -74,10 +74,11 @@ export default async function VehiclesPage({
       <div className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_28px_90px_-50px_rgba(22,31,58,0.35)] backdrop-blur sm:p-8">
         <Badge variant="outline">Live catalogue</Badge>
         <h1 className="display mt-4 text-4xl text-[var(--ink-900)] sm:text-5xl">
-          Browse vehicles saved in the real API
+          Browse verified vehicle listings
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-          This browse view now reads directly from the contracts-backed catalogue endpoint. Filters below are mapped to the actual query parameters exposed by `apps/api`.
+          Filter by make, city, body type, and verification status to find vehicles
+          that match your search.
         </p>
 
         <form className="mt-8 grid gap-4 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-5 md:grid-cols-5">

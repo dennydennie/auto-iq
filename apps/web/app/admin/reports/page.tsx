@@ -6,8 +6,8 @@ export default function AdminReportsPage() {
     <main className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
       <EmptyState
         icon={FileText}
-        headline="Reporting surfaces will be added here."
-        body="The route exists now so the console structure can grow without being reshuffled later when reporting and observability workflows are implemented."
+        headline="No reports available"
+        body="There are no downloadable reports for the current admin session."
         cta={{ label: "Return to admin home", href: "/admin" }}
       />
     </main>

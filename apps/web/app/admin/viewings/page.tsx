@@ -67,7 +67,7 @@ export default async function AdminViewingsPage({
           <EmptyState
             icon={CalendarClock}
             headline="Admin sign-in required"
-            body="The viewing scheduler is now pulling directly from the admin viewings endpoint."
+            body="Sign in with an admin account to review and coordinate scheduled viewings."
             cta={{ label: "Go to admin login", href: "/admin/login" }}
           />
         ) : (
@@ -87,7 +87,7 @@ export default async function AdminViewingsPage({
       <Badge variant="outline">Viewing operations</Badge>
       <h1 className="display mt-4 text-4xl text-[var(--ink-900)]">Viewing scheduler</h1>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-        This page is now backed by the real admin viewing list endpoint and reflects saved appointments instead of mock slots.
+        Coordinate buyer appointments, seller confirmations, and location readiness.
       </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">

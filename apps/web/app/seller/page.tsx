@@ -20,8 +20,8 @@ export default async function SellerPage() {
         <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
           <EmptyState
             icon={Plus}
-            headline="Sign in as a seller to load live data"
-            body="This workspace now reads from the real API. Use a seller account first, then come back here to see your saved listings."
+            headline="Sign in as a seller"
+            body="Use a seller account to manage drafts, submitted listings, and buyer activity."
             cta={{ label: "Go to login", href: "/auth/login" }}
           />
         </main>
@@ -41,8 +41,8 @@ export default async function SellerPage() {
         <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
           <EmptyState
             icon={Plus}
-            headline="Sign in as a seller to load live data"
-            body="This workspace now reads from the real API. Use a seller account first, then come back here to see your saved listings."
+            headline="Sign in as a seller"
+            body="Use a seller account to manage drafts, submitted listings, and buyer activity."
             cta={{ label: "Go to login", href: "/auth/login" }}
           />
         </main>

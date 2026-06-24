@@ -6,8 +6,8 @@ export default function AdminSettingsPage() {
     <main className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
       <EmptyState
         icon={Settings}
-        headline="Settings and guardrails belong here."
-        body="This placeholder reserves the administrative settings space while the product plan is still focused on auth, marketplace, seller, and moderation flows."
+        headline="No configurable settings"
+        body="Operational guardrails are managed through deployment configuration. Use the overview for current moderation controls."
         cta={{ label: "Return to admin home", href: "/admin" }}
       />
     </main>
