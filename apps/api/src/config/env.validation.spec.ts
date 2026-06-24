@@ -94,6 +94,20 @@ describe("validateEnv", () => {
     expect(env.GIKKO_SMS_TIMEOUT_MS).toBe(10000);
   });
 
+  it("accepts an explicit SMS stub provider for staging", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      STORAGE_ENDPOINT: "http://localhost:9000",
+      STORAGE_REGION: "us-east-1",
+      STORAGE_ACCESS_KEY: "minioadmin",
+      STORAGE_SECRET_KEY: "minioadmin",
+      STORAGE_BUCKET: "auto-iq-local",
+      NOTIFICATION_SMS_PROVIDER: "stub",
+    });
+
+    expect(env.NOTIFICATION_SMS_PROVIDER).toBe("stub");
+  });
+
   it("accepts database-only configuration for cli migrations", () => {
     const env = validateDatabaseEnv({
       NODE_ENV: "development",
