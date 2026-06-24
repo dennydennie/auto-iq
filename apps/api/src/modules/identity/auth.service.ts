@@ -196,7 +196,7 @@ export class AuthService {
       ?? this.config.get<string>("CORS_ORIGINS", "http://localhost:3000").split(",")[0]?.trim()
       ?? "http://localhost:3000";
     const url = new URL("/auth/reset-password", baseUrl);
-    url.searchParams.set("token", token);
+    url.hash = `token=${encodeURIComponent(token)}`;
     return url.toString();
   }
 }

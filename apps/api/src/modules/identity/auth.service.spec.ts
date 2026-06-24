@@ -112,6 +112,11 @@ describe("AuthService", () => {
       user.id,
       1800,
     );
+    const notifyCall = notificationService.notifyUser.mock.calls[0]?.[0];
+    const resetUrl = notifyCall?.payload?.resetUrl as string;
+
+    expect(resetUrl).toMatch(/^https:\/\/web\.example\.com\/auth\/reset-password#token=/);
+    expect(resetUrl).not.toContain("?token=");
     expect(notificationService.notifyUser).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: user.id,
@@ -120,9 +125,7 @@ describe("AuthService", () => {
         template: "PASSWORD_RESET",
         payload: expect.objectContaining({
           expiresInMinutes: 30,
-          resetUrl: expect.stringMatching(
-            /^https:\/\/web\.example\.com\/auth\/reset-password\?token=/,
-          ),
+          resetUrl,
         }),
       }),
     );

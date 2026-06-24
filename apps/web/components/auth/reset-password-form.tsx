@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -10,15 +11,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function ResetPasswordForm({ token }: { token: string | null }) {
+function readToken(location: Location) {
+  const hashToken = new URLSearchParams(location.hash.replace(/^#/, "")).get("token");
+  const queryToken = new URLSearchParams(location.search).get("token");
+  return hashToken || queryToken;
+}
+
+export function ResetPasswordForm() {
   const router = useRouter();
+  const [token] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : readToken(window.location),
+  );
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (token) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [token]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setNotice(null);

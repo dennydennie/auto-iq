@@ -3,36 +3,22 @@ import { AuthShell } from "@/components/shared/auth-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
-type SearchParams = Promise<{ token?: string | string[] }>;
-
-function readParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function ResetPasswordPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const params = await searchParams;
-  const token = readParam(params.token) ?? null;
-
+export default function ResetPasswordPage() {
   return (
     <AuthShell
       eyebrow="Set a new password"
       title="Choose a fresh password and return to your workflow."
-      description="Reset needs to be direct and trustworthy. This screen surfaces token state and makes the completion step the clearest action on the page."
+      description="Use your password reset link to set a new password and return to sign in."
       ctaLabel="Need to request a new link?"
       ctaHref="/auth/forgot-password"
       highlight={
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#FFC72C]">
-            Token state
+            Secure reset
           </p>
           <p className="text-sm leading-7 text-white/72">
-            {token
-              ? "A reset token is present, so the user can complete the change here."
-              : "No token is present yet. The UI still explains the expected flow and blocks unsafe submission."}
+            Your link is used once. After the reset succeeds, sign in with your new
+            password.
           </p>
         </div>
       }
@@ -48,7 +34,7 @@ export default async function ResetPasswordPage({
 
         <Card>
           <CardContent className="p-6">
-            <ResetPasswordForm token={token} />
+            <ResetPasswordForm />
           </CardContent>
         </Card>
       </div>

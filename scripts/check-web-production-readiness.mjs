@@ -13,6 +13,7 @@ const renderedFiles = [
   "apps/web/app/admin/users/page.tsx",
   "apps/web/app/admin/viewings/page.tsx",
   "apps/web/app/(marketplace)/vehicles/page.tsx",
+  "apps/web/app/auth/reset-password/page.tsx",
   "apps/web/app/seller/page.tsx",
   "apps/web/app/seller/listings/[id]/page.tsx",
   "apps/web/app/seller/listings/new/page.tsx",
@@ -32,6 +33,8 @@ const blockedPhrases = [
   "staging API",
   "`apps/api`",
   "will appear",
+  "Token state",
+  "A reset token is present",
 ];
 
 const failures = [];
