@@ -10,7 +10,8 @@ REDIS_SERVICE="${RAILWAY_REDIS_SERVICE:-redis}"
 API_SERVICE="${RAILWAY_API_SERVICE:-api}"
 BUCKET_NAME="${RAILWAY_BUCKET_NAME:-assets}"
 BUCKET_REGION="${RAILWAY_BUCKET_REGION:-auto}"
-CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000}"
+WEB_BASE_URL="${WEB_BASE_URL:-}"
+CORS_ORIGINS="${CORS_ORIGINS:-$WEB_BASE_URL}"
 SESSION_SECRET_VALUE="${SESSION_SECRET_VALUE:-}"
 SMOKE_PASSWORD="${SMOKE_PASSWORD:-}"
 RUN_ID="${RUN_ID:-railway$(date +%s)}"
@@ -33,6 +34,13 @@ normalize_origin() {
     value=${value%/api/v1}
   fi
   printf '%s\n' "$value"
+}
+
+require_public_web_origin() {
+  if [[ ! "$WEB_BASE_URL" =~ ^https:// ]] || [[ "$WEB_BASE_URL" == *localhost* ]]; then
+    echo "WEB_BASE_URL must be set to the public HTTPS web origin before production deploy." >&2
+    exit 1
+  fi
 }
 
 railway_cmd() {
@@ -167,6 +175,7 @@ configure_api_variables() {
   set_variable "$API_SERVICE" "DATABASE_SSL" "true"
   set_variable "$API_SERVICE" "REDIS_URL" "\${{${REDIS_SERVICE}.REDIS_URL}}"
   set_variable "$API_SERVICE" "CORS_ORIGINS" "$CORS_ORIGINS"
+  set_variable "$API_SERVICE" "WEB_BASE_URL" "$WEB_BASE_URL"
   set_variable "$API_SERVICE" "CSRF_COOKIE_NAME" "auto_iq_csrf"
   set_variable "$API_SERVICE" "CSRF_HEADER_NAME" "x-csrf-token"
   set_variable "$API_SERVICE" "SESSION_COOKIE_NAME" "auto_iq_session"
@@ -224,6 +233,7 @@ main() {
   require_command railway
   require_command node
   require_command pnpm
+  require_public_web_origin
 
   log_step "Checking Railway authentication"
   ensure_logged_in

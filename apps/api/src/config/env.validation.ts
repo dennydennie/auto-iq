@@ -291,8 +291,31 @@ function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   if (env.SESSION_COOKIE_SECURE !== true) {
     missing.push("SESSION_COOKIE_SECURE=true");
   }
+  if (!isProductionWebOrigin(env.WEB_BASE_URL)) {
+    missing.push("WEB_BASE_URL(non-localhost HTTPS origin)");
+  }
 
   return missing;
+}
+
+function isProductionWebOrigin(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+
+    return (
+      url.protocol === "https:" &&
+      hostname !== "localhost" &&
+      hostname !== "127.0.0.1" &&
+      hostname !== "::1"
+    );
+  } catch {
+    return false;
+  }
 }
 
 function assertValidEnv(env: object) {

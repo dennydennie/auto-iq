@@ -41,6 +41,7 @@ describe("validateEnv", () => {
       validateEnv({
         ...baseEnv,
         NODE_ENV: "production",
+        WEB_BASE_URL: "https://app.autoiq.example",
         STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
         STORAGE_REGION: "auto",
         STORAGE_ACCESS_KEY: "tigris-access-key",
@@ -50,6 +51,25 @@ describe("validateEnv", () => {
     ).toThrow(
       "Missing required production environment variables: SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_RELEASE, SESSION_COOKIE_SECURE=true",
     );
+  });
+
+  it("rejects localhost web origins in production-like environments", () => {
+    expect(() =>
+      validateEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        WEB_BASE_URL: "http://localhost:3000",
+        SESSION_COOKIE_SECURE: "true",
+        SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+        SENTRY_ENVIRONMENT: "production",
+        SENTRY_RELEASE: "api@1.0.0",
+        STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
+        STORAGE_REGION: "auto",
+        STORAGE_ACCESS_KEY: "tigris-access-key",
+        STORAGE_SECRET_KEY: "tigris-secret-key",
+        STORAGE_BUCKET: "auto-iq-production",
+      }),
+    ).toThrow("Missing required production environment variables: WEB_BASE_URL(non-localhost HTTPS origin)");
   });
 
   it("validates an explicit Redis connection timeout", () => {

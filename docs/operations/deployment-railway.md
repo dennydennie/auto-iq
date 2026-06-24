@@ -81,6 +81,7 @@ Recommended secret handling on Railway:
 - Set `SESSION_SECRET` as a Railway secret value, never in source control.
 - Set `SENTRY_DSN` as a Railway secret value when Sentry is enabled.
 - Set `CORS_ORIGINS` to the exact production web origins, comma-separated when multiple origins are required.
+- Set `WEB_BASE_URL` to the public HTTPS web origin. Production and staging startup reject localhost here because password reset links are generated from this value.
 
 ## Release command
 
