@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, ShieldCheck } from "lucide-react";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
+import { RecordConsentsForm } from "@/components/onboarding/record-consents-form";
 import { AuthShell } from "@/components/shared/auth-shell";
 import { StepIndicator } from "@/components/shared/step-indicator";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ConsentsPage() {
   return (
@@ -39,14 +39,6 @@ export default function ConsentsPage() {
 
         <Card>
           <CardContent className="space-y-5 p-6">
-            {[
-              "I consent to platform identity verification for secure account operations.",
-              "I consent to inspection and listing workflow communications where applicable.",
-              "I understand that admin review may request changes before publishing a listing.",
-            ].map((item) => (
-              <Checkbox key={item} defaultChecked label={item} />
-            ))}
-
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
                 <BadgeCheck className="h-4 w-4 text-[var(--amber-dark)]" />
@@ -62,17 +54,12 @@ export default function ConsentsPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/seller"
-                className={buttonVariants({ variant: "amber", className: "flex-1 w-full" })}
-              >
-                Continue to dashboard
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+            <RecordConsentsForm />
+
+            <div className="flex">
               <Link
                 href="/onboarding"
-                className={buttonVariants({ variant: "outline", className: "flex-1 w-full" })}
+                className={buttonVariants({ variant: "outline", className: "w-full" })}
               >
                 Back
               </Link>

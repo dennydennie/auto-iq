@@ -1,4 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { DataSource, EntityManager } from "typeorm";
+import { SellerProfileEntity } from "../../db/entity/seller-profile.entity";
+import { UserEntity } from "../../db/entity/user.entity";
+import { UserRoleEntity } from "../../db/entity/user-role.entity";
 import { BuyerProfileRepository } from "../../db/repository/buyer-profile.repository";
 import { SellerProfileRepository } from "../../db/repository/seller-profile.repository";
 import { UserRepository } from "../../db/repository/user.repository";
@@ -11,6 +15,7 @@ export class AccountsService {
     private readonly buyerProfileRepository: BuyerProfileRepository,
     private readonly sellerProfileRepository: SellerProfileRepository,
     private readonly userRepository: UserRepository,
+    private readonly dataSource: DataSource,
   ) {}
 
   async me(userId: string) {
@@ -57,6 +62,43 @@ export class AccountsService {
     }
 
     return this.me(userId);
+  }
+
+  async activateSeller(userId: string) {
+    await this.dataSource.transaction((manager) => this.ensureSellerAccess(manager, userId));
+    return this.me(userId);
+  }
+
+  private async ensureSellerAccess(manager: EntityManager, userId: string) {
+    const user = await manager.findOne(UserEntity, {
+      where: { id: userId },
+      relations: ["roles", "sellerProfile"],
+    });
+    if (!user) {
+      throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "User not found" });
+    }
+    await this.ensureSellerRole(manager, user);
+    await this.ensureSellerProfile(manager, user);
+  }
+
+  private async ensureSellerRole(manager: EntityManager, user: UserEntity) {
+    if (user.roles.some((role) => role.role === "SELLER")) {
+      return;
+    }
+    await manager.save(UserRoleEntity, { userId: user.id, role: "SELLER" });
+  }
+
+  private async ensureSellerProfile(manager: EntityManager, user: UserEntity) {
+    if (user.sellerProfile) {
+      return;
+    }
+    await manager.save(SellerProfileEntity, {
+      businessName: null,
+      city: user.city,
+      consentsComplete: false,
+      userId: user.id,
+      verified: false,
+    });
   }
 }
 

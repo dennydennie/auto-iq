@@ -26,6 +26,7 @@ export const ROUTES = {
 
   me: {
     profile: `${BASE}/me`,
+    sellerProfile: `${BASE}/me/seller-profile`,
     consents: `${BASE}/me/consents`,
     savedVehicles: `${BASE}/me/saved-vehicles`,
     savedVehicle: (listingId: string) =>
