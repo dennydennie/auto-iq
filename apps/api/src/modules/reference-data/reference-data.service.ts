@@ -1,5 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { VehicleMakeEntity } from "../../db/entity/vehicle-make.entity";
 import { ApprovedViewingLocationRepository } from "../../db/repository/approved-viewing-location.repository";
+import { VehicleMakeRepository } from "../../db/repository/vehicle-make.repository";
 import {
   BODY_TYPES,
   DRIVE_TYPES,
@@ -9,12 +11,15 @@ import {
 
 @Injectable()
 export class ReferenceDataService {
-  constructor(private readonly locationRepository: ApprovedViewingLocationRepository) {}
+  constructor(
+    private readonly locationRepository: ApprovedViewingLocationRepository,
+    private readonly vehicleMakeRepository: VehicleMakeRepository,
+  ) {}
 
   async getAll() {
     const locations = await this.locationRepository.findActive();
     return {
-      makes: this.getMakes(),
+      makes: await this.getMakes(),
       bodyTypes: BODY_TYPES.map((value) => ({ value, label: labelize(value) })),
       fuelTypes: FUEL_TYPES.map((value) => ({ value, label: labelize(value) })),
       transmissionTypes: TRANSMISSION_TYPES.map((value) => ({ value, label: labelize(value) })),
@@ -33,14 +38,39 @@ export class ReferenceDataService {
     };
   }
 
-  getMakes() {
-    return [
-      { id: "toyota", name: "Toyota", logoUrl: null, popularModels: ["Hilux", "Corolla", "Fortuner"] },
-      { id: "honda", name: "Honda", logoUrl: null, popularModels: ["CR-V", "Civic", "Fit"] },
-      { id: "mazda", name: "Mazda", logoUrl: null, popularModels: ["Demio", "CX-5", "BT-50"] },
-      { id: "nissan", name: "Nissan", logoUrl: null, popularModels: ["X-Trail", "Navara", "Note"] },
-    ];
+  async createMake(name: string) {
+    const make = await this.vehicleMakeRepository.createMake(name);
+    return toMakeDto(make);
   }
+
+  async createModel(makeId: string, name: string) {
+    const make = await this.vehicleMakeRepository.findById(makeId);
+    if (!make) {
+      throw new BadRequestException({ code: "INVALID_REFERENCE", message: "Selected make was not found" });
+    }
+    const model = await this.vehicleMakeRepository.createModel(makeId, name);
+    return { id: model.id, makeId: model.makeId, name: model.name };
+  }
+
+  async getMakes() {
+    const makes = await this.vehicleMakeRepository.findAllWithModels();
+    return makes.map(toMakeDto);
+  }
+}
+
+function toMakeDto(make: VehicleMakeEntity) {
+  const models = (make.models ?? []).map((model) => ({
+    id: model.id,
+    makeId: model.makeId,
+    name: model.name,
+  }));
+  return {
+    id: make.id,
+    name: make.name,
+    logoUrl: make.logoUrl,
+    popularModels: models.map((model) => model.name),
+    models,
+  };
 }
 
 function labelize(value: string): string {

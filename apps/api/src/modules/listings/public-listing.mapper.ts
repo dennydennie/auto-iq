@@ -50,6 +50,7 @@ export class PublicListingMapper {
       driveType: listing.specs.driveType,
       engineCapacity: listing.specs.engineCapacity,
       mileageKm: listing.specs.mileageKm,
+      locationCoordinates: locationCoordinates(listing.specs.locationLatitude, listing.specs.locationLongitude),
       askPriceUsd: Number(listing.pricing.askPriceUsd),
       negotiable: listing.pricing.negotiable,
       sellerDisclosure: listing.sellerDisclosure,
@@ -112,6 +113,10 @@ export interface PublicListingCardInput {
   coverImageStorageKey: string | null;
   inspectionScore: number | null;
   publishedAt: Date;
+}
+
+function locationCoordinates(latitude: string | null, longitude: string | null) {
+  return latitude && longitude ? { lat: Number(latitude), lng: Number(longitude) } : null;
 }
 
 function daysListed(publishedAt: Date | null): number {

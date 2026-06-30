@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { PublicListingDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { VehiclePhotoBrowser } from "@/components/listing/vehicle-photo-browser";
 import { VehicleInterestPanel } from "@/components/marketplace/vehicle-interest-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -85,8 +85,8 @@ export default async function VehicleDetailPage({
   const locations = referenceDataResult && referenceDataResult.ok
     ? referenceDataResult.data.viewingLocations.filter((location) => location.active)
     : [];
-  const coverImage = listing.coverImageUrl ?? listing.images[0]?.url ?? null;
   const summary = listing.inspectionSummary;
+  const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
@@ -105,7 +105,7 @@ export default async function VehicleDetailPage({
               </div>
               <div>
                 <h1 className="display text-4xl text-white sm:text-5xl">
-                  {listing.year} {listing.make} {listing.model}
+                  {title}
                 </h1>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/70">
                   <span className="inline-flex items-center gap-2">
@@ -124,23 +124,16 @@ export default async function VehicleDetailPage({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/8 shadow-[0_20px_60px_-40px_rgba(5,10,26,0.85)]">
-              {coverImage ? (
-                <div className="relative h-[18rem] w-full">
-                  <Image
-                    src={coverImage}
-                    alt={`${listing.year} ${listing.make} ${listing.model}`}
-                    fill
-                    unoptimized
-                    sizes="(min-width: 1024px) 42vw, 100vw"
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex h-[18rem] items-center justify-center">
+            <div className="rounded-[1.7rem] border border-white/10 bg-white/8 p-2 shadow-[0_20px_60px_-40px_rgba(5,10,26,0.85)]">
+              <VehiclePhotoBrowser
+                images={listing.images}
+                title={title}
+                fallback={
+                  <div className="flex h-[18rem] items-center justify-center rounded-[1.5rem]">
                   <CarSilhouette type={mapBodyType(listing.bodyType)} width={320} shadow={false} />
-                </div>
-              )}
+                  </div>
+                }
+              />
             </div>
           </div>
         </div>
@@ -164,6 +157,21 @@ export default async function VehicleDetailPage({
                   </div>
                 </div>
               ))}
+              {listing.locationCoordinates ? (
+                <div className="rounded-[1.25rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[var(--amber-dark)]">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Vehicle coordinates</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--ink-900)]">
+                        {listing.locationCoordinates.lat}, {listing.locationCoordinates.lng}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-5">

@@ -136,9 +136,10 @@ export class VehicleRequestsService {
     return next;
   }
 
-  private toPage(rows: any[], page: number, limit: number, total: number) {
+  private async toPage(rows: any[], page: number, limit: number, total: number) {
+    const makes = await this.referenceDataService.getMakes();
     return {
-      data: rows.map((row) => this.toDto(row)),
+      data: rows.map((row) => this.toDtoWithMakes(row, makes)),
       meta: {
         page,
         limit,
@@ -148,8 +149,12 @@ export class VehicleRequestsService {
     };
   }
 
-  private toDto(request: any) {
-    const makes = this.referenceDataService.getMakes();
+  private async toDto(request: any) {
+    const makes = await this.referenceDataService.getMakes();
+    return this.toDtoWithMakes(request, makes);
+  }
+
+  private toDtoWithMakes(request: any, makes: Array<{ id: string; name: string }>) {
     const makeName = request.makeId
       ? makes.find((entry) => entry.id === request.makeId)?.name ?? request.makeId
       : undefined;

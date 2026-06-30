@@ -18,6 +18,7 @@ export interface PublicListingDto {
   driveType: DriveType;
   engineCapacity: string | null;
   mileageKm: number;
+  locationCoordinates: { lat: number; lng: number } | null;
   askPriceUsd: number;
   negotiable: boolean;
   /** Seller disclosure — no PII */

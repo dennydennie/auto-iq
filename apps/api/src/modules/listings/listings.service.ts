@@ -1,5 +1,7 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { DataSource, type EntityManager } from "typeorm";
+import { VehicleMakeEntity } from "../../db/entity/vehicle-make.entity";
+import { VehicleModelEntity } from "../../db/entity/vehicle-model.entity";
 import { VehicleEntity } from "../../db/entity/vehicle.entity";
 import { VehiclePricingEntity } from "../../db/entity/vehicle-pricing.entity";
 import { VehicleSpecsEntity } from "../../db/entity/vehicle-specs.entity";
@@ -23,6 +25,7 @@ import {
 import { ListingStateService } from "./listing-state.service";
 import { ListingWizardValidator } from "./listing-wizard.validator";
 import { SellerListingAccessService } from "./seller-listing-access.service";
+import { normalizeName, slugify as slugifyTaxonomy } from "../../db/repository/vehicle-make.repository";
 
 @Injectable()
 export class ListingsService {
@@ -68,7 +71,8 @@ export class ListingsService {
   async create(userId: string, body: CreateListingDto) {
     await this.accessService.assertSellerReady(userId);
     const listingId = await this.dataSource.transaction(async (manager) => {
-      const slug = await generateListingSlug(manager, body.year, body.make, body.model);
+      const normalizedSpecs = await normalizeSpecs(manager, body);
+      const slug = await generateListingSlug(manager, body.year, normalizedSpecs.make, normalizedSpecs.model);
       const vehicle = manager.create(VehicleEntity, {
         sellerUserId: userId,
         slug,
@@ -85,7 +89,7 @@ export class ListingsService {
 
       const specs = manager.create(VehicleSpecsEntity, {
         vehicleId: savedVehicle.id,
-        ...normalizeSpecs(body),
+        ...normalizedSpecs,
       });
       const pricing = manager.create(VehiclePricingEntity, {
         vehicleId: savedVehicle.id,
@@ -118,7 +122,7 @@ export class ListingsService {
   async upsertSpecs(userId: string, listingId: string, body: UpsertListingSpecsDto) {
     const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
     const specs = listing.specs ?? this.specsRepository.create({ vehicleId: listing.id });
-    Object.assign(specs, normalizeSpecs(body));
+    Object.assign(specs, await normalizeSpecs(this.dataSource.manager, body));
     await this.specsRepository.save(specs);
     return this.detail(userId, listingId);
   }
@@ -245,7 +249,9 @@ export class ListingsService {
       createdAt: listing.createdAt.toISOString(),
       updatedAt: listing.updatedAt.toISOString(),
       specs: {
+        makeId: listing.specs.makeId,
         make: listing.specs.make,
+        modelId: listing.specs.modelId,
         model: listing.specs.model,
         year: listing.specs.year,
         bodyType: listing.specs.bodyType,
@@ -258,6 +264,7 @@ export class ListingsService {
         condition: listing.specs.condition,
         hasAccidentHistory: listing.specs.hasAccidentHistory,
         accidentNote: listing.specs.accidentNote,
+        locationCoordinates: locationCoordinates(listing.specs.locationLatitude, listing.specs.locationLongitude),
       },
       pricing: {
         askPriceUsd: Number(listing.pricing.askPriceUsd),
@@ -281,10 +288,13 @@ export class ListingsService {
   }
 }
 
-function normalizeSpecs(body: UpsertListingSpecsDto) {
+async function normalizeSpecs(manager: EntityManager, body: UpsertListingSpecsDto) {
+  const taxonomy = await resolveTaxonomy(manager, body);
   return {
-    make: body.make.trim(),
-    model: body.model.trim(),
+    makeId: taxonomy.makeId,
+    make: taxonomy.make,
+    modelId: taxonomy.modelId,
+    model: taxonomy.model,
     year: body.year,
     bodyType: body.bodyType,
     colour: body.colour.trim(),
@@ -296,10 +306,85 @@ function normalizeSpecs(body: UpsertListingSpecsDto) {
     condition: body.condition,
     hasAccidentHistory: body.hasAccidentHistory,
     accidentNote: body.hasAccidentHistory ? body.accidentNote?.trim() || null : null,
+    ...normalizeCoordinates(body),
   };
 }
 
-function slugify(year: number, make: string, model: string): string {
+async function resolveTaxonomy(manager: EntityManager, body: UpsertListingSpecsDto) {
+  const make = await resolveMake(manager, body.makeId, body.make);
+  const model = await resolveModel(manager, make.id, body.modelId, body.model);
+  return {
+    makeId: make.id,
+    make: make.name,
+    modelId: model.id,
+    model: model.name,
+  };
+}
+
+async function resolveMake(manager: EntityManager, makeId: string | undefined, name: string) {
+  if (makeId) {
+    const make = await manager.findOneBy(VehicleMakeEntity, { id: makeId });
+    if (!make) {
+      throw new BadRequestException({ code: "INVALID_REFERENCE", message: "Selected make was not found" });
+    }
+    return make;
+  }
+  const normalized = normalizeName(name);
+  const slug = slugifyTaxonomy(normalized);
+  const existing = await manager.findOneBy(VehicleMakeEntity, { slug });
+  return existing ?? manager.save(VehicleMakeEntity, manager.create(VehicleMakeEntity, {
+    name: normalized,
+    slug,
+    logoUrl: null,
+  }));
+}
+
+async function resolveModel(
+  manager: EntityManager,
+  makeId: string,
+  modelId: string | undefined,
+  name: string,
+) {
+  if (modelId) {
+    const model = await manager.findOneBy(VehicleModelEntity, { id: modelId, makeId });
+    if (!model) {
+      throw new BadRequestException({ code: "INVALID_REFERENCE", message: "Selected model was not found for this make" });
+    }
+    return model;
+  }
+  const normalized = normalizeName(name);
+  const slug = slugifyTaxonomy(normalized);
+  const existing = await manager.findOneBy(VehicleModelEntity, { makeId, slug });
+  return existing ?? manager.save(VehicleModelEntity, manager.create(VehicleModelEntity, {
+    makeId,
+    name: normalized,
+    slug,
+  }));
+}
+
+function normalizeCoordinates(body: UpsertListingSpecsDto) {
+  const latitude = body.locationLatitude;
+  const longitude = body.locationLongitude;
+  if ((latitude === undefined) !== (longitude === undefined)) {
+    throw new BadRequestException({
+      code: "INVALID_LOCATION",
+      message: "Vehicle latitude and longitude must be provided together",
+    });
+  }
+  if (latitude === undefined || longitude === undefined) {
+    return { locationLatitude: null, locationLongitude: null };
+  }
+  return {
+    locationLatitude: latitude.toFixed(6),
+    locationLongitude: longitude.toFixed(6),
+  };
+}
+
+function locationCoordinates(latitude: string | null, longitude: string | null) {
+  return latitude && longitude ? { lat: Number(latitude), lng: Number(longitude) } : null;
+}
+
+function listingSlugify(year: number, make: string, model: string): string {
   const stem = [year, make, model]
     .join(" ")
     .toLowerCase()
@@ -309,7 +394,7 @@ function slugify(year: number, make: string, model: string): string {
 }
 
 async function generateListingSlug(manager: EntityManager, year: number, make: string, model: string): Promise<string> {
-  const stem = slugify(year, make, model);
+  const stem = listingSlugify(year, make, model);
 
   for (let attempt = 0; attempt < 12; attempt++) {
     const slug = attempt === 0 ? stem : `${stem}-${attempt.toString(36)}`;

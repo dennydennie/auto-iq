@@ -37,6 +37,8 @@ export const ROUTES = {
 
   referenceData: {
     all: `${BASE}/reference-data`,
+    makes: `${BASE}/reference-data/makes`,
+    models: (makeId: string) => `${BASE}/reference-data/makes/${makeId}/models`,
   },
 
   // ─── Storage ───────────────────────────────────────────────────────────────
