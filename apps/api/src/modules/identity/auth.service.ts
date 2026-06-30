@@ -23,6 +23,7 @@ import { RateLimitService } from "./rate-limit.service";
 import { randomBytes } from "node:crypto";
 
 const RESET_TTL_SECONDS = 60 * 30;
+const DEFAULT_WEB_BASE_URL = "https://web-staging-1017.up.railway.app";
 
 @Injectable()
 export class AuthService {
@@ -193,8 +194,8 @@ export class AuthService {
 
   private resetUrl(token: string) {
     const baseUrl = this.config.get<string>("WEB_BASE_URL")
-      ?? this.config.get<string>("CORS_ORIGINS", "http://localhost:3000").split(",")[0]?.trim()
-      ?? "http://localhost:3000";
+      ?? this.config.get<string>("CORS_ORIGINS", DEFAULT_WEB_BASE_URL).split(",")[0]?.trim()
+      ?? DEFAULT_WEB_BASE_URL;
     const url = new URL("/auth/reset-password", baseUrl);
     url.hash = `token=${encodeURIComponent(token)}`;
     return url.toString();

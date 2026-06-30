@@ -131,6 +131,33 @@ describe("AuthService", () => {
     );
   });
 
+  it("falls back to the hosted web origin for password reset links", async () => {
+    const user = {
+      id: "user-1",
+      email: "buyer@example.com",
+      phone: "+263771111111",
+    };
+    const { service, notificationService } = createService({
+      configGet: (key, defaultValue) => {
+        if (key === "NODE_ENV") {
+          return "staging";
+        }
+        return defaultValue;
+      },
+      findByEmail: jest.fn().mockResolvedValue(user),
+    });
+
+    await service.forgotPassword({ email: user.email });
+
+    const notifyCall = notificationService.notifyUser.mock.calls[0]?.[0];
+    const resetUrl = notifyCall?.payload?.resetUrl as string;
+
+    expect(resetUrl).toMatch(
+      /^https:\/\/web-staging-1017\.up\.railway\.app\/auth\/reset-password#token=/,
+    );
+    expect(resetUrl).not.toContain("localhost");
+  });
+
   it("surfaces reset delivery outages for existing accounts", async () => {
     const user = {
       id: "user-1",
