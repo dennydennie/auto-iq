@@ -12,6 +12,11 @@ apps/*
 apps/api/node_modules
 apps/api/dist
 apps/api/.turbo
+!apps/web/
+!apps/web/**
+apps/web/node_modules
+apps/web/.next
+apps/web/.turbo
 !packages/
 packages/*
 !packages/contracts/
