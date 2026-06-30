@@ -124,10 +124,10 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
     sortDir: SellerListingPageParams["sortDir"],
   ): void {
     if (sortBy === "askPriceUsd") {
-      query.orderBy("pricing.ask_price_usd", sortDir, "NULLS LAST");
+      query.orderBy("pricing.askPriceUsd", sortDir, "NULLS LAST");
       return;
     }
-    const column = sortBy === "createdAt" ? "vehicle.created_at" : "vehicle.updated_at";
+    const column = sortBy === "createdAt" ? "vehicle.createdAt" : "vehicle.updatedAt";
     query.orderBy(column, sortDir);
   }
 
@@ -137,14 +137,14 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
     sortDir: AdminListingPageParams["sortDir"],
   ): void {
     if (sortBy === "price") {
-      query.orderBy("pricing.ask_price_usd", sortDir, "NULLS LAST");
+      query.orderBy("pricing.askPriceUsd", sortDir, "NULLS LAST");
       return;
     }
     if (sortBy === "submittedAt") {
-      query.orderBy("vehicle.submitted_at", sortDir, "NULLS LAST");
+      query.orderBy("vehicle.submittedAt", sortDir, "NULLS LAST");
       return;
     }
-    const column = sortBy === "createdAt" ? "vehicle.created_at" : "vehicle.updated_at";
+    const column = sortBy === "createdAt" ? "vehicle.createdAt" : "vehicle.updatedAt";
     query.orderBy(column, sortDir);
   }
 }

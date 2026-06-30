@@ -14,4 +14,32 @@ describe("VehicleRepository", () => {
       relations: ["seller", "specs", "pricing", "images"],
     });
   });
+
+  it("orders seller listing pages by entity property paths", async () => {
+    const query = queryBuilder();
+    const repository = { createQueryBuilder: jest.fn().mockReturnValue(query) } as unknown as Repository<VehicleEntity>;
+    const vehicleRepository = new VehicleRepository(repository);
+
+    await vehicleRepository.findSellerPage({
+      sellerUserId: "user-1",
+      page: 1,
+      limit: 20,
+      sortBy: "updatedAt",
+      sortDir: "DESC",
+    });
+
+    expect(query.orderBy).toHaveBeenCalledWith("vehicle.updatedAt", "DESC");
+  });
 });
+
+function queryBuilder() {
+  return {
+    andWhere: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+  };
+}
