@@ -62,6 +62,10 @@ export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
           const phone = otpPhone(result.error, form.identifier);
           if (phone) {
             const params = new URLSearchParams({ phone, registered: "0" });
+            const email = otpEmail(result.error, form.identifier);
+            if (email) {
+              params.set("email", email);
+            }
             router.push(`/auth/otp?${params.toString()}`);
             return;
           }
@@ -193,4 +197,13 @@ function otpPhone(error: ApiError, identifier: string) {
   }
 
   return identifier.startsWith("+") ? identifier : null;
+}
+
+function otpEmail(error: ApiError, identifier: string) {
+  const fromDetails = error.details?.find((detail) => detail.field === "email")?.value;
+  if (typeof fromDetails === "string" && fromDetails.includes("@")) {
+    return fromDetails;
+  }
+
+  return identifier.includes("@") ? identifier : null;
 }

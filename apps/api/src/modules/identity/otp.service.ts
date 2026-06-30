@@ -32,6 +32,7 @@ export class OtpService {
     }
     const user = await this.userRepository.findByPhone(phone);
     if (user) {
+      const channels = this.otpChannels(user);
       const deliveries = await this.notificationService.notifyUser({
         userId: user.id,
         email: user.email,
@@ -39,10 +40,15 @@ export class OtpService {
         template: "OTP_VERIFY",
         idempotencyKeyBase: `otp:${phone}:${code}`,
         payload: { code, expiresIn: OTP_TTL_SECONDS, phone },
-        channels: ["SMS", "EMAIL"],
+        channels,
       });
 
-      if (!deliveries.some((delivery) => delivery.status === "SENT")) {
+      const sentChannels = new Set(
+        deliveries
+          .filter((delivery) => delivery.status === "SENT")
+          .map((delivery) => delivery.channel),
+      );
+      if (!channels.every((channel) => sentChannels.has(channel))) {
         await this.redisService.del(this.key(phone));
         await this.redisService.del(this.deliveryKey(phone));
         throw new ServiceUnavailableException({
@@ -81,6 +87,13 @@ export class OtpService {
 
   private deliveryKey(phone: string): string {
     return `otp_delivery:${phone}`;
+  }
+
+  private otpChannels(user: { email?: string | null; phone?: string | null }) {
+    return [
+      ...(user.phone ? ["SMS" as const] : []),
+      ...(user.email ? ["EMAIL" as const] : []),
+    ];
   }
 
   private hash(code: string): string {

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 type SearchParams = Promise<{
   phone?: string | string[];
+  email?: string | string[];
   registered?: string | string[];
 }>;
 
@@ -20,6 +21,7 @@ export default async function OtpPage({
 }) {
   const params = await searchParams;
   const phone = readParam(params.phone) ?? null;
+  const email = readParam(params.email) ?? null;
   const autoSend = readParam(params.registered) === "1";
 
   return (
@@ -49,8 +51,17 @@ export default async function OtpPage({
           <p className="text-sm leading-7 text-[var(--ink-500)]">
             {phone ? (
               <>
-                We&apos;ve sent a one-time code tied to{" "}
-                <span className="font-semibold text-[var(--ink-700)]">{phone}</span>.
+                We&apos;ve sent the same one-time code by SMS to{" "}
+                <span className="font-semibold text-[var(--ink-700)]">{phone}</span>
+                {email ? (
+                  <>
+                    {" "}
+                    and by email to{" "}
+                    <span className="font-semibold text-[var(--ink-700)]">{email}</span>.
+                  </>
+                ) : (
+                  " and to the email address on your account."
+                )}
               </>
             ) : (
               "Open this page from the registration flow so we know which phone number to verify."

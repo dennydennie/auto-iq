@@ -79,8 +79,11 @@ describe("AuthService", () => {
     expect(error).toBeInstanceOf(UnauthorizedException);
     expect(error.getResponse()).toMatchObject({
       code: "OTP_REQUIRED",
-      message: "Verify your phone number before signing in.",
-      details: [{ field: "phone", value: user.phone }],
+      message: "Verify your account with the code sent by SMS and email.",
+      details: [
+        { field: "phone", value: user.phone },
+        { field: "email", value: user.email },
+      ],
     });
   });
 

@@ -62,6 +62,7 @@ function requestFromForm(form: RegisterFormState, role: RoleKey): RegisterReques
 function otpHref(payload: RegisterResponse, role: RoleKey) {
   const params = new URLSearchParams({
     phone: payload.phone,
+    email: payload.email,
     role,
     registered: payload.otpRequired ? "1" : "0",
   });
