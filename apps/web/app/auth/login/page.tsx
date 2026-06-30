@@ -28,7 +28,26 @@ const ACCESS_LANES = [
   },
 ] as const;
 
-export default function LoginPage() {
+type LoginSearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function readNext(value: string | string[] | undefined) {
+  const next = Array.isArray(value) ? value[0] : value;
+
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return null;
+  }
+
+  return next;
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: LoginSearchParams;
+}) {
+  const params = await searchParams;
+  const nextHref = readNext(params.next);
+
   return (
     <AuthShell
       eyebrow="Account access"
@@ -99,7 +118,7 @@ export default function LoginPage() {
 
         <Card className="border-white/80 bg-white/96 shadow-[0_26px_80px_-58px_rgba(22,31,58,0.35)]">
           <CardContent className="p-6 sm:p-7">
-            <LoginForm />
+            <LoginForm nextHref={nextHref} />
           </CardContent>
         </Card>
       </div>

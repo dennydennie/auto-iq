@@ -44,6 +44,7 @@ export function VehicleInterestPanel({
   viewerState: ViewerState;
   viewingLocations: ApprovedViewingLocationDto[];
 }) {
+  const loginHref = `/auth/login?next=${encodeURIComponent(`/vehicles/${listingId}#contact`)}`;
   const [quoteForm, setQuoteForm] = useState<CreateQuoteRequest>({
     offerPriceUsd: 0,
     paymentPlan: "FULL_CASH",
@@ -123,7 +124,7 @@ export function VehicleInterestPanel({
               Buyer actions now hit the live API. Use a buyer account first, then come back here to save a quote or viewing request.
             </p>
           </div>
-          <Link href="/auth/login" className={buttonVariants({ variant: "amber" })}>
+          <Link href={loginHref} className={buttonVariants({ variant: "amber" })}>
             Go to buyer login
           </Link>
         </CardContent>

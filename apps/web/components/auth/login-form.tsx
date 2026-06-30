@@ -14,8 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const ADMIN_ROLES = new Set(["ADMIN", "PARTNER_ADMIN", "SYSTEM_ADMINISTRATOR"]);
+const SAFE_NEXT_PREFIXES = ["/buyer", "/saved", "/vehicles"];
 
-function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
+function destinationFor(
+  role: LoginResponse["role"],
+  mode: "user" | "admin",
+  nextHref?: string | null,
+) {
   if (mode === "admin") {
     return "/admin";
   }
@@ -24,18 +29,32 @@ function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
     return "/admin";
   }
 
+  if (nextHref && isSafeNextHref(nextHref)) {
+    return nextHref;
+  }
+
   if (role === "SELLER") {
     return "/seller";
   }
 
-  return "/";
+  return "/buyer";
 }
 
 function validateAdmin(role: LoginResponse["role"]) {
   return ADMIN_ROLES.has(role);
 }
 
-export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
+function isSafeNextHref(value: string) {
+  return SAFE_NEXT_PREFIXES.some((prefix) => value === prefix || value.startsWith(`${prefix}/`));
+}
+
+export function LoginForm({
+  mode = "user",
+  nextHref = null,
+}: {
+  mode?: "user" | "admin";
+  nextHref?: string | null;
+}) {
   const router = useRouter();
   const [form, setForm] = useState<LoginRequest>({ identifier: "", password: "" });
   const [error, setError] = useState<{
@@ -80,7 +99,7 @@ export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
         return;
       }
 
-      router.push(destinationFor(result.data.role, mode));
+      router.push(destinationFor(result.data.role, mode, nextHref));
       router.refresh();
     });
   }

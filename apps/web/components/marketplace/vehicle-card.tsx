@@ -5,9 +5,10 @@ import type { PublicListingCardDto } from "@auto-iq/contracts/catalogue";
 import type { BodyType } from "@auto-iq/contracts/enums";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { CarSilhouette } from "@/components/ui/car-silhouette";
 import { ScoreGauge } from "@/components/ui/score-gauge";
+import { SaveVehicleButton } from "@/components/marketplace/save-vehicle-button";
 import { formatPrice } from "@/lib/format";
 import { mapBodyType, relativeListingAge } from "@/lib/vehicle-ui";
 
@@ -30,6 +31,7 @@ type VehicleCardProps = Pick<
   price?: number;
   score?: number;
   slug?: string;
+  signedIn?: boolean;
 };
 
 function normalizeBodyType(bodyType: BodyType | LegacyBodyType) {
@@ -61,6 +63,7 @@ export function VehicleCard({
   coverImageUrl,
   daysListed,
   negotiable,
+  signedIn,
 }: VehicleCardProps) {
   const bodyTone = normalizeBodyType(bodyType);
   const href = `/vehicles/${slug ?? id ?? ""}`;
@@ -74,14 +77,21 @@ export function VehicleCard({
     <Card className="overflow-hidden">
       <div className="relative overflow-hidden rounded-t-[1.5rem] bg-[radial-gradient(circle_at_top,rgba(255,205,83,0.18),transparent_40%),linear-gradient(180deg,#18233e_0%,#0f1830_100%)] px-5 py-7">
         <div className="absolute right-4 top-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full bg-white/8 text-white hover:bg-white/16"
-            aria-label={`Save ${year} ${make} ${model}`}
-          >
-            <Heart className="h-4 w-4" />
-          </Button>
+          {signedIn && id ? (
+            <SaveVehicleButton compact listingId={id} />
+          ) : (
+            <Link
+              href={`/auth/login?next=${encodeURIComponent(href)}`}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "icon",
+                className: "rounded-full bg-white/8 text-white hover:bg-white/16",
+              })}
+              aria-label={`Sign in to save ${year} ${make} ${model}`}
+            >
+              <Heart className="h-4 w-4" />
+            </Link>
+          )}
         </div>
         <div className="mx-auto flex h-36 max-w-[16rem] items-center justify-center overflow-hidden rounded-[1.25rem]">
           {coverImageUrl ? (
