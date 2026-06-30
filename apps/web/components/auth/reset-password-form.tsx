@@ -19,9 +19,7 @@ function readToken(location: Location) {
 
 export function ResetPasswordForm() {
   const router = useRouter();
-  const [token] = useState<string | null>(() =>
-    typeof window === "undefined" ? null : readToken(window.location),
-  );
+  const [token, setToken] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
@@ -29,10 +27,13 @@ export function ResetPasswordForm() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (token) {
+    const nextToken = readToken(window.location);
+
+    if (nextToken) {
+      setToken(nextToken);
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, [token]);
+  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
