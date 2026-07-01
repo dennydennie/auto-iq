@@ -15,6 +15,7 @@ import {
   Search,
   ShieldCheck,
   Tags,
+  X,
 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -26,6 +27,8 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { getPublicJson, getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 
 type SessionResult<T> = Awaited<ReturnType<typeof getSessionJson<T>>>;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type BuyerWorkflow = "saved" | "quotes" | "viewings" | "requests";
 
 const BUYER_ACTIONS = [
   {
@@ -48,6 +51,13 @@ const BUYER_ACTIONS = [
   },
 ];
 
+const WORKFLOW_LABELS: Record<BuyerWorkflow, string> = {
+  saved: "Shortlist",
+  quotes: "Quotes",
+  requests: "Requests",
+  viewings: "Viewings",
+};
+
 function buyerName(profile: MeResponse) {
   return profile.fullName.split(" ")[0] || "there";
 }
@@ -60,32 +70,46 @@ function countFrom<T>(result: SessionResult<OffsetPaginatedResponse<T>>) {
   return result.ok ? result.data.meta.total : 0;
 }
 
+function selectedWorkflow(value: string | string[] | undefined): BuyerWorkflow | null {
+  const workflow = Array.isArray(value) ? value[0] : value;
+  if (workflow === "saved" || workflow === "quotes" || workflow === "viewings" || workflow === "requests") {
+    return workflow;
+  }
+  return null;
+}
+
 function StatusCard({
+  active,
+  href,
   icon: Icon,
   label,
   value,
   helper,
 }: {
+  active: boolean;
+  href: string;
   icon: typeof Heart;
   label: string;
   value: number;
   helper: string;
 }) {
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--amber-soft)] text-[var(--ink-900)]">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-400)]">
-            {label}
-          </p>
-          <p className="display mt-1 text-3xl text-[var(--ink-900)]">{value}</p>
-          <p className="mt-1 text-xs text-[var(--ink-500)]">{helper}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <Link href={href} aria-current={active ? "true" : undefined} className="group block">
+      <Card className={active ? "border-[var(--amber)] shadow-[0_24px_60px_-38px_rgba(214,155,29,0.55)]" : ""}>
+        <CardContent className="flex items-center gap-4 p-5 transition group-hover:bg-[var(--ink-50)]/70">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--amber-soft)] text-[var(--ink-900)]">
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-400)]">
+              {label}
+            </p>
+            <p className="display mt-1 text-3xl text-[var(--ink-900)]">{value}</p>
+            <p className="mt-1 text-xs text-[var(--ink-500)]">{helper}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -183,7 +207,9 @@ function RequestRow(request: VehicleRequestDto) {
   );
 }
 
-export default async function BuyerPage() {
+export default async function BuyerPage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  const activeWorkflow = selectedWorkflow(params.workflow);
   const meResult = await getSessionJson<MeResponse>(ROUTES.me.profile);
 
   if (isServerApiFailure(meResult)) {
@@ -275,26 +301,78 @@ export default async function BuyerPage() {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-4">
-        <StatusCard icon={Heart} label="Saved" value={countFrom(savedResult)} helper="Vehicles in your shortlist" />
-        <StatusCard icon={Tags} label="Quotes" value={countFrom(quotesResult)} helper="Buyer quote requests" />
-        <StatusCard icon={CalendarDays} label="Viewings" value={countFrom(viewingsResult)} helper="Requested or scheduled" />
-        <StatusCard icon={CarFront} label="Requests" value={countFrom(requestsResult)} helper="Vehicle sourcing briefs" />
+      <section aria-label="Buyer workflow filters" className="mt-6 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-400)]">
+            {activeWorkflow ? `Showing ${WORKFLOW_LABELS[activeWorkflow]}` : "Workflow overview"}
+          </p>
+          {activeWorkflow ? (
+            <Link
+              href="/buyer"
+              aria-label="Clear workflow filter"
+              className={buttonVariants({ variant: "ghost", size: "icon" })}
+            >
+              <X className="h-4 w-4" />
+            </Link>
+          ) : null}
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          <StatusCard
+            active={activeWorkflow === "saved"}
+            href="/buyer?workflow=saved"
+            icon={Heart}
+            label="Saved"
+            value={countFrom(savedResult)}
+            helper="Vehicles in your shortlist"
+          />
+          <StatusCard
+            active={activeWorkflow === "quotes"}
+            href="/buyer?workflow=quotes"
+            icon={Tags}
+            label="Quotes"
+            value={countFrom(quotesResult)}
+            helper="Buyer quote requests"
+          />
+          <StatusCard
+            active={activeWorkflow === "viewings"}
+            href="/buyer?workflow=viewings"
+            icon={CalendarDays}
+            label="Viewings"
+            value={countFrom(viewingsResult)}
+            helper="Requested or scheduled"
+          />
+          <StatusCard
+            active={activeWorkflow === "requests"}
+            href="/buyer?workflow=requests"
+            icon={CarFront}
+            label="Requests"
+            value={countFrom(requestsResult)}
+            helper="Vehicle sourcing briefs"
+          />
+        </div>
       </section>
 
       <section className="mt-6 grid gap-5 lg:grid-cols-4">
-        <WorkflowPanel title="Shortlist" empty="Save vehicles from the marketplace to build your shortlist." result={savedResult}>
-          {SavedRow}
-        </WorkflowPanel>
-        <WorkflowPanel title="Quotes" empty="Request a quote from any vehicle detail page to start negotiation." result={quotesResult}>
-          {QuoteRow}
-        </WorkflowPanel>
-        <WorkflowPanel title="Viewings" empty="Book a viewing after comparing inspection signals on a vehicle detail page." result={viewingsResult}>
-          {ViewingRow}
-        </WorkflowPanel>
-        <WorkflowPanel title="Requests" empty="Vehicle request workflows are ready when you need sourcing support." result={requestsResult}>
-          {RequestRow}
-        </WorkflowPanel>
+        {(!activeWorkflow || activeWorkflow === "saved") ? (
+          <WorkflowPanel title="Shortlist" empty="Save vehicles from the marketplace to build your shortlist." result={savedResult}>
+            {SavedRow}
+          </WorkflowPanel>
+        ) : null}
+        {(!activeWorkflow || activeWorkflow === "quotes") ? (
+          <WorkflowPanel title="Quotes" empty="Request a quote from any vehicle detail page to start negotiation." result={quotesResult}>
+            {QuoteRow}
+          </WorkflowPanel>
+        ) : null}
+        {(!activeWorkflow || activeWorkflow === "viewings") ? (
+          <WorkflowPanel title="Viewings" empty="Book a viewing after comparing inspection signals on a vehicle detail page." result={viewingsResult}>
+            {ViewingRow}
+          </WorkflowPanel>
+        ) : null}
+        {(!activeWorkflow || activeWorkflow === "requests") ? (
+          <WorkflowPanel title="Requests" empty="Vehicle request workflows are ready when you need sourcing support." result={requestsResult}>
+            {RequestRow}
+          </WorkflowPanel>
+        ) : null}
       </section>
 
       <section className="mt-8">
