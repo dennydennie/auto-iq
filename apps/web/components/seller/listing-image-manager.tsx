@@ -4,7 +4,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IMAGE_SLOTS, type ImageSlot } from "@auto-iq/contracts/enums";
-import type { ImagePresignResponse, VehicleImageDto } from "@auto-iq/contracts/storage";
+import type { VehicleImageDto } from "@auto-iq/contracts/storage";
 import { AlertTriangle, UploadCloud } from "lucide-react";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { isApiFailure, postJson } from "@/lib/web-api";
 
 const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
@@ -56,33 +55,19 @@ export function ListingImageManager({
     }
 
     startTransition(async () => {
-      const presign = await postJson<ImagePresignResponse>("/api/storage/images/presign", {
-        slot,
-        contentType: file.type,
-        contentLength: file.size,
-      });
-      if (isApiFailure(presign)) {
-        setError(presign.error.message);
-        return;
-      }
+      const body = new FormData();
+      body.set("file", file);
+      body.set("slot", slot);
+      body.set("isCover", String(isCover));
 
-      const upload = await fetch(presign.data.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
+      const response = await fetch(`/api/seller/listings/${listingId}/images/upload`, {
+        method: "POST",
+        body,
       });
-      if (!upload.ok) {
-        setError("The image upload to storage failed. Try a smaller file or another image.");
-        return;
-      }
-
-      const registered = await postJson<VehicleImageDto>(`/api/seller/listings/${listingId}/images`, {
-        storageKey: presign.data.storageKey,
-        slot,
-        isCover,
-      });
-      if (isApiFailure(registered)) {
-        setError(registered.error.message);
+      const payload = (await response.json()) as { message?: string } | VehicleImageDto;
+      if (!response.ok) {
+        const message = "message" in payload ? payload.message : null;
+        setError(message ?? "The image upload failed. Try a smaller file or another image.");
         return;
       }
 
@@ -115,7 +100,7 @@ export function ListingImageManager({
       <div className="rounded-[1.1rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 text-sm leading-6 text-[var(--ink-500)]">
         <div className="flex gap-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--amber-dark)]" />
-          <p>Photos upload directly to the Railway Tigris bucket, then the API registers the storage key against this listing.</p>
+          <p>Photos upload through the web app first, then the server stores them in the Railway Tigris bucket and registers them against this listing.</p>
         </div>
       </div>
       <Button type="submit" variant="amber" disabled={isPending}>

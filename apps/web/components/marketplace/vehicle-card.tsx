@@ -29,6 +29,7 @@ type VehicleCardProps = Pick<
   location?: string;
   negotiable?: boolean;
   price?: number;
+  returnHref?: string;
   score?: number;
   slug?: string;
   signedIn?: boolean;
@@ -57,6 +58,7 @@ export function VehicleCard({
   location,
   askPriceUsd,
   price,
+  returnHref,
   inspectionScore,
   score,
   bisellVerified,
@@ -66,7 +68,8 @@ export function VehicleCard({
   signedIn,
 }: VehicleCardProps) {
   const bodyTone = normalizeBodyType(bodyType);
-  const href = `/vehicles/${slug ?? id ?? ""}`;
+  const baseHref = `/vehicles/${slug ?? id ?? ""}`;
+  const href = returnHref ? `${baseHref}?return=${encodeURIComponent(returnHref)}` : baseHref;
   const listingAge = relativeListingAge(daysListed ?? 0);
   const priceUsd = askPriceUsd ?? price ?? 0;
   const scoreValue = inspectionScore ?? score ?? null;
