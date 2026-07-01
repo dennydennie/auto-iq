@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 
-export default async function MarketplaceLayout({ children }: { children: ReactNode }) {
+export default function SellerLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <MarketplaceHeader />
+      <MarketplaceHeader activeHref="/seller" />
       {children}
     </>
   );
