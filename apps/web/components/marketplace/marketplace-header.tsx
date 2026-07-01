@@ -25,7 +25,7 @@ function primaryCta(result: Awaited<ReturnType<typeof getOptionalSessionJson<MeR
   }
 
   if (result.data.roles.includes("SELLER")) {
-    return { href: "/seller", label: "Seller desk" };
+    return { href: "/seller/listings/new", label: "New listing" };
   }
 
   return { href: "/buyer", label: "Buyer desk" };
