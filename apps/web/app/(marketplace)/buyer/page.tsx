@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import type { CatalogueResponse, PublicListingCardDto, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
@@ -22,8 +21,7 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { VehicleCard } from "@/components/marketplace/vehicle-card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate, formatPrice } from "@/lib/format";
+import { Card, CardContent } from "@/components/ui/card";
 import { getPublicJson, getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 
 type SessionResult<T> = Awaited<ReturnType<typeof getSessionJson<T>>>;
@@ -110,100 +108,6 @@ function StatusCard({
         </CardContent>
       </Card>
     </Link>
-  );
-}
-
-function WorkflowPanel<T>({
-  title,
-  empty,
-  result,
-  children,
-}: {
-  title: string;
-  empty: string;
-  result: SessionResult<OffsetPaginatedResponse<T>>;
-  children: (item: T) => ReactNode;
-}) {
-  if (isServerApiFailure(result)) {
-    return <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />;
-  }
-
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-2xl">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {result.data.data.length > 0 ? (
-          result.data.data.slice(0, 3).map(children)
-        ) : (
-          <p className="rounded-2xl border border-dashed border-[var(--ink-200)] p-4 text-sm leading-6 text-[var(--ink-500)]">
-            {empty}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function SavedRow(saved: SavedVehicleDto) {
-  const listing = saved.listing;
-
-  return (
-    <Link
-      key={saved.id}
-      href={`/vehicles/${listing.slug || listing.id}`}
-      className="block rounded-2xl border border-[var(--ink-100)] bg-[var(--ink-50)]/65 p-4 transition hover:border-[var(--amber)] hover:bg-white"
-    >
-      <p className="text-sm font-semibold text-[var(--ink-900)]">
-        {listing.year} {listing.make} {listing.model}
-      </p>
-      <p className="mt-1 text-xs text-[var(--ink-500)]">
-        Saved {formatDate(saved.savedAt)} · {formatPrice(listing.askPriceUsd, "USD")}
-      </p>
-    </Link>
-  );
-}
-
-function QuoteRow(quote: QuoteDto) {
-  return (
-    <div key={quote.id} className="rounded-2xl border border-[var(--ink-100)] bg-[var(--ink-50)]/65 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-[var(--ink-900)]">
-            Quote {quote.status.toLowerCase().replaceAll("_", " ")}
-          </p>
-          <p className="mt-1 text-xs text-[var(--ink-500)]">Listing {quote.listingId.slice(0, 8)}</p>
-        </div>
-        <Badge variant="outline">{formatPrice(quote.offerPriceUsd, "USD")}</Badge>
-      </div>
-    </div>
-  );
-}
-
-function ViewingRow(viewing: ViewingDto) {
-  return (
-    <div key={viewing.id} className="rounded-2xl border border-[var(--ink-100)] bg-[var(--ink-50)]/65 p-4">
-      <p className="text-sm font-semibold text-[var(--ink-900)]">
-        {viewing.listingSnapshot.year} {viewing.listingSnapshot.make} {viewing.listingSnapshot.model}
-      </p>
-      <p className="mt-1 text-xs text-[var(--ink-500)]">
-        {viewing.status.toLowerCase().replaceAll("_", " ")} · {formatDate(viewing.confirmedSlot ?? viewing.preferredSlot)}
-      </p>
-    </div>
-  );
-}
-
-function RequestRow(request: VehicleRequestDto) {
-  return (
-    <div key={request.id} className="rounded-2xl border border-[var(--ink-100)] bg-[var(--ink-50)]/65 p-4">
-      <p className="text-sm font-semibold text-[var(--ink-900)]">
-        {request.model || "Vehicle request"} · {request.status.toLowerCase().replaceAll("_", " ")}
-      </p>
-      <p className="mt-1 text-xs text-[var(--ink-500)]">
-        Budget {formatPrice(request.maxBudgetCents / 100, "ZWG")} · {request.urgency.toLowerCase()} urgency
-      </p>
-    </div>
   );
 }
 
@@ -350,29 +254,6 @@ export default async function BuyerPage({ searchParams }: { searchParams: Search
             helper="Vehicle sourcing briefs"
           />
         </div>
-      </section>
-
-      <section className="mt-6 grid gap-5 lg:grid-cols-4">
-        {(!activeWorkflow || activeWorkflow === "saved") ? (
-          <WorkflowPanel title="Shortlist" empty="Save vehicles from the marketplace to build your shortlist." result={savedResult}>
-            {SavedRow}
-          </WorkflowPanel>
-        ) : null}
-        {(!activeWorkflow || activeWorkflow === "quotes") ? (
-          <WorkflowPanel title="Quotes" empty="Request a quote from any vehicle detail page to start negotiation." result={quotesResult}>
-            {QuoteRow}
-          </WorkflowPanel>
-        ) : null}
-        {(!activeWorkflow || activeWorkflow === "viewings") ? (
-          <WorkflowPanel title="Viewings" empty="Book a viewing after comparing inspection signals on a vehicle detail page." result={viewingsResult}>
-            {ViewingRow}
-          </WorkflowPanel>
-        ) : null}
-        {(!activeWorkflow || activeWorkflow === "requests") ? (
-          <WorkflowPanel title="Requests" empty="Vehicle request workflows are ready when you need sourcing support." result={requestsResult}>
-            {RequestRow}
-          </WorkflowPanel>
-        ) : null}
       </section>
 
       <section className="mt-8">
