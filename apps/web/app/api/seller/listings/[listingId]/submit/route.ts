@@ -9,9 +9,9 @@ import {
 
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ listingId: string }> },
 ) {
-  const { id } = await context.params;
+  const { listingId } = await context.params;
   const sessionCookie = await readSessionCookie();
   if (!sessionCookie) return sessionRequiredResponse();
 
@@ -21,7 +21,7 @@ export async function POST(
   const body = await request.json().catch(() => undefined);
   const response = await sendRemoteRequest({
     method: "POST",
-    path: ROUTES.storage.registerImage(id),
+    path: ROUTES.listings.submit(listingId),
     body,
     sessionCookie,
     csrfToken,

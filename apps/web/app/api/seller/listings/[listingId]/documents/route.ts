@@ -7,27 +7,21 @@ import {
   sessionRequiredResponse,
 } from "@/lib/remote-api";
 
-export async function PUT(
+export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ listingId: string }> },
 ) {
-  const { id } = await context.params;
+  const { listingId } = await context.params;
   const sessionCookie = await readSessionCookie();
-
-  if (!sessionCookie) {
-    return sessionRequiredResponse();
-  }
+  if (!sessionCookie) return sessionRequiredResponse();
 
   const csrfToken = await issueRemoteCsrfToken(sessionCookie);
+  if (!csrfToken) return sessionRequiredResponse();
 
-  if (!csrfToken) {
-    return sessionRequiredResponse();
-  }
-
-  const body = await request.json();
+  const body = await request.json().catch(() => undefined);
   const response = await sendRemoteRequest({
-    method: "PUT",
-    path: ROUTES.listings.upsertSpecs(id),
+    method: "POST",
+    path: ROUTES.storage.registerDocument(listingId),
     body,
     sessionCookie,
     csrfToken,
