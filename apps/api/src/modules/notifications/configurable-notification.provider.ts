@@ -55,6 +55,10 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
       return this.sandboxOrThrow(input.channel, "sms");
     }
 
+    if (provider === "stub") {
+      return this.stub(input.channel);
+    }
+
     if (provider === "twilio") {
       return this.sendTwilioSms(input);
     }
@@ -223,6 +227,12 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
     }
 
     throw new Error(`No ${label} notification provider is configured`);
+  }
+
+  private stub(channel: ProviderSendInput["channel"]) {
+    return Promise.resolve({
+      providerRef: `stub:${channel.toLowerCase()}:${Date.now()}`,
+    });
   }
 
   private emailProvider() {

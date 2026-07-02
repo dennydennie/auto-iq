@@ -105,6 +105,30 @@ describe("validateEnv", () => {
     expect(env.REDIS_CONNECT_TIMEOUT_MS).toBe(750);
   });
 
+  it("accepts SendGrid and stub SMS notification configuration in staging", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      NODE_ENV: "production",
+      WEB_BASE_URL: "https://web-staging-1017.up.railway.app",
+      SESSION_COOKIE_SECURE: "true",
+      SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+      SENTRY_ENVIRONMENT: "staging",
+      SENTRY_RELEASE: "api@staging",
+      STORAGE_ENDPOINT: "https://t3.storageapi.dev",
+      STORAGE_REGION: "ams",
+      STORAGE_ACCESS_KEY: "tigris-access-key",
+      STORAGE_SECRET_KEY: "tigris-secret-key",
+      STORAGE_BUCKET: "auto-iq-staging",
+      NOTIFICATION_EMAIL_PROVIDER: "sendgrid",
+      SENDGRID_API_KEY: "sendgrid-key",
+      SENDGRID_SENDER_EMAIL: "no-reply@autoiq.example",
+      NOTIFICATION_SMS_PROVIDER: "stub",
+    });
+
+    expect(env.NOTIFICATION_EMAIL_PROVIDER).toBe("sendgrid");
+    expect(env.NOTIFICATION_SMS_PROVIDER).toBe("stub");
+  });
+
   it("accepts SendGrid and Gikko notification configuration", () => {
     const env = validateEnv({
       ...baseEnv,

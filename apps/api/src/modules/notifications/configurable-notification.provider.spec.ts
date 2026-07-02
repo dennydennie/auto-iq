@@ -98,6 +98,24 @@ describe("ConfigurableNotificationProvider", () => {
       ],
     });
   });
+
+  it("supports an explicit SMS stub while Gikko credentials are pending", async () => {
+    const fetchMock = jest.spyOn(globalThis, "fetch");
+    const provider = createProvider({
+      NODE_ENV: "staging",
+      NOTIFICATION_SMS_PROVIDER: "stub",
+    });
+
+    const result = await provider.send({
+      channel: "SMS",
+      recipientAddress: "+263771234567",
+      template: "OTP_VERIFY",
+      payload: { code: "123456", expiresIn: 300 },
+    });
+
+    expect(result.providerRef).toMatch(/^stub:sms:/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 function createProvider(values: Record<string, unknown>) {
