@@ -1,19 +1,17 @@
-import 'dart:io';
-
 class AppConfig {
   AppConfig._();
 
-  static const String _rawApiBaseUrl =
-      String.fromEnvironment('AUTO_IQ_API_BASE_URL');
+  static const String _defaultApiBaseUrl =
+      'https://api-staging-bdfe.up.railway.app';
+  static const String _rawApiBaseUrl = String.fromEnvironment(
+    'AUTO_IQ_API_BASE_URL',
+  );
 
   static String get apiBaseUrl {
-    if (_rawApiBaseUrl.isNotEmpty) {
-      return _normalizeOrigin(_rawApiBaseUrl);
-    }
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:4000';
-    }
-    return 'http://localhost:4000';
+    final value = _rawApiBaseUrl.isNotEmpty
+        ? _rawApiBaseUrl
+        : _defaultApiBaseUrl;
+    return _normalizeOrigin(value);
   }
 
   static String get apiLabel => '$apiBaseUrl/api/v1';

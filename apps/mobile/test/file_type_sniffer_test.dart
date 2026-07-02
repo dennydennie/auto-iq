@@ -22,6 +22,39 @@ void main() {
     expect(type?.isImage, isFalse);
   });
 
+  test('detects png files with the full magic signature', () {
+    final type = FileTypeSniffer.sniff(
+      Uint8List.fromList(const [
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+        0x00,
+      ]),
+    );
+
+    expect(type?.contentType, 'image/png');
+    expect(type?.isImage, isTrue);
+  });
+
+  test('rejects partial png signatures', () {
+    final type = FileTypeSniffer.sniff(
+      Uint8List.fromList(const [0x89, 0x50, 0x4e, 0x47, 0x00]),
+    );
+
+    expect(type, isNull);
+  });
+
+  test('rejects partial pdf signatures', () {
+    final type = FileTypeSniffer.sniff(Uint8List.fromList('%PDF'.codeUnits));
+
+    expect(type, isNull);
+  });
+
   test('returns null for unsupported bytes', () {
     final type = FileTypeSniffer.sniff(
       Uint8List.fromList(const [0x01, 0x02, 0x03, 0x04]),

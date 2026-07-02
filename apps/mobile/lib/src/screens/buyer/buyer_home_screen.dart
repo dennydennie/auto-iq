@@ -202,9 +202,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         controller: budgetController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
-                          labelText: 'Max budget (USD)',
+                          helperText: 'Sent to the API as ZWG cents.',
+                          labelText: 'Max budget (ZWG)',
                         ),
-                        validator: _required,
+                        validator: _positiveAmountRequired,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
@@ -440,6 +441,18 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Required';
+    }
+    return null;
+  }
+
+  String? _positiveAmountRequired(String? value) {
+    final requiredError = _required(value);
+    if (requiredError != null) {
+      return requiredError;
+    }
+    final amount = double.tryParse(value!.trim());
+    if (amount == null || amount <= 0) {
+      return 'Enter an amount greater than 0';
     }
     return null;
   }
@@ -901,7 +914,7 @@ class _RequestsTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Budget USD ${(item.maxBudgetCents / 100).toStringAsFixed(0)} · ${item.urgency.replaceAll('_', ' ')}',
+                              'Budget ZWG ${(item.maxBudgetCents / 100).toStringAsFixed(0)} · ${item.urgency.replaceAll('_', ' ')}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.ink500,

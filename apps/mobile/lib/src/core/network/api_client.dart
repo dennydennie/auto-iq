@@ -29,9 +29,7 @@ class ApiClient {
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
         sendTimeout: const Duration(seconds: 30),
-        headers: const {
-          'Accept': 'application/json',
-        },
+        headers: const {'Accept': 'application/json'},
         validateStatus: (status) => status != null && status < 500,
       ),
     );
@@ -127,8 +125,17 @@ class ApiClient {
 
   Future<void> delete(String path, {bool includeCsrf = false}) async {
     final headers = await _headers(includeCsrf: includeCsrf);
-    final response =
-        await _dio.delete<dynamic>(path, options: Options(headers: headers));
+    var response = await _dio.delete<dynamic>(
+      path,
+      options: Options(headers: headers),
+    );
+    if (includeCsrf && _shouldRetryWithFreshCsrf(response)) {
+      _csrfToken = null;
+      response = await _dio.delete<dynamic>(
+        path,
+        options: Options(headers: await _headers(includeCsrf: true)),
+      );
+    }
     _ensureSuccess(response);
   }
 
@@ -148,10 +155,7 @@ class ApiClient {
       url,
       data: Stream.fromIterable([bytes]),
       options: Options(
-        headers: {
-          'Content-Type': contentType,
-          'Content-Length': bytes.length,
-        },
+        headers: {'Content-Type': contentType, 'Content-Length': bytes.length},
         validateStatus: (status) => status != null && status < 500,
       ),
     );
@@ -187,11 +191,22 @@ class ApiClient {
     required bool includeCsrf,
   }) async {
     final headers = await _headers(includeCsrf: includeCsrf);
-    final response = await _dio.request<dynamic>(
+    var response = await _dio.request<dynamic>(
       path,
-      data: body,
+      data: _cleanPayload(body),
       options: Options(method: method, headers: headers),
     );
+    if (includeCsrf && _shouldRetryWithFreshCsrf(response)) {
+      _csrfToken = null;
+      response = await _dio.request<dynamic>(
+        path,
+        data: _cleanPayload(body),
+        options: Options(
+          method: method,
+          headers: await _headers(includeCsrf: true),
+        ),
+      );
+    }
     _ensureSuccess(response);
     return response;
   }
@@ -201,10 +216,7 @@ class ApiClient {
       return const {'Content-Type': 'application/json'};
     }
     await ensureCsrfToken();
-    return {
-      'Content-Type': 'application/json',
-      'X-CSRF-Token': _csrfToken,
-    };
+    return {'Content-Type': 'application/json', 'X-CSRF-Token': _csrfToken};
   }
 
   void _ensureSuccess(Response<dynamic> response) {
@@ -213,11 +225,25 @@ class ApiClient {
     }
   }
 
+  bool _shouldRetryWithFreshCsrf(Response<dynamic> response) {
+    if (response.statusCode != 403) {
+      return false;
+    }
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      return false;
+    }
+    final code = data['code']?.toString().toUpperCase() ?? '';
+    final message = data['message']?.toString().toLowerCase() ?? '';
+    return code.contains('CSRF') || message.contains('csrf');
+  }
+
   static ApiException _toApiException(Response<dynamic>? response) {
     final statusCode = response?.statusCode ?? 500;
     final data = response?.data;
     if (data is Map<String, dynamic>) {
-      final message = data['message']?.toString() ??
+      final message =
+          data['message']?.toString() ??
           data['error']?.toString() ??
           'Request failed.';
       return ApiException(
@@ -248,5 +274,30 @@ class ApiClient {
       clean[entry.key] = value;
     }
     return clean;
+  }
+
+  static dynamic _cleanPayload(dynamic value) {
+    if (value is Map) {
+      final clean = <String, dynamic>{};
+      for (final entry in value.entries) {
+        final key = entry.key?.toString();
+        if (key == null || key.isEmpty) {
+          continue;
+        }
+        final child = _cleanPayload(entry.value);
+        if (child == null) {
+          continue;
+        }
+        if (child is String && child.trim().isEmpty) {
+          continue;
+        }
+        clean[key] = child;
+      }
+      return clean;
+    }
+    if (value is List) {
+      return value.map(_cleanPayload).where((item) => item != null).toList();
+    }
+    return value;
   }
 }
