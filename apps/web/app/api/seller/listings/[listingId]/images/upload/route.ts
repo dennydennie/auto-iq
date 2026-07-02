@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ApiError } from "@auto-iq/contracts/error";
-import type { ImagePresignResponse, VehicleImageDto } from "@auto-iq/contracts/storage";
+import type {
+  ImagePresignRequest,
+  ImagePresignResponse,
+  VehicleImageDto,
+} from "@auto-iq/contracts/storage";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import {
   issueRemoteCsrfToken,
@@ -56,10 +60,16 @@ export async function POST(
     return badRequest("Upload a JPEG, PNG, or WebP image.");
   }
 
+  const presignBody: ImagePresignRequest = {
+    contentLength: file.size,
+    contentType: file.type as ImagePresignRequest["contentType"],
+    slot: slot as ImagePresignRequest["slot"],
+  };
+
   const presignResponse = await sendRemoteRequest({
     method: "POST",
     path: ROUTES.storage.imagePresign,
-    body: { contentLength: file.size, contentType: file.type },
+    body: presignBody,
     sessionCookie,
     csrfToken,
   });

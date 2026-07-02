@@ -279,7 +279,7 @@ function assertProductionEnv(env: ValidatedEnvironment) {
 function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   const missing: string[] = [];
 
-  if (!env.SENTRY_DSN) {
+  if (env.NODE_ENV === "production" && !env.SENTRY_DSN) {
     missing.push("SENTRY_DSN");
   }
   if (!env.SENTRY_ENVIRONMENT) {

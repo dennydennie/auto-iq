@@ -53,6 +53,25 @@ describe("validateEnv", () => {
     );
   });
 
+  it("allows staging to boot without a Sentry DSN", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      NODE_ENV: "staging",
+      WEB_BASE_URL: "https://web-staging-1017.up.railway.app",
+      SESSION_COOKIE_SECURE: "true",
+      SENTRY_ENVIRONMENT: "staging",
+      SENTRY_RELEASE: "api@staging",
+      STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
+      STORAGE_REGION: "auto",
+      STORAGE_ACCESS_KEY: "tigris-access-key",
+      STORAGE_SECRET_KEY: "tigris-secret-key",
+      STORAGE_BUCKET: "auto-iq-staging",
+    });
+
+    expect(env.NODE_ENV).toBe("staging");
+    expect(env.SENTRY_DSN).toBeUndefined();
+  });
+
   it("rejects localhost web origins in production-like environments", () => {
     expect(() =>
       validateEnv({
