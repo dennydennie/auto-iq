@@ -15,13 +15,22 @@ import { Label } from "@/components/ui/label";
 
 const ADMIN_ROLES = new Set(["ADMIN", "PARTNER_ADMIN", "SYSTEM_ADMINISTRATOR"]);
 
-function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
+type LoginFormProps = {
+  mode?: "user" | "admin";
+  nextHref?: string | null;
+};
+
+function destinationFor(role: LoginResponse["role"], mode: "user" | "admin", nextHref?: string | null) {
   if (mode === "admin") {
     return "/admin";
   }
 
   if (ADMIN_ROLES.has(role)) {
     return "/admin";
+  }
+
+  if (nextHref) {
+    return nextHref;
   }
 
   if (role === "SELLER") {
@@ -35,7 +44,7 @@ function validateAdmin(role: LoginResponse["role"]) {
   return ADMIN_ROLES.has(role);
 }
 
-export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
+export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<LoginRequest>({ identifier: "", password: "" });
   const [error, setError] = useState<{
@@ -76,7 +85,7 @@ export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
         return;
       }
 
-      router.push(destinationFor(result.data.role, mode));
+      router.push(destinationFor(result.data.role, mode, nextHref));
       router.refresh();
     });
   }
