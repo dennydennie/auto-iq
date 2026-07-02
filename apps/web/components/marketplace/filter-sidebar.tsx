@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { BODY_TYPES, FUEL_TYPES, TRANSMISSION_TYPES } from "@auto-iq/contracts/enums";
 import { Filter, X } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
@@ -24,20 +24,26 @@ export type CatalogueFilterState = {
 };
 
 function Section({
+  title,
   children,
   defaultOpen = true,
-  title,
 }: {
+  title: string;
   children: ReactNode;
   defaultOpen?: boolean;
-  title: string;
 }) {
   return (
-    <details open={defaultOpen} className="group border-b border-[var(--ink-100)] py-4 last:border-b-0">
+    <details
+      open={defaultOpen}
+      className="group border-b border-[var(--ink-100)] py-4 last:border-b-0"
+    >
       <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-[var(--ink-900)]">
         <span>{title}</span>
-        <span aria-hidden="true" className="text-[var(--ink-400)] transition group-open:rotate-180">
-          v
+        <span
+          aria-hidden="true"
+          className="text-[var(--ink-400)] transition group-open:rotate-180"
+        >
+          ▾
         </span>
       </summary>
       <div className="mt-3 space-y-3">{children}</div>
@@ -46,13 +52,13 @@ function Section({
 }
 
 export function FilterSidebar({
+  filters,
   className,
   clearHref,
-  filters,
 }: {
+  filters: CatalogueFilterState;
   className?: string;
   clearHref: string;
-  filters: CatalogueFilterState;
 }) {
   return (
     <aside
@@ -68,8 +74,11 @@ export function FilterSidebar({
             <Filter className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
             Filter
           </div>
-          <a href={clearHref} className="inline-flex items-center gap-1 text-xs font-medium text-[var(--ink-400)] transition hover:text-[var(--ink-900)]">
-            <X className="h-3 w-3" aria-hidden="true" />
+          <a
+            href={clearHref}
+            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--ink-400)] transition hover:text-[var(--ink-900)]"
+          >
+            <X className="h-3 w-3" />
             Reset
           </a>
         </div>
@@ -79,7 +88,13 @@ export function FilterSidebar({
             <Label htmlFor="filter-make" className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]">
               Make
             </Label>
-            <Input id="filter-make" name="make" defaultValue={filters.make} placeholder="e.g. Toyota" className="h-10" />
+            <Input
+              id="filter-make"
+              name="make"
+              defaultValue={filters.make}
+              placeholder="e.g. Toyota"
+              className="h-10"
+            />
           </div>
         </Section>
 
@@ -88,7 +103,13 @@ export function FilterSidebar({
             <Label htmlFor="filter-city" className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]">
               City
             </Label>
-            <Input id="filter-city" name="city" defaultValue={filters.city} placeholder="e.g. Harare" className="h-10" />
+            <Input
+              id="filter-city"
+              name="city"
+              defaultValue={filters.city}
+              placeholder="e.g. Harare"
+              className="h-10"
+            />
           </div>
         </Section>
 
@@ -105,15 +126,49 @@ export function FilterSidebar({
 
         <Section title="Price (USD)">
           <div className="grid grid-cols-2 gap-2">
-            <Input name="priceMin" type="number" min={0} defaultValue={filters.priceMin} placeholder="Min" aria-label="Minimum price" className="h-10" />
-            <Input name="priceMax" type="number" min={0} defaultValue={filters.priceMax} placeholder="Max" aria-label="Maximum price" className="h-10" />
+            <Input
+              name="priceMin"
+              type="number"
+              min={0}
+              defaultValue={filters.priceMin}
+              placeholder="Min"
+              aria-label="Minimum price"
+              className="h-10"
+            />
+            <Input
+              name="priceMax"
+              type="number"
+              min={0}
+              defaultValue={filters.priceMax}
+              placeholder="Max"
+              aria-label="Maximum price"
+              className="h-10"
+            />
           </div>
         </Section>
 
         <Section title="Year">
           <div className="grid grid-cols-2 gap-2">
-            <Input name="yearMin" type="number" min={1950} max={2100} defaultValue={filters.yearMin} placeholder="From" aria-label="Year from" className="h-10" />
-            <Input name="yearMax" type="number" min={1950} max={2100} defaultValue={filters.yearMax} placeholder="To" aria-label="Year to" className="h-10" />
+            <Input
+              name="yearMin"
+              type="number"
+              min={1950}
+              max={2100}
+              defaultValue={filters.yearMin}
+              placeholder="From"
+              aria-label="Year from"
+              className="h-10"
+            />
+            <Input
+              name="yearMax"
+              type="number"
+              min={1950}
+              max={2100}
+              defaultValue={filters.yearMax}
+              placeholder="To"
+              aria-label="Year to"
+              className="h-10"
+            />
           </div>
         </Section>
 
@@ -122,7 +177,15 @@ export function FilterSidebar({
             <Label htmlFor="filter-mileage" className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]">
               Max km
             </Label>
-            <Input id="filter-mileage" name="mileageMax" type="number" min={0} defaultValue={filters.mileageMax} placeholder="e.g. 150000" className="h-10" />
+            <Input
+              id="filter-mileage"
+              name="mileageMax"
+              type="number"
+              min={0}
+              defaultValue={filters.mileageMax}
+              placeholder="e.g. 150000"
+              className="h-10"
+            />
           </div>
         </Section>
 

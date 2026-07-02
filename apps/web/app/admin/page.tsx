@@ -1,34 +1,40 @@
+import { cache, Suspense } from "react";
 import Link from "next/link";
 import type { AdminDashboardDto } from "@auto-iq/contracts/admin";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import { Calendar, ListTodo, Sparkles, Tickets } from "lucide-react";
+import { Calendar, ListTodo, Tickets } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/shared/page-header";
+import { StatCardSkeleton } from "@/components/skeletons";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 
-export default async function AdminHomePage() {
-  const result = await getSessionJson<AdminDashboardDto>(ROUTES.admin.dashboard);
+// Dedupe the dashboard fetch across the three async sections that consume it.
+// React's `cache()` returns the same promise for the lifetime of the request,
+// so only one network call hits the API even though three Suspense boundaries
+// await it independently.
+const fetchDashboard = cache(() =>
+  getSessionJson<AdminDashboardDto>(ROUTES.admin.dashboard),
+);
 
-  if (isServerApiFailure(result)) {
-    return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
-          <EmptyState
-            icon={ListTodo}
-            headline="Admin sign-in required"
-            body="Sign in with an admin account to load queue counts and moderation activity."
-            cta={{ label: "Go to admin login", href: "/admin/login" }}
-          />
-        ) : (
-          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
-        )}
-      </main>
-    );
-  }
+function ListItemFallback() {
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-5">
+        <div className="h-3 w-32 animate-pulse rounded-full bg-[var(--ink-100)]" />
+        <div className="h-3 w-24 animate-pulse rounded-full bg-[var(--ink-100)]" />
+        <div className="h-3 w-40 animate-pulse rounded-full bg-[var(--ink-100)]" />
+      </CardContent>
+    </Card>
+  );
+}
 
+async function KpiStats() {
+  const result = await fetchDashboard();
+  if (isServerApiFailure(result)) return null;
   const dashboard = result.data;
   const adminStats = [
     { label: "Approval queue", value: dashboard.queues.pendingReview, icon: ListTodo },
@@ -37,98 +43,135 @@ export default async function AdminHomePage() {
   ];
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <div className="rounded-[2rem] border border-white/60 bg-white/85 p-6 shadow-[0_28px_90px_-50px_rgba(22,31,58,0.35)] backdrop-blur sm:p-8">
-        <Badge variant="outline">Admin overview</Badge>
-        <div className="mt-4">
-          <h1 className="display text-4xl text-[var(--ink-900)] sm:text-5xl">
-            Operations dashboard
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-            Review moderation queues, viewing activity, and buyer requests that need
-            operator attention.
-          </p>
-        </div>
+    <>
+      {/* Trend deltas not yet exposed by /admin/dashboard — pass `trend={{ delta, period }}` once the API ships diffs. */}
+      {adminStats.map(({ label, value, icon }) => (
+        <StatCard key={label} label={label} value={value} icon={icon} period="Current snapshot" />
+      ))}
+    </>
+  );
+}
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {adminStats.map(({ label, value, icon: Icon }) => (
-            <Card key={label}>
-              <CardHeader>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <CardTitle className="mt-3">{label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="display text-4xl text-[var(--ink-900)]">{value}</div>
-              </CardContent>
-            </Card>
-          ))}
+async function QueueBreakdown() {
+  const result = await fetchDashboard();
+  if (isServerApiFailure(result)) return null;
+  const dashboard = result.data;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Queue breakdown</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
+        <div className="flex items-center justify-between">
+          <span>Pending review</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.pendingReview}</span>
         </div>
+        <div className="flex items-center justify-between">
+          <span>Changes requested</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.changesRequested}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Ownership pending</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.ownershipPending}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Ready to publish</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.readyToPublish}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Queue breakdown</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
-              <div className="flex items-center justify-between">
-                <span>Pending review</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.pendingReview}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Changes requested</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.changesRequested}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Ownership pending</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.ownershipPending}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Ready to publish</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.readyToPublish}</span>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Commercial pipeline</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
-              <div className="flex items-center justify-between">
-                <span>Open quotes</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.openQuoteCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Buyer requests</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.openVehicleRequestCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Recent activity</span>
-                <span className="font-semibold text-[var(--ink-900)]">{dashboard.recentActivityCount}</span>
-              </div>
-            </CardContent>
-          </Card>
-          <div className="rounded-[1.5rem] border border-[var(--ink-100)] bg-[linear-gradient(180deg,#18233e_0%,#0f1830_100%)] p-6 text-white">
-            <div className="flex items-start gap-3">
-              <Sparkles className="mt-1 h-5 w-5 text-[#FFC72C]" />
-              <div>
-                <h2 className="display text-2xl">Quick access</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-white/72">
-                  The moderation queue and viewing operations screens are also on live API reads now.
-                </p>
-                <div className="mt-5 flex flex-col gap-3">
-                  <Link href="/admin/listings" className={buttonVariants({ variant: "amber", className: "justify-center" })}>
-                    Open moderation queue
-                  </Link>
-                  <Link href="/admin/viewings" className={buttonVariants({ variant: "outline", className: "justify-center border-white/20 bg-white/5 text-white hover:bg-white/10" })}>
-                    Open viewing operations
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
+async function CommercialPipeline() {
+  const result = await fetchDashboard();
+  if (isServerApiFailure(result)) return null;
+  const dashboard = result.data;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Commercial pipeline</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
+        <div className="flex items-center justify-between">
+          <span>Open quotes</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.openQuoteCount}</span>
         </div>
+        <div className="flex items-center justify-between">
+          <span>Buyer requests</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.openVehicleRequestCount}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Recent activity</span>
+          <span className="font-semibold text-[var(--ink-900)]">{dashboard.recentActivityCount}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+async function DashboardErrorBoundary() {
+  const result = await fetchDashboard();
+  if (!isServerApiFailure(result)) return null;
+  if (result.error.statusCode === 401 || result.error.statusCode === 403) {
+    return (
+      <EmptyState
+        icon={ListTodo}
+        headline="Admin sign-in required"
+        body="Sign in with an admin account to load queue counts and moderation activity."
+        cta={{ label: "Go to admin login", href: "/admin/login" }}
+      />
+    );
+  }
+  return (
+    <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+  );
+}
+
+export default function AdminHomePage() {
+  return (
+    <main className="mx-auto max-w-7xl space-y-8 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow="Admin overview"
+        title="Operations dashboard"
+        description="Moderation queues, viewing activity, and buyer requests that need operator attention."
+        actions={
+          <>
+            <Link href="/admin/listings" className={buttonVariants({ variant: "amber", size: "sm" })}>
+              Moderation queue
+            </Link>
+            <Link href="/admin/viewings" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Viewings
+            </Link>
+          </>
+        }
+      />
+
+      <Suspense fallback={null}>
+        <DashboardErrorBoundary />
+      </Suspense>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Suspense
+          fallback={
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          }
+        >
+          <KpiStats />
+        </Suspense>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Suspense fallback={<ListItemFallback />}>
+          <QueueBreakdown />
+        </Suspense>
+        <Suspense fallback={<ListItemFallback />}>
+          <CommercialPipeline />
+        </Suspense>
       </div>
     </main>
   );

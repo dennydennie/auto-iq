@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { FlashToast } from "@/components/ui/flash-toast";
+import { ToasterProvider } from "@/components/ui/toaster";
 
 const bodyFont = Geist({
   subsets: ["latin"],
@@ -26,7 +29,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
-        {children}
+        <ToasterProvider>
+          <Suspense fallback={null}>
+            <FlashToast />
+          </Suspense>
+          {children}
+        </ToasterProvider>
       </body>
     </html>
   );

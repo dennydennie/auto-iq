@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AdminListingActions } from "@/components/admin/admin-listing-actions";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { Badge } from "@/components/ui/badge";
@@ -34,12 +35,23 @@ function checklist(listing: AdminListingDto) {
   ];
 }
 
+function readReturnHref(value: string | string[] | undefined, fallback: string) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (typeof candidate !== "string") return fallback;
+  // Only allow same-origin admin paths to prevent open redirect.
+  return candidate.startsWith("/admin/") ? candidate : fallback;
+}
+
 export default async function AdminListingReviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const { return: returnParam } = await searchParams;
+  const backHref = readReturnHref(returnParam, "/admin/listings");
   const result = await getSessionJson<AdminListingDto>(ROUTES.admin.listing(id));
 
   if (isServerApiFailure(result)) {
@@ -50,7 +62,7 @@ export default async function AdminListingReviewPage({
             icon={AlertTriangle}
             headline="Listing not found"
             body="This listing could not be loaded from the admin detail endpoint."
-            cta={{ label: "Back to moderation queue", href: "/admin/listings" }}
+            cta={{ label: "Back to moderation queue", href: backHref }}
           />
         ) : (
           <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
@@ -64,9 +76,19 @@ export default async function AdminListingReviewPage({
   const items = checklist(listing);
   const completedItems = items.filter((item) => item.complete).length;
 
+  const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
+
   return (
     <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <Link href="/admin/listings" className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
+      <Breadcrumb
+        className="mb-4"
+        items={[
+          { label: "Admin", href: "/admin" },
+          { label: "Moderation queue", href: backHref },
+          { label: title },
+        ]}
+      />
+      <Link href={backHref} className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
         <ArrowLeft className="h-4 w-4" />
         Back to moderation queue
       </Link>
@@ -105,7 +127,6 @@ export default async function AdminListingReviewPage({
                         src={coverImage}
                         alt={`${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`}
                         fill
-                        unoptimized
                         sizes="(min-width: 1024px) 40vw, 100vw"
                         className="object-cover"
                       />

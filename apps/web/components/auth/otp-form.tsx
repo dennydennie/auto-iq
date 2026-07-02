@@ -121,6 +121,7 @@ export function OtpForm({
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="Enter the 6-digit code"
+          aria-invalid={Boolean(error)}
           required
         />
       </div>

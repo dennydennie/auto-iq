@@ -3,23 +3,27 @@ import { X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
 export type FilterChip = {
+  /** Label rendered inside the chip (e.g., "Status: Submitted"). */
   label: string;
+  /** Href that removes this filter (preserves other filters). */
   removeHref: string;
 };
 
 export function FilterChips({
   chips,
   clearAllHref,
+  className,
 }: {
   chips: FilterChip[];
   clearAllHref: string;
+  className?: string;
 }) {
   if (chips.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
       <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
         Filtered by
       </span>

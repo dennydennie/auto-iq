@@ -62,7 +62,6 @@ function requestFromForm(form: RegisterFormState, role: RoleKey): RegisterReques
 function otpHref(payload: RegisterResponse, role: RoleKey) {
   const params = new URLSearchParams({
     phone: payload.phone,
-    email: payload.email,
     role,
     registered: payload.otpRequired ? "1" : "0",
   });
@@ -127,6 +126,7 @@ export function RegisterForm({ role = "buyer" }: { role?: RoleKey }) {
             onChange={(event) => setField("fullName", event.target.value)}
             placeholder="e.g. Tendai Moyo"
             autoComplete="name"
+            aria-invalid={Boolean(error)}
             required
           />
         </div>
@@ -139,6 +139,7 @@ export function RegisterForm({ role = "buyer" }: { role?: RoleKey }) {
             onChange={(event) => setField("email", event.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
+            aria-invalid={Boolean(error)}
             required
           />
         </div>
@@ -153,6 +154,7 @@ export function RegisterForm({ role = "buyer" }: { role?: RoleKey }) {
             onChange={(event) => setField("city", event.target.value)}
             placeholder="Harare"
             autoComplete="address-level2"
+            aria-invalid={Boolean(error)}
             required
           />
         </div>
@@ -170,6 +172,7 @@ export function RegisterForm({ role = "buyer" }: { role?: RoleKey }) {
               onChange={(event) => setField("phone", event.target.value)}
               placeholder="77 123 4567"
               autoComplete="tel"
+              aria-invalid={Boolean(error)}
               required
             />
           </div>
@@ -189,6 +192,7 @@ export function RegisterForm({ role = "buyer" }: { role?: RoleKey }) {
             onChange={(event) => setField("password", event.target.value)}
             placeholder="Create a strong password"
             autoComplete="new-password"
+            aria-invalid={Boolean(error)}
             required
           />
         </div>
@@ -201,6 +205,7 @@ export function RegisterForm({ role = "buyer" }: { role?: RoleKey }) {
             onChange={(event) => setField("confirmPassword", event.target.value)}
             placeholder="Repeat your password"
             autoComplete="new-password"
+            aria-invalid={Boolean(error)}
             required
           />
         </div>

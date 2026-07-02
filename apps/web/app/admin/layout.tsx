@@ -17,13 +17,17 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { BiSellLogo } from "@/components/ui/bisell-logo";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: Home },
   { href: "/admin/listings", label: "Listings", icon: ListChecks },
   { href: "/admin/viewings", label: "Viewings", icon: Calendar },
+] as const;
+
+const UPCOMING_NAV_ITEMS = [
   { href: "/admin/inspections", label: "Inspections", icon: ShieldCheck },
   { href: "/admin/requests", label: "Buyer requests", icon: Sparkles },
   { href: "/admin/users", label: "Users", icon: Users },
@@ -41,12 +45,14 @@ function NavLink({
   pathname,
   onNavigate,
   icon: Icon,
+  upcoming = false,
 }: {
   href: string;
   label: string;
   pathname: string;
   onNavigate?: () => void;
   icon: LucideIcon;
+  upcoming?: boolean;
 }) {
   const active = isActive(pathname, href);
 
@@ -62,7 +68,12 @@ function NavLink({
       )}
     >
       <Icon className={cn("h-4 w-4", active ? "text-[var(--amber)]" : "text-[var(--ink-400)]")} />
-      <span>{label}</span>
+      <span className="flex-1">{label}</span>
+      {upcoming ? (
+        <span className="rounded-full bg-[var(--ink-100)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-500)]">
+          Soon
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -95,10 +106,24 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="mt-6 flex flex-1 flex-col gap-2" aria-label="Admin">
-            {NAV_ITEMS.map((item) => (
+            {PRIMARY_NAV_ITEMS.map((item) => (
               <NavLink key={item.href} pathname={pathname} {...item} />
             ))}
+            <p className="mt-6 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-400)]">
+              In progress
+            </p>
+            {UPCOMING_NAV_ITEMS.map((item) => (
+              <NavLink key={item.href} pathname={pathname} upcoming {...item} />
+            ))}
           </nav>
+
+          <div className="mt-4 border-t border-[var(--ink-100)] pt-4">
+            <LogoutButton
+              variant="outline"
+              className="w-full justify-center"
+              redirectTo="/admin/login"
+            />
+          </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -128,7 +153,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 onClick={(event) => event.stopPropagation()}
               >
                 <nav className="grid gap-2" aria-label="Admin mobile">
-                  {NAV_ITEMS.map((item) => (
+                  {PRIMARY_NAV_ITEMS.map((item) => (
                     <NavLink
                       key={item.href}
                       pathname={pathname}
@@ -136,6 +161,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                       {...item}
                     />
                   ))}
+                  <p className="mt-4 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-400)]">
+                    In progress
+                  </p>
+                  {UPCOMING_NAV_ITEMS.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      pathname={pathname}
+                      upcoming
+                      onNavigate={() => setIsMenuOpen(false)}
+                      {...item}
+                    />
+                  ))}
+                  <LogoutButton
+                    variant="outline"
+                    className="mt-2 justify-center"
+                    redirectTo="/admin/login"
+                  />
                 </nav>
               </aside>
             </div>

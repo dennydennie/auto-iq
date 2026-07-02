@@ -5,33 +5,46 @@ import { ROUTES } from "@auto-iq/contracts/routes";
 import { Filter, Search } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
+import { PageHeader } from "@/components/shared/page-header";
+import { PaginationFooter } from "@/components/shared/pagination-footer";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { StatCard } from "@/components/ui/stat-card";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 import { mapListingStatus } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+const STATUS_LABELS: Record<string, string> = {
+  SUBMITTED: "Submitted",
+  CHANGES_REQUESTED: "Changes requested",
+  APPROVED: "Approved",
+  PUBLISHED: "Published",
+};
+
 function readValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
 
-function paginationHref(page: number, status: string, search: string) {
+function listingsQuery(filters: { page: number; status: string; search: string }) {
   const params = new URLSearchParams();
-  params.set("page", String(page));
+  if (filters.page > 1) params.set("page", String(filters.page));
+  if (filters.status) params.set("status", filters.status);
+  if (filters.search) params.set("search", filters.search);
+  return params.toString();
+}
 
-  if (status) {
-    params.set("status", status);
-  }
-  if (search) {
-    params.set("search", search);
-  }
-
-  return `/admin/listings?${params.toString()}`;
+function listingsHref(
+  overrides: Partial<{ page: number; status: string; search: string }>,
+  current: { page: number; status: string; search: string },
+) {
+  const query = listingsQuery({ ...current, ...overrides });
+  return query ? `/admin/listings?${query}` : "/admin/listings";
 }
 
 export default async function AdminListingsPage({
@@ -40,9 +53,10 @@ export default async function AdminListingsPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const page = Number(readValue(params.page) || "1");
+  const page = Number(readValue(params.page) || "1") || 1;
   const search = readValue(params.search);
   const status = readValue(params.status);
+  const currentFilters = { page, status, search };
   const [dashboardResult, queueResult] = await Promise.all([
     getSessionJson<AdminDashboardDto>(ROUTES.admin.dashboard),
     getSessionJson<OffsetPaginatedResponse<AdminListingDto>>(
@@ -82,45 +96,41 @@ export default async function AdminListingsPage({
 
   const queue = queueResult.data;
   const dashboard = dashboardResult.data;
+  const returnQuery = listingsQuery(currentFilters);
+  const buildDetailHref = (id: string) =>
+    returnQuery
+      ? `/admin/listings/${id}?return=${encodeURIComponent(`/admin/listings?${returnQuery}`)}`
+      : `/admin/listings/${id}`;
+
+  const chips: FilterChip[] = [];
+  if (status) {
+    chips.push({
+      label: `Status: ${STATUS_LABELS[status] ?? status}`,
+      removeHref: listingsHref({ status: "", page: 1 }, currentFilters),
+    });
+  }
+  if (search) {
+    chips.push({
+      label: `Search: ${search}`,
+      removeHref: listingsHref({ search: "", page: 1 }, currentFilters),
+    });
+  }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <Badge variant="outline">Admin listings queue</Badge>
-            <h1 className="display mt-4 text-4xl text-[var(--ink-900)]">Moderation queue</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-              Review submitted listings, request changes, or publish from the real admin queue endpoint.
-            </p>
-          </div>
-        </div>
+    <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow="Admin listings queue"
+        title="Moderation queue"
+        description="Review submitted listings, request changes, or publish."
+      />
 
+      <div className="space-y-6">
+        {/* Trend deltas not yet exposed by /admin/dashboard. Add `trend` props when the API ships period diffs. */}
         <div className="grid gap-3 md:grid-cols-4">
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Pending review</p>
-              <p className="display mt-3 text-3xl text-[var(--ink-900)]">{dashboard.queues.pendingReview}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Changes requested</p>
-              <p className="display mt-3 text-3xl text-[var(--ink-900)]">{dashboard.queues.changesRequested}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Inspection pending</p>
-              <p className="display mt-3 text-3xl text-[var(--ink-900)]">{dashboard.queues.inspectionPending}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Ready to publish</p>
-              <p className="display mt-3 text-3xl text-[var(--ink-900)]">{dashboard.queues.readyToPublish}</p>
-            </CardContent>
-          </Card>
+          <StatCard label="Pending review" value={dashboard.queues.pendingReview} period="Live count" />
+          <StatCard label="Changes requested" value={dashboard.queues.changesRequested} period="Live count" />
+          <StatCard label="Inspection pending" value={dashboard.queues.inspectionPending} period="Live count" />
+          <StatCard label="Ready to publish" value={dashboard.queues.readyToPublish} period="Live count" />
         </div>
 
         <form className="grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_14rem_auto]">
@@ -151,6 +161,8 @@ export default async function AdminListingsPage({
           <button className={buttonVariants({ variant: "amber" })}>Apply</button>
         </form>
 
+        <FilterChips chips={chips} clearAllHref="/admin/listings" />
+
         <div className="space-y-4">
           {queue.data.length > 0 ? queue.data.map((item) => (
             <Card key={item.id}>
@@ -179,7 +191,7 @@ export default async function AdminListingsPage({
                     {item.publishedAt ? formatDate(item.publishedAt) : "not yet"}
                   </p>
                 </div>
-                <Link href={`/admin/listings/${item.id}`} className={buttonVariants({ variant: "ghost" })}>
+                <Link href={buildDetailHref(item.id)} className={buttonVariants({ variant: "ghost" })}>
                   Open review
                 </Link>
               </CardContent>
@@ -187,34 +199,24 @@ export default async function AdminListingsPage({
           )) : (
             <EmptyState
               icon={Search}
-              headline="No listings in this slice"
-              body="The queue endpoint is live, but no listings matched the current status and search filters."
+              headline={chips.length > 0 ? "No listings match these filters" : "No listings in the moderation queue"}
+              body={
+                chips.length > 0
+                  ? "Try removing one of the active filters to broaden the queue view."
+                  : "There are no submitted listings to review right now. Newly submitted listings will appear here."
+              }
+              cta={chips.length > 0 ? { label: "Clear filters", href: "/admin/listings" } : undefined}
             />
           )}
         </div>
 
-        <div className="flex items-center justify-between rounded-[1.5rem] border border-[var(--ink-100)] bg-white px-5 py-4">
-          <p className="text-sm text-[var(--ink-500)]">
-            Page <span className="font-semibold text-[var(--ink-900)]">{queue.meta.page}</span> of{" "}
-            <span className="font-semibold text-[var(--ink-900)]">{queue.meta.totalPages}</span>
-          </p>
-          <div className="flex gap-3">
-            <Link
-              href={paginationHref(Math.max(1, queue.meta.page - 1), status, search)}
-              className={buttonVariants({ variant: "outline" })}
-              aria-disabled={queue.meta.page <= 1}
-            >
-              Previous
-            </Link>
-            <Link
-              href={paginationHref(Math.min(queue.meta.totalPages, queue.meta.page + 1), status, search)}
-              className={buttonVariants({ variant: "outline" })}
-              aria-disabled={queue.meta.page >= queue.meta.totalPages}
-            >
-              Next
-            </Link>
-          </div>
-        </div>
+        <PaginationFooter
+          page={queue.meta.page}
+          totalPages={queue.meta.totalPages}
+          limit={queue.meta.limit}
+          total={queue.meta.total}
+          buildHref={(targetPage) => listingsHref({ page: targetPage }, currentFilters)}
+        />
       </div>
     </main>
   );

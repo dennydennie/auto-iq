@@ -14,13 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const ADMIN_ROLES = new Set(["ADMIN", "PARTNER_ADMIN", "SYSTEM_ADMINISTRATOR"]);
-const SAFE_NEXT_PREFIXES = ["/buyer", "/saved", "/vehicles"];
 
-function destinationFor(
-  role: LoginResponse["role"],
-  mode: "user" | "admin",
-  nextHref?: string | null,
-) {
+function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
   if (mode === "admin") {
     return "/admin";
   }
@@ -29,32 +24,18 @@ function destinationFor(
     return "/admin";
   }
 
-  if (nextHref && isSafeNextHref(nextHref)) {
-    return nextHref;
-  }
-
   if (role === "SELLER") {
     return "/seller";
   }
 
-  return "/buyer";
+  return "/";
 }
 
 function validateAdmin(role: LoginResponse["role"]) {
   return ADMIN_ROLES.has(role);
 }
 
-function isSafeNextHref(value: string) {
-  return SAFE_NEXT_PREFIXES.some((prefix) => value === prefix || value.startsWith(`${prefix}/`));
-}
-
-export function LoginForm({
-  mode = "user",
-  nextHref = null,
-}: {
-  mode?: "user" | "admin";
-  nextHref?: string | null;
-}) {
+export function LoginForm({ mode = "user" }: { mode?: "user" | "admin" }) {
   const router = useRouter();
   const [form, setForm] = useState<LoginRequest>({ identifier: "", password: "" });
   const [error, setError] = useState<{
@@ -81,10 +62,6 @@ export function LoginForm({
           const phone = otpPhone(result.error, form.identifier);
           if (phone) {
             const params = new URLSearchParams({ phone, registered: "0" });
-            const email = otpEmail(result.error, form.identifier);
-            if (email) {
-              params.set("email", email);
-            }
             router.push(`/auth/otp?${params.toString()}`);
             return;
           }
@@ -99,7 +76,7 @@ export function LoginForm({
         return;
       }
 
-      router.push(destinationFor(result.data.role, mode, nextHref));
+      router.push(destinationFor(result.data.role, mode));
       router.refresh();
     });
   }
@@ -120,6 +97,7 @@ export function LoginForm({
             onChange={(event) => setField("identifier", event.target.value)}
             placeholder="you@example.com or +263..."
             autoComplete="username"
+            aria-invalid={Boolean(error)}
             className="h-12 rounded-2xl border-[var(--ink-300)] bg-[var(--ink-50)]/55 pl-11"
             required
           />
@@ -148,6 +126,7 @@ export function LoginForm({
             onChange={(event) => setField("password", event.target.value)}
             placeholder="Enter your password"
             autoComplete="current-password"
+            aria-invalid={Boolean(error)}
             className="h-12 rounded-2xl border-[var(--ink-300)] bg-[var(--ink-50)]/55 pl-11 pr-12"
             required
           />
@@ -216,13 +195,4 @@ function otpPhone(error: ApiError, identifier: string) {
   }
 
   return identifier.startsWith("+") ? identifier : null;
-}
-
-function otpEmail(error: ApiError, identifier: string) {
-  const fromDetails = error.details?.find((detail) => detail.field === "email")?.value;
-  if (typeof fromDetails === "string" && fromDetails.includes("@")) {
-    return fromDetails;
-  }
-
-  return identifier.includes("@") ? identifier : null;
 }

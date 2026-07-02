@@ -93,11 +93,8 @@ export class AuthService {
       await this.audit("auth.login", user.id, "failure");
       throw new UnauthorizedException({
         code: "OTP_REQUIRED",
-        message: "Verify your account with the code sent by SMS and email.",
-        details: [
-          { field: "phone", message: "Registered phone number", value: user.phone },
-          { field: "email", message: "Registered email address", value: user.email },
-        ],
+        message: "Verify your phone number before signing in.",
+        details: [{ field: "phone", message: "Registered phone number", value: user.phone }],
       });
     }
     await this.audit("auth.login", user.id, "success");

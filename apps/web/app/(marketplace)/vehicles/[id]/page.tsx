@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import type { PublicListingDto } from "@auto-iq/contracts/catalogue";
+import type { PublicListingDto, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
@@ -9,13 +10,15 @@ import {
   Fuel,
   Gauge,
   GitBranch,
+  Lock,
   MapPin,
   ShieldCheck,
   Wrench,
 } from "lucide-react";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
-import { VehiclePhotoBrowser } from "@/components/listing/vehicle-photo-browser";
+import { SaveVehicleButton } from "@/components/marketplace/save-vehicle-button";
 import { VehicleInterestPanel } from "@/components/marketplace/vehicle-interest-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -48,18 +51,33 @@ function viewerState(
   return result.data.roles.includes("BUYER") ? "buyer" as const : "other" as const;
 }
 
+function readReturnHref(value: string | string[] | undefined, fallback: string) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (typeof candidate !== "string") return fallback;
+  return candidate.startsWith("/vehicles") ? candidate : fallback;
+}
+
 export default async function VehicleDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const { return: returnParam } = await searchParams;
+  const backHref = readReturnHref(returnParam, "/vehicles");
   const listingResult = await getPublicJson<PublicListingDto>(ROUTES.catalogue.detail(id));
   const meResult = await getOptionalSessionJson<MeResponse>(ROUTES.me.profile);
   const currentViewer = viewerState(meResult);
-  const referenceDataResult = currentViewer === "buyer"
-    ? await getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all)
-    : null;
+  const [referenceDataResult, savedResult] = await Promise.all([
+    currentViewer === "buyer"
+      ? getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all)
+      : Promise.resolve(null),
+    currentViewer === "buyer"
+      ? getOptionalSessionJson<SavedVehicleDto[]>(ROUTES.me.savedVehicles)
+      : Promise.resolve(null),
+  ]);
 
   if (isServerApiFailure(listingResult)) {
     return (
@@ -69,7 +87,7 @@ export default async function VehicleDetailPage({
             icon={ShieldCheck}
             headline="Vehicle not found"
             body="This listing slug no longer resolves to a published vehicle in staging."
-            cta={{ label: "Back to catalogue", href: "/vehicles" }}
+            cta={{ label: "Back to catalogue", href: backHref }}
           />
         ) : (
           <ErrorBanner
@@ -85,12 +103,26 @@ export default async function VehicleDetailPage({
   const locations = referenceDataResult && referenceDataResult.ok
     ? referenceDataResult.data.viewingLocations.filter((location) => location.active)
     : [];
+  const coverImage = listing.coverImageUrl ?? listing.images[0]?.url ?? null;
   const summary = listing.inspectionSummary;
+  const isSaved =
+    savedResult !== null && savedResult.ok
+      ? savedResult.data.some((entry) => entry.listing.id === listing.id)
+      : false;
+  const signedIn = currentViewer !== "anonymous";
+
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <Link href="/vehicles" className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
+      <Breadcrumb
+        className="mb-4"
+        items={[
+          { label: "Catalogue", href: backHref },
+          { label: title },
+        ]}
+      />
+      <Link href={backHref} className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
         <ArrowLeft className="h-4 w-4" />
         Back to catalogue
       </Link>
@@ -105,7 +137,7 @@ export default async function VehicleDetailPage({
               </div>
               <div>
                 <h1 className="display text-4xl text-white sm:text-5xl">
-                  {title}
+                  {listing.year} {listing.make} {listing.model}
                 </h1>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/70">
                   <span className="inline-flex items-center gap-2">
@@ -116,24 +148,39 @@ export default async function VehicleDetailPage({
                   <span>{listing.viewCount} views</span>
                 </div>
               </div>
-              <div className="flex items-end gap-3">
+              <div className="flex flex-wrap items-end gap-4">
                 <p className="display text-4xl text-white">{formatPrice(listing.askPriceUsd, "USD")}</p>
                 <p className="pb-1 text-sm text-white/65">
                   {listing.negotiable ? "Negotiable" : "Fixed seller price"}
                 </p>
+                <SaveVehicleButton
+                  listingId={listing.id}
+                  listingSlugOrId={listing.slug}
+                  signedIn={signedIn}
+                  initialSaved={isSaved}
+                  variant="outline"
+                  size="sm"
+                  className="border-white/25 bg-white/5 text-white hover:bg-white/10"
+                />
               </div>
             </div>
 
-            <div className="rounded-[1.7rem] border border-white/10 bg-white/8 p-2 shadow-[0_20px_60px_-40px_rgba(5,10,26,0.85)]">
-              <VehiclePhotoBrowser
-                images={listing.images}
-                title={title}
-                fallback={
-                  <div className="flex h-[18rem] items-center justify-center rounded-[1.5rem]">
+            <div className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/8 shadow-[0_20px_60px_-40px_rgba(5,10,26,0.85)]">
+              {coverImage ? (
+                <div className="relative h-[18rem] w-full">
+                  <Image
+                    src={coverImage}
+                    alt={`${listing.year} ${listing.make} ${listing.model}`}
+                    fill
+                    sizes="(min-width: 1024px) 42vw, 100vw"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-[18rem] items-center justify-center">
                   <CarSilhouette type={mapBodyType(listing.bodyType)} width={320} shadow={false} />
-                  </div>
-                }
-              />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -157,21 +204,6 @@ export default async function VehicleDetailPage({
                   </div>
                 </div>
               ))}
-              {listing.locationCoordinates ? (
-                <div className="rounded-[1.25rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[var(--amber-dark)]">
-                      <MapPin className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Vehicle coordinates</p>
-                      <p className="mt-1 text-sm font-semibold text-[var(--ink-900)]">
-                        {listing.locationCoordinates.lat}, {listing.locationCoordinates.lng}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <div className="rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-5">
@@ -195,14 +227,55 @@ export default async function VehicleDetailPage({
               </div>
             </div>
 
-            <VehicleInterestPanel
-              listingId={listing.id}
-              viewerState={currentViewer}
-              viewingLocations={locations}
-            />
+            <div id="contact" className="scroll-mt-24">
+              <VehicleInterestPanel
+                listingId={listing.id}
+                viewerState={currentViewer}
+                viewingLocations={locations}
+              />
+            </div>
           </div>
 
           <div className="space-y-6">
+            {currentViewer === "anonymous" ? (
+              <div className="rounded-[1.5rem] border border-[var(--amber-dark)]/30 bg-[var(--amber-soft)]/55 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--amber-dark)]">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--amber-dark)]">
+                        Contact protected
+                      </p>
+                      <h2 className="display mt-1 text-xl text-[var(--ink-900)]">
+                        Seller contact unlocks on sign-in
+                      </h2>
+                    </div>
+                    <p className="text-sm leading-6 text-[var(--ink-700)]">
+                      To keep sellers safe from spam, contact details and viewing
+                      requests are only visible to signed-in buyers. Browsing the
+                      catalogue stays open to everyone.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Link
+                        href={`/auth/login?next=${encodeURIComponent(`/vehicles/${id}`)}`}
+                        className={buttonVariants({ variant: "amber", size: "sm" })}
+                      >
+                        Sign in
+                      </Link>
+                      <Link
+                        href={`/auth/signup?role=buyer&next=${encodeURIComponent(`/vehicles/${id}`)}`}
+                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                      >
+                        Create buyer account
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div className="rounded-[1.5rem] bg-[linear-gradient(180deg,#18233e_0%,#0f1830_100%)] p-5 text-white">
               {summary ? (
                 <div className="space-y-4">

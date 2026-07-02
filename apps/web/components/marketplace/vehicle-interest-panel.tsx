@@ -9,6 +9,7 @@ import type { RequestViewingRequest, ViewingDto } from "@auto-iq/contracts/viewi
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toaster";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +45,6 @@ export function VehicleInterestPanel({
   viewerState: ViewerState;
   viewingLocations: ApprovedViewingLocationDto[];
 }) {
-  const loginHref = `/auth/login?next=${encodeURIComponent(`/vehicles/${listingId}#contact`)}`;
   const [quoteForm, setQuoteForm] = useState<CreateQuoteRequest>({
     offerPriceUsd: 0,
     paymentPlan: "FULL_CASH",
@@ -56,6 +56,7 @@ export function VehicleInterestPanel({
     locationId: defaultLocationId(viewingLocations),
     note: "",
   });
+  const { toast } = useToast();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isPending, startTransition] = useTransition();
   const canBookViewing = viewerState === "buyer" && viewingLocations.length > 0;
@@ -70,10 +71,12 @@ export function VehicleInterestPanel({
 
   function showError(message: string, correlationId?: string) {
     setFeedback({ kind: "error", message, correlationId });
+    toast({ title: "Couldn't save", description: message, variant: "error" });
   }
 
   function showSuccess(message: string) {
     setFeedback({ kind: "success", message });
+    toast({ title: "Saved", description: message, variant: "success" });
   }
 
   function handleQuoteSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -124,7 +127,7 @@ export function VehicleInterestPanel({
               Buyer actions now hit the live API. Use a buyer account first, then come back here to save a quote or viewing request.
             </p>
           </div>
-          <Link href={loginHref} className={buttonVariants({ variant: "amber" })}>
+          <Link href="/auth/login" className={buttonVariants({ variant: "amber" })}>
             Go to buyer login
           </Link>
         </CardContent>

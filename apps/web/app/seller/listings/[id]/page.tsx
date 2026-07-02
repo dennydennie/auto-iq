@@ -1,9 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { SellerListingDto } from "@auto-iq/contracts/listings";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import { ArrowLeft, Calendar, Eye, FileText, Images, MapPin, MessageSquare, Pencil, type LucideIcon } from "lucide-react";
-import { VehiclePhotoBrowser } from "@/components/listing/vehicle-photo-browser";
-import { ListingImageManager } from "@/components/seller/listing-image-manager";
+import { ArrowLeft, Calendar, Eye, FileText, MessageSquare, Pencil, type LucideIcon } from "lucide-react";
+import { SubmitListingAction } from "@/components/seller/submit-listing-action";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { Badge } from "@/components/ui/badge";
@@ -72,25 +73,33 @@ export default async function SellerListingDetailPage({
   }
 
   const listing = result.data;
+  const coverImage = listing.images[0]?.url ?? null;
   const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
 
   return (
     <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <nav className="mb-4 text-sm text-[var(--ink-500)]" aria-label="Breadcrumb">
-        <Link href="/seller" className="hover:text-[var(--ink-900)]">Seller dashboard</Link>
-        <span className="mx-2">/</span>
-        <span>{title}</span>
-      </nav>
+      <Breadcrumb
+        className="mb-4"
+        items={[
+          { label: "Seller dashboard", href: "/seller" },
+          { label: title },
+        ]}
+      />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link href="/seller" className={buttonVariants({ variant: "ghost", className: "px-0" })}>
           <ArrowLeft className="h-4 w-4" />
           Back to seller dashboard
         </Link>
-        <Link href={`/seller/listings/${listing.id}/edit`} className={buttonVariants({ variant: "amber" })}>
-          <Pencil className="h-4 w-4" />
-          Edit listing
-        </Link>
+        {listing.status === "DRAFT" || listing.status === "CHANGES_REQUESTED" ? (
+          <Link
+            href={`/seller/listings/${listing.id}/edit`}
+            className={buttonVariants({ variant: "amber" })}
+          >
+            <Pencil className="h-4 w-4" />
+            Edit listing
+          </Link>
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
@@ -111,16 +120,22 @@ export default async function SellerListingDetailPage({
                 </p>
               </div>
 
-              <div className="rounded-[1.7rem] border border-white/10 bg-white/8 p-2">
-                <VehiclePhotoBrowser
-                  images={listing.images}
-                  title={title}
-                  fallback={
-                    <div className="flex h-[18rem] items-center justify-center rounded-[1.5rem]">
+              <div className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/8">
+                {coverImage ? (
+                  <div className="relative h-[18rem] w-full">
+                    <Image
+                      src={coverImage}
+                      alt={title}
+                      fill
+                      sizes="(min-width: 1024px) 40vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-[18rem] items-center justify-center">
                     <CarSilhouette type={mapBodyType(listing.specs.bodyType)} width={320} shadow={false} />
-                    </div>
-                  }
-                />
+                  </div>
+                )}
               </div>
             </div>
           </Card>
@@ -136,24 +151,6 @@ export default async function SellerListingDetailPage({
               <DetailItem label="Transmission" value={labelizeEnum(listing.specs.transmission)} />
               <DetailItem label="Drive type" value={labelizeEnum(listing.specs.driveType)} />
               <DetailItem label="Condition" value={labelizeEnum(listing.specs.condition)} />
-              <DetailItem
-                label="Coordinates"
-                value={listing.specs.locationCoordinates
-                  ? `${listing.specs.locationCoordinates.lat}, ${listing.specs.locationCoordinates.lng}`
-                  : "Not set"}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Images className="h-5 w-5 text-[var(--amber-dark)]" />
-                Listing photos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ListingImageManager listingId={listing.id} images={listing.images} />
             </CardContent>
           </Card>
         </div>
@@ -165,18 +162,26 @@ export default async function SellerListingDetailPage({
             </CardHeader>
             <CardContent className="space-y-4 text-sm leading-7 text-[var(--ink-500)]">
               <p>{nextAction(listing)}</p>
-              <p className="inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-[var(--amber-dark)]" />
-                {listing.specs.locationCoordinates
-                  ? `${listing.specs.locationCoordinates.lat}, ${listing.specs.locationCoordinates.lng}`
-                  : "Vehicle coordinates not set"}
-              </p>
               <p>
                 Updated {formatDate(listing.updatedAt)}
                 {listing.submittedAt ? ` · Submitted ${formatDate(listing.submittedAt)}` : ""}
               </p>
             </CardContent>
           </Card>
+
+          {listing.status === "DRAFT" || listing.status === "CHANGES_REQUESTED" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Submit for review</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SubmitListingAction
+                  listingId={listing.id}
+                  defaultDisclosure={listing.sellerDisclosure}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
             <MetricCard icon={Eye} label="Views" value={listing.viewCount} />

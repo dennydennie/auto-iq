@@ -149,8 +149,8 @@ class EnvironmentVariables {
   EMAIL_SENDER_EMAIL?: string;
 
   @IsOptional()
-  @IsIn(["sandbox", "stub", "twilio", "gikko"])
-  NOTIFICATION_SMS_PROVIDER?: "sandbox" | "stub" | "twilio" | "gikko";
+  @IsIn(["sandbox", "twilio", "gikko"])
+  NOTIFICATION_SMS_PROVIDER?: "sandbox" | "twilio" | "gikko";
 
   @IsOptional()
   @IsString()

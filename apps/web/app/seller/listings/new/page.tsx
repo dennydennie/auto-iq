@@ -1,39 +1,34 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { CreateListingForm } from "@/components/seller/create-listing-form";
-import { ErrorBanner } from "@/components/shared/error-banner";
-import { Badge } from "@/components/ui/badge";
-import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
-import { ROUTES } from "@auto-iq/contracts/routes";
-import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
+import { PageHeader } from "@/components/shared/page-header";
+import { buttonVariants } from "@/components/ui/button";
 
-export default async function SellerListingNewPage() {
-  const referenceDataResult = await getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all);
-
-  if (isServerApiFailure(referenceDataResult)) {
-    return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <ErrorBanner
-          message={referenceDataResult.error.message}
-          correlationId={referenceDataResult.error.correlationId}
-        />
-      </main>
-    );
-  }
-
+export default function SellerListingNewPage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <div className="space-y-6 rounded-[2rem] border border-white/60 bg-white/85 p-6 shadow-[0_28px_90px_-50px_rgba(22,31,58,0.35)] backdrop-blur sm:p-8">
-        <div className="space-y-3">
-          <Badge variant="outline">New listing</Badge>
-          <h1 className="display text-4xl text-[var(--ink-900)]">
-            List your vehicle
-          </h1>
-          <p className="max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-            Work through one short section at a time, then review the draft before saving it
-            to your seller workspace.
-          </p>
-        </div>
-        <CreateListingForm referenceData={referenceDataResult.data} />
-      </div>
+    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow="New listing"
+        title="List your vehicle"
+        description="Work through one short section at a time, then review the draft before saving."
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: "Seller dashboard", href: "/seller" },
+              { label: "All listings", href: "/seller/listings" },
+              { label: "New listing" },
+            ]}
+          />
+        }
+        actions={
+          <Link href="/seller" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+        }
+      />
+      <CreateListingForm />
     </main>
   );
 }

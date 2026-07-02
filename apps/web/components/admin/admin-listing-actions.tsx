@@ -7,8 +7,10 @@ import type { AdminListingDto } from "@auto-iq/contracts/admin";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toaster";
 import { isApiFailure, postJson } from "@/lib/web-api";
 
 type FeedbackState = {
@@ -37,9 +39,11 @@ export function AdminListingActions({
   status,
 }: { listingId: string; status: AdminListingDto["status"] }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isPending, startTransition] = useTransition();
+  const [confirmRejectOpen, setConfirmRejectOpen] = useState(false);
 
   function submit(action: string, body?: Record<string, string>) {
     setFeedback(null);
@@ -53,15 +57,28 @@ export function AdminListingActions({
           message: result.error.message,
           correlationId: result.error.correlationId,
         });
+        toast({
+          title: "Action failed",
+          description: result.error.message,
+          variant: "error",
+        });
         return;
       }
 
-      setFeedback({
-        kind: "success",
-        message: `${result.data.specs.year} ${result.data.specs.make} ${result.data.specs.model} updated to ${result.data.status}.`,
+      const successMessage = `${result.data.specs.year} ${result.data.specs.make} ${result.data.specs.model} updated to ${result.data.status}.`;
+      setFeedback({ kind: "success", message: successMessage });
+      toast({
+        title: "Listing updated",
+        description: successMessage,
+        variant: "success",
       });
       router.refresh();
     });
+  }
+
+  function confirmReject() {
+    setConfirmRejectOpen(false);
+    submit("reject", { reason: note.trim() });
   }
 
   return (
@@ -117,12 +134,23 @@ export function AdminListingActions({
           <Button
             variant="destructive"
             disabled={isPending || note.trim().length === 0}
-            onClick={() => submit("reject", { reason: note.trim() })}
+            onClick={() => setConfirmRejectOpen(true)}
           >
             Reject listing
           </Button>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirmRejectOpen}
+        onClose={() => setConfirmRejectOpen(false)}
+        onConfirm={confirmReject}
+        title="Reject this listing?"
+        description="The seller will be notified and the listing cannot be published without re-submission. This action is recorded with your moderation note."
+        confirmLabel="Reject listing"
+        variant="destructive"
+        busy={isPending}
+      />
     </div>
   );
 }

@@ -1,14 +1,24 @@
 import Link from "next/link";
 import type { SellerListingDto } from "@auto-iq/contracts/listings";
-import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
+import type { ListingStatus } from "@auto-iq/contracts/enums";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import { CreateListingForm } from "@/components/seller/create-listing-form";
+import { ArrowLeft, Lock } from "lucide-react";
+import { DocumentUploader } from "@/components/seller/document-uploader";
+import { EditListingForm } from "@/components/seller/edit-listing-form";
+import { PhotoUploader } from "@/components/seller/photo-uploader";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
-import { FileText } from "lucide-react";
+import { labelizeEnum } from "@/lib/vehicle-ui";
+
+const EDITABLE_STATUSES: ListingStatus[] = ["DRAFT", "CHANGES_REQUESTED"];
+
+function isEditable(status: ListingStatus) {
+  return EDITABLE_STATUSES.includes(status);
+}
 
 export default async function SellerListingEditPage({
   params,
@@ -16,60 +26,92 @@ export default async function SellerListingEditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [listingResult, referenceDataResult] = await Promise.all([
-    getSessionJson<SellerListingDto>(ROUTES.listings.detail(id)),
-    getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all),
-  ]);
+  const result = await getSessionJson<SellerListingDto>(ROUTES.listings.detail(id));
 
-  if (isServerApiFailure(listingResult)) {
+  if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        {listingResult.error.statusCode === 401 || listingResult.error.statusCode === 403 ? (
+      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
-            icon={FileText}
+            icon={Lock}
             headline="Seller sign-in required"
-            body="Sign in with the seller account that owns this listing before editing it."
+            body="Sign in with the seller account that owns this listing to edit its details."
             cta={{ label: "Go to login", href: "/auth/login" }}
           />
+        ) : result.error.statusCode === 404 ? (
+          <EmptyState
+            icon={Lock}
+            headline="Listing not found"
+            body="This listing could not be loaded. It may have been removed."
+            cta={{ label: "Back to listings", href: "/seller" }}
+          />
         ) : (
-          <ErrorBanner message={listingResult.error.message} correlationId={listingResult.error.correlationId} />
+          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
         )}
       </main>
     );
   }
 
-  if (isServerApiFailure(referenceDataResult)) {
+  const listing = result.data;
+  const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
+
+  if (!isEditable(listing.status)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <ErrorBanner
-          message={referenceDataResult.error.message}
-          correlationId={referenceDataResult.error.correlationId}
+      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        <Breadcrumb
+          className="mb-4"
+          items={[
+            { label: "Seller dashboard", href: "/seller" },
+            { label: title, href: `/seller/listings/${listing.id}` },
+            { label: "Edit" },
+          ]}
+        />
+
+        <EmptyState
+          icon={Lock}
+          headline="This listing is locked"
+          body={`Listings with status ${labelizeEnum(
+            listing.status,
+          )} cannot be edited. You can still review the listing details from the seller workspace.`}
+          cta={{ label: "Back to listing", href: `/seller/listings/${listing.id}` }}
         />
       </main>
     );
   }
 
-  const title = `${listingResult.data.specs.year} ${listingResult.data.specs.make} ${listingResult.data.specs.model}`;
-
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <div className="space-y-6 rounded-[2rem] border border-white/60 bg-white/85 p-6 shadow-[0_28px_90px_-50px_rgba(22,31,58,0.35)] backdrop-blur sm:p-8">
-        <div className="space-y-3">
-          <Link href={`/seller/listings/${listingResult.data.id}`} className={buttonVariants({ variant: "ghost", className: "px-0" })}>
+    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow="Edit listing"
+        title={title}
+        description={`Update vehicle details, condition, and pricing while the listing is in ${labelizeEnum(
+          listing.status,
+        )}. Changes save immediately.`}
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: "Seller dashboard", href: "/seller" },
+              { label: title, href: `/seller/listings/${listing.id}` },
+              { label: "Edit" },
+            ]}
+          />
+        }
+        actions={
+          <Link
+            href={`/seller/listings/${listing.id}`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <ArrowLeft className="h-4 w-4" />
             Back to listing
           </Link>
-          <Badge variant="outline">Edit listing</Badge>
-          <h1 className="display text-4xl text-[var(--ink-900)]">{title}</h1>
-          <p className="max-w-3xl text-sm leading-7 text-[var(--ink-500)]">
-            Update vehicle details, taxonomy, location coordinates, condition, and pricing.
-          </p>
-        </div>
-        <CreateListingForm
-          initialListing={listingResult.data}
-          mode="edit"
-          referenceData={referenceDataResult.data}
-        />
-      </div>
+        }
+      />
+
+      <EditListingForm listing={listing} />
+
+      <PhotoUploader listingId={listing.id} images={listing.images} />
+
+      <DocumentUploader listingId={listing.id} documents={listing.documents} />
     </main>
   );
 }

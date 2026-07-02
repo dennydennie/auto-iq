@@ -57,6 +57,7 @@ export function ForgotPasswordForm() {
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
           autoComplete="email"
+          aria-invalid={Boolean(error)}
           required
         />
       </div>

@@ -19,7 +19,9 @@ function readToken(location: Location) {
 
 export function ResetPasswordForm() {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
+  const [token] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : readToken(window.location),
+  );
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
@@ -27,13 +29,10 @@ export function ResetPasswordForm() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const nextToken = readToken(window.location);
-
-    if (nextToken) {
-      setToken(nextToken);
+    if (token) {
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, []);
+  }, [token]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,6 +86,7 @@ export function ResetPasswordForm() {
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Create a new password"
           autoComplete="new-password"
+          aria-invalid={Boolean(error)}
           required
         />
       </div>
@@ -99,6 +99,7 @@ export function ResetPasswordForm() {
           onChange={(event) => setConfirmPassword(event.target.value)}
           placeholder="Repeat your new password"
           autoComplete="new-password"
+          aria-invalid={Boolean(error)}
           required
         />
       </div>
