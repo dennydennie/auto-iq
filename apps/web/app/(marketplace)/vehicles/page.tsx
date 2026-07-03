@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CatalogueResponse, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
+import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { Lock, Search, ShieldCheck, SlidersHorizontal, Sparkles } from "lucide-react";
 import { FilterSidebar, type CatalogueFilterState } from "@/components/marketplace/filter-sidebar";
@@ -104,13 +105,15 @@ export default async function VehiclesPage({
   const [catalogueResult, meResult, savedResult] = await Promise.all([
     getPublicJson<CatalogueResponse>(cataloguePath),
     getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
-    getOptionalSessionJson<SavedVehicleDto[]>(ROUTES.me.savedVehicles),
+    getOptionalSessionJson<OffsetPaginatedResponse<SavedVehicleDto>>(
+      withQuery(ROUTES.me.savedVehicles, { page: 1, limit: 100 }),
+    ),
   ]);
 
   const signedIn = meResult !== null && meResult.ok;
   const savedIds = new Set(
     savedResult !== null && savedResult.ok
-      ? savedResult.data.map((entry) => entry.listing.id)
+      ? savedResult.data.data.map((entry) => entry.listing.id)
       : [],
   );
 

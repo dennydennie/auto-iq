@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { PublicListingDto, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
+import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import {
@@ -26,7 +27,7 @@ import { CarSilhouette } from "@/components/ui/car-silhouette";
 import { ScoreGauge } from "@/components/ui/score-gauge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatKm, formatPrice } from "@/lib/format";
-import { getOptionalSessionJson, getPublicJson, getSessionJson, isServerApiFailure } from "@/lib/server-api";
+import { getOptionalSessionJson, getPublicJson, getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 import { labelizeEnum, mapBodyType, relativeListingAge } from "@/lib/vehicle-ui";
 
 function specItems(listing: PublicListingDto) {
@@ -75,7 +76,9 @@ export default async function VehicleDetailPage({
       ? getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all)
       : Promise.resolve(null),
     currentViewer === "buyer"
-      ? getOptionalSessionJson<SavedVehicleDto[]>(ROUTES.me.savedVehicles)
+      ? getOptionalSessionJson<OffsetPaginatedResponse<SavedVehicleDto>>(
+          withQuery(ROUTES.me.savedVehicles, { page: 1, limit: 100 }),
+        )
       : Promise.resolve(null),
   ]);
 
@@ -107,7 +110,7 @@ export default async function VehicleDetailPage({
   const summary = listing.inspectionSummary;
   const isSaved =
     savedResult !== null && savedResult.ok
-      ? savedResult.data.some((entry) => entry.listing.id === listing.id)
+      ? savedResult.data.data.some((entry) => entry.listing.id === listing.id)
       : false;
   const signedIn = currentViewer !== "anonymous";
 

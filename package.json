@@ -5,6 +5,7 @@
   "packageManager": "pnpm@10.7.0",
   "scripts": {
     "build": "turbo run build",
+    "check:web-saved-vehicles-contract": "node scripts/check-web-saved-vehicles-contract.mjs",
     "check:web-production-readiness": "node scripts/check-web-production-readiness.mjs",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",

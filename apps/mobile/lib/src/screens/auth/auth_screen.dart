@@ -7,7 +7,6 @@ import '../../core/config/app_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
 import '../../state/session_controller.dart';
-import 'otp_verification_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -22,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   final _loginIdentifierController = TextEditingController();
   final _loginPasswordController = TextEditingController();
+  final _otpCodeController = TextEditingController();
 
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -32,11 +32,16 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isRegisterMode = false;
   bool _busy = false;
   String _selectedRole = 'BUYER';
+  String? _otpIdentifier;
+  String? _otpPhone;
+  String? _otpPassword;
+  String? _otpMessage;
 
   @override
   void dispose() {
     _loginIdentifierController.dispose();
     _loginPasswordController.dispose();
+    _otpCodeController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -79,8 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 24),
                   _ModeSwitch(
                     isRegisterMode: _isRegisterMode,
-                    onChanged: (value) =>
-                        setState(() => _isRegisterMode = value),
+                    onChanged: _switchMode,
                   ),
                   const SizedBox(height: 16),
                   if (session.errorMessage != null)
@@ -88,7 +92,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       message: session.errorMessage!,
                       onDismiss: session.clearError,
                     ),
-                  _isRegisterMode ? _buildRegisterCard() : _buildLoginCard(),
+                  if (_otpIdentifier != null && !_isRegisterMode)
+                    _buildOtpCard()
+                  else
+                    _isRegisterMode ? _buildRegisterCard() : _buildLoginCard(),
                 ],
               ),
             ),
@@ -207,6 +214,78 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  Widget _buildOtpCard() {
+    final identifier = _otpIdentifier ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Enter the 6-digit code',
+          style: TextStyle(
+            color: AppColors.ink900,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'We sent a verification code to the SMS and email channels tied to $identifier.',
+          style: const TextStyle(
+            color: AppColors.ink500,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _otpCodeController,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            counterText: '',
+            labelText: 'Verification code',
+            hintText: '123456',
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_otpMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              _otpMessage!,
+              style: const TextStyle(color: AppColors.verified, fontSize: 13),
+            ),
+          ),
+        Row(
+          children: [
+            OutlinedButton(
+              onPressed: _busy ? null : _sendOtp,
+              child: const Text('Resend code'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _busy ? null : _verifyOtp,
+                child: _busy
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Verify and sign in'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: _busy ? null : _clearOtpVerification,
+          child: const Text('Back to sign in'),
+        ),
+      ],
+    );
+  }
+
   Future<void> _login() async {
     if (!_loginFormKey.currentState!.validate()) {
       return;
@@ -219,15 +298,12 @@ class _AuthScreenState extends State<AuthScreen> {
           );
     } on ApiException catch (error) {
       if (error.code == 'OTP_REQUIRED' && mounted) {
-        final identifier = _loginIdentifierController.text.trim();
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => OtpVerificationScreen(
-              phone: identifier.startsWith('+') ? identifier : null,
-              identifier: identifier,
-              password: _loginPasswordController.text,
-            ),
-          ),
+        _beginOtpVerification(
+          identifier: _loginIdentifierController.text,
+          phone: _loginIdentifierController.text.trim().startsWith('+')
+              ? _loginIdentifierController.text
+              : null,
+          password: _loginPasswordController.text,
         );
         return;
       }
@@ -259,15 +335,106 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
       if (result.otpRequired) {
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => OtpVerificationScreen(
-              phone: _phoneController.text,
-              identifier: _emailController.text,
-              password: _registerPasswordController.text,
-            ),
-          ),
+        _beginOtpVerification(
+          identifier: _emailController.text,
+          phone: _phoneController.text,
+          password: _registerPasswordController.text,
         );
+        await _sendOtp();
+      }
+    } on ApiException catch (error) {
+      _showError(error.message);
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  void _switchMode(bool value) {
+    setState(() {
+      _isRegisterMode = value;
+      if (value) {
+        _clearOtpState();
+      }
+    });
+  }
+
+  void _beginOtpVerification({
+    required String identifier,
+    required String password,
+    String? phone,
+  }) {
+    context.read<SessionController>().clearError();
+    setState(() {
+      _isRegisterMode = false;
+      _otpIdentifier = identifier.trim();
+      _otpPhone = phone?.trim();
+      _otpPassword = password;
+      _otpCodeController.clear();
+      _otpMessage = 'Code sent. Enter it below to finish signing in.';
+    });
+  }
+
+  void _clearOtpVerification() {
+    setState(_clearOtpState);
+  }
+
+  void _clearOtpState() {
+    _otpIdentifier = null;
+    _otpPhone = null;
+    _otpPassword = null;
+    _otpMessage = null;
+    _otpCodeController.clear();
+  }
+
+  Future<void> _sendOtp() async {
+    final identifier = _otpIdentifier;
+    if (identifier == null) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _otpMessage = null;
+    });
+    try {
+      await context.read<AuthRepository>().sendOtp(
+            identifier: identifier,
+            phone: _otpPhone,
+          );
+      if (mounted) {
+        setState(() => _otpMessage = 'Code sent. Check SMS and email.');
+      }
+    } on ApiException catch (error) {
+      _showError(error.message);
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    final identifier = _otpIdentifier;
+    final password = _otpPassword;
+    if (identifier == null || password == null) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _otpMessage = null;
+    });
+    try {
+      final authRepository = context.read<AuthRepository>();
+      final sessionController = context.read<SessionController>();
+      await authRepository.verifyOtp(
+        identifier: identifier,
+        phone: _otpPhone,
+        code: _otpCodeController.text,
+      );
+      await sessionController.login(identifier: identifier, password: password);
+      if (mounted) {
+        _clearOtpState();
       }
     } on ApiException catch (error) {
       _showError(error.message);
@@ -282,8 +449,9 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String? _required(String? value) {
@@ -319,10 +487,7 @@ class _AuthScreenState extends State<AuthScreen> {
 }
 
 class _ModeSwitch extends StatelessWidget {
-  const _ModeSwitch({
-    required this.isRegisterMode,
-    required this.onChanged,
-  });
+  const _ModeSwitch({required this.isRegisterMode, required this.onChanged});
 
   final bool isRegisterMode;
   final ValueChanged<bool> onChanged;
@@ -341,10 +506,7 @@ class _ModeSwitch extends StatelessWidget {
 }
 
 class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({
-    required this.message,
-    required this.onDismiss,
-  });
+  const _ErrorBanner({required this.message, required this.onDismiss});
 
   final String message;
   final VoidCallback onDismiss;
