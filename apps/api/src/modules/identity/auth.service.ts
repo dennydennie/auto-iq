@@ -18,6 +18,7 @@ import { UserRepository } from "../../db/repository/user.repository";
 import { RedisService } from "../redis/redis.service";
 import { NotificationService } from "../notifications/notification.service";
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from "./dto/auth.dto";
+import { OtpService } from "./otp.service";
 import { PasswordService } from "./password.service";
 import { RateLimitService } from "./rate-limit.service";
 import { randomBytes } from "node:crypto";
@@ -35,6 +36,7 @@ export class AuthService {
     private readonly rateLimitService: RateLimitService,
     private readonly redisService: RedisService,
     private readonly userRepository: UserRepository,
+    private readonly otpService: OtpService,
     @Inject(forwardRef(() => NotificationService))
     private readonly notificationService: NotificationService,
   ) {}
@@ -91,6 +93,7 @@ export class AuthService {
     }
     if (user.status !== "ACTIVE") {
       await this.audit("auth.login", user.id, "failure");
+      await this.otpService.send(user.email);
       throw new UnauthorizedException({
         code: "OTP_REQUIRED",
         message: "Verify your account with the code sent by SMS and email.",
