@@ -89,22 +89,27 @@ class AuthRepository {
     await _apiClient.clearSession();
   }
 
-  Future<void> sendOtp(String phone) async {
+  Future<void> sendOtp({required String identifier, String? phone}) async {
     await _apiClient.postJson<void>(
       ApiRoutes.authSendOtp,
-      {'phone': phone.trim()},
+      {
+        'identifier': identifier.trim(),
+        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+      },
       (_) {},
     );
   }
 
   Future<void> verifyOtp({
-    required String phone,
+    required String identifier,
     required String code,
+    String? phone,
   }) async {
     await _apiClient.postJson<void>(
       ApiRoutes.authVerifyOtp,
       {
-        'phone': phone.trim(),
+        'identifier': identifier.trim(),
+        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
         'code': code.trim(),
       },
       (_) {},

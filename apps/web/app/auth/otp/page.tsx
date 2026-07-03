@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 type SearchParams = Promise<{
+  identifier?: string | string[];
   phone?: string | string[];
   email?: string | string[];
   registered?: string | string[];
@@ -22,14 +23,15 @@ export default async function OtpPage({
   const params = await searchParams;
   const phone = readParam(params.phone) ?? null;
   const email = readParam(params.email) ?? null;
+  const identifier = readParam(params.identifier) ?? email ?? phone;
   const autoSend = readParam(params.registered) === "1";
 
   return (
     <AuthShell
-      eyebrow="Phone verification"
+      eyebrow="Account verification"
       title="Confirm your identity with a one-time code."
       description="We send a 6-digit code to the contact channels on file. Enter it below to complete verification."
-      ctaLabel="Wrong phone number?"
+      ctaLabel="Wrong contact details?"
       ctaHref="/auth/signup"
       highlight={
         <div className="space-y-4">
@@ -49,29 +51,30 @@ export default async function OtpPage({
           <Badge variant="outline">Verification</Badge>
           <h2 className="display text-3xl text-[var(--ink-900)]">Enter the 6-digit code</h2>
           <p className="text-sm leading-7 text-[var(--ink-500)]">
-            {phone ? (
+            {identifier ? (
               <>
-                We&apos;ve sent the same one-time code by SMS to{" "}
-                <span className="font-semibold text-[var(--ink-700)]">{phone}</span>
-                {email ? (
+                We&apos;ve sent the same one-time code to the SMS and email channels tied to{" "}
+                <span className="font-semibold text-[var(--ink-700)]">{identifier}</span>
+                {phone && email ? (
                   <>
-                    {" "}
-                    and by email to{" "}
+                    {" "}using{" "}
+                    <span className="font-semibold text-[var(--ink-700)]">{phone}</span>
+                    {" "}and{" "}
                     <span className="font-semibold text-[var(--ink-700)]">{email}</span>.
                   </>
                 ) : (
-                  " and to the email address on your account."
+                  "."
                 )}
               </>
             ) : (
-              "Open this page from the registration flow so we know which phone number to verify."
+              "Open this page from login or registration so we know which account to verify."
             )}
           </p>
         </div>
 
         <Card>
           <CardContent className="p-6">
-            <OtpForm phone={phone} autoSend={autoSend} />
+            <OtpForm identifier={identifier} phone={phone} autoSend={autoSend} />
           </CardContent>
         </Card>
       </div>

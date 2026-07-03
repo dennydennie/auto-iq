@@ -71,8 +71,10 @@ export interface RefreshResponse {
 // ─── OTP ──────────────────────────────────────────────────────────────────────
 
 export interface SendOtpRequest {
-  /** E.164 phone number to receive OTP */
-  phone: string;
+  /** Email or E.164 phone number tied to the account */
+  identifier?: string;
+  /** E.164 phone number. Retained for backward-compatible clients. */
+  phone?: string;
 }
 
 export interface SendOtpResponse {
@@ -83,7 +85,10 @@ export interface SendOtpResponse {
 }
 
 export interface VerifyOtpRequest {
-  phone: string;
+  /** Email or E.164 phone number tied to the account */
+  identifier?: string;
+  /** E.164 phone number. Retained for backward-compatible clients. */
+  phone?: string;
   code: string;
 }
 

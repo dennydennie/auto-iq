@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -75,13 +76,13 @@ export class AuthController {
   @Post("otp/send")
   @HttpCode(200)
   sendOtp(@Body() body: SendOtpDto) {
-    return this.otpService.send(body.phone);
+    return this.otpService.send(otpIdentifier(body));
   }
 
   @Post("otp/verify")
   @HttpCode(200)
   verifyOtp(@Body() body: VerifyOtpDto) {
-    return this.otpService.verify(body.phone, body.code);
+    return this.otpService.verify(otpIdentifier(body), body.code);
   }
 
   @Post("forgot-password")
@@ -95,4 +96,16 @@ export class AuthController {
   async resetPassword(@Body() body: ResetPasswordDto) {
     await this.authService.resetPassword(body);
   }
+}
+
+function otpIdentifier(body: SendOtpDto | VerifyOtpDto) {
+  const identifier = body.identifier ?? body.phone;
+  if (!identifier) {
+    throw new BadRequestException({
+      code: "VALIDATION_ERROR",
+      message: "An email or phone number is required.",
+    });
+  }
+
+  return identifier;
 }

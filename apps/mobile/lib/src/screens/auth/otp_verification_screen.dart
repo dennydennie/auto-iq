@@ -9,12 +9,12 @@ import '../../state/session_controller.dart';
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({
     super.key,
-    required this.phone,
+    this.phone,
     required this.identifier,
     required this.password,
   });
 
-  final String phone;
+  final String? phone;
   final String identifier;
   final String password;
 
@@ -36,7 +36,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify phone')),
+      appBar: AppBar(title: const Text('Verify account')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -44,7 +44,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Phone verification',
+                'Account verification',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -53,7 +53,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Send a one-time code to ${widget.phone} and confirm the account before the app signs you in.',
+                'Send a one-time code to the SMS and email channels tied to ${widget.identifier} before the app signs you in.',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.ink500,
@@ -116,7 +116,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       _message = null;
     });
     try {
-      await context.read<AuthRepository>().sendOtp(widget.phone);
+      await context.read<AuthRepository>().sendOtp(
+            identifier: widget.identifier,
+            phone: widget.phone,
+          );
       if (!mounted) {
         return;
       }
@@ -139,6 +142,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       final authRepository = context.read<AuthRepository>();
       final sessionController = context.read<SessionController>();
       await authRepository.verifyOtp(
+        identifier: widget.identifier,
         phone: widget.phone,
         code: _codeController.text,
       );

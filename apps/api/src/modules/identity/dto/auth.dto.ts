@@ -48,13 +48,25 @@ export class RefreshDto {
 }
 
 export class SendOtpDto {
+  @IsOptional()
   @Matches(/^\+[1-9]\d{7,14}$/)
-  phone!: string;
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  identifier?: string;
 }
 
 export class VerifyOtpDto {
+  @IsOptional()
   @Matches(/^\+[1-9]\d{7,14}$/)
-  phone!: string;
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  identifier?: string;
 
   @Matches(/^\d{6}$/)
   code!: string;

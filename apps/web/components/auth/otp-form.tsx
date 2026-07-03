@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clock3, RefreshCcw } from "lucide-react";
-import type { SendOtpResponse, VerifyOtpResponse } from "@auto-iq/contracts/identity";
+import type {
+  SendOtpRequest,
+  SendOtpResponse,
+  VerifyOtpRequest,
+  VerifyOtpResponse,
+} from "@auto-iq/contracts/identity";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
 import { isApiFailure, postJson } from "@/lib/web-api";
@@ -12,15 +17,25 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function loginHref(phone: string) {
-  const params = new URLSearchParams({ verified: "1", phone });
+function loginHref(identifier: string) {
+  const params = new URLSearchParams({ verified: "1", identifier });
   return `/auth/login?${params.toString()}`;
 }
 
+function sendPayload(identifier: string, phone: string | null): SendOtpRequest {
+  return phone ? { identifier, phone } : { identifier };
+}
+
+function verifyPayload(identifier: string, phone: string | null, code: string): VerifyOtpRequest {
+  return phone ? { identifier, phone, code } : { identifier, code };
+}
+
 export function OtpForm({
+  identifier,
   phone,
   autoSend = false,
 }: {
+  identifier: string | null;
   phone: string | null;
   autoSend?: boolean;
 }) {
@@ -31,19 +46,22 @@ export function OtpForm({
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const autoSentPhone = useRef<string | null>(null);
+  const autoSentIdentifier = useRef<string | null>(null);
 
   function applyOtpMeta(payload: SendOtpResponse) {
     setExpiresIn(payload.expiresIn);
     setAttemptsRemaining(payload.attemptsRemaining);
   }
 
-  const requestOtp = useCallback((phoneNumber: string) => {
+  const requestOtp = useCallback((accountIdentifier: string) => {
     setError(null);
     setNotice(null);
 
     startTransition(async () => {
-      const result = await postJson<SendOtpResponse>("/api/auth/otp/send", { phone: phoneNumber });
+      const result = await postJson<SendOtpResponse>(
+        "/api/auth/otp/send",
+        sendPayload(accountIdentifier, phone),
+      );
       if (isApiFailure(result)) {
         setError(result.error);
         return;
@@ -52,22 +70,22 @@ export function OtpForm({
       applyOtpMeta(result.data);
       setNotice("A fresh verification code has been sent.");
     });
-  }, []);
+  }, [phone]);
 
   function sendOtp() {
-    if (!phone) {
-      setError({ message: "A phone number is required before an OTP can be sent." });
+    if (!identifier) {
+      setError({ message: "An email or phone number is required before an OTP can be sent." });
       return;
     }
 
-    requestOtp(phone);
+    requestOtp(identifier);
   }
 
   function verifyOtp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!phone) {
-      setError({ message: "A phone number is required before verification can continue." });
+    if (!identifier) {
+      setError({ message: "An email or phone number is required before verification can continue." });
       return;
     }
 
@@ -75,32 +93,32 @@ export function OtpForm({
     setNotice(null);
 
     startTransition(async () => {
-      const result = await postJson<VerifyOtpResponse>("/api/auth/otp/verify", {
-        phone,
-        code: code.trim(),
-      });
+      const result = await postJson<VerifyOtpResponse>(
+        "/api/auth/otp/verify",
+        verifyPayload(identifier, phone, code.trim()),
+      );
 
       if (isApiFailure(result)) {
         setError(result.error);
         return;
       }
 
-      router.push(loginHref(phone));
+      router.push(loginHref(identifier));
     });
   }
 
   useEffect(() => {
-    if (!autoSend || !phone || autoSentPhone.current === phone) {
+    if (!autoSend || !identifier || autoSentIdentifier.current === identifier) {
       return;
     }
 
-    autoSentPhone.current = phone;
+    autoSentIdentifier.current = identifier;
     const timer = window.setTimeout(() => {
-      requestOtp(phone);
+      requestOtp(identifier);
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [autoSend, phone, requestOtp]);
+  }, [autoSend, identifier, requestOtp]);
 
   return (
     <form className="space-y-6" onSubmit={verifyOtp}>

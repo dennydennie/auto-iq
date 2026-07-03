@@ -218,6 +218,19 @@ class _AuthScreenState extends State<AuthScreen> {
             password: _loginPasswordController.text,
           );
     } on ApiException catch (error) {
+      if (error.code == 'OTP_REQUIRED' && mounted) {
+        final identifier = _loginIdentifierController.text.trim();
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => OtpVerificationScreen(
+              phone: identifier.startsWith('+') ? identifier : null,
+              identifier: identifier,
+              password: _loginPasswordController.text,
+            ),
+          ),
+        );
+        return;
+      }
       _showError(error.message);
     } finally {
       if (mounted) {

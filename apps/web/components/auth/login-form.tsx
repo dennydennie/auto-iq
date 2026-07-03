@@ -69,11 +69,15 @@ export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
       if (isApiFailure(result)) {
         if (result.error.code === "OTP_REQUIRED") {
           const phone = otpPhone(result.error, form.identifier);
+          const params = new URLSearchParams({
+            identifier: form.identifier.trim(),
+            registered: "0",
+          });
           if (phone) {
-            const params = new URLSearchParams({ phone, registered: "0" });
-            router.push(`/auth/otp?${params.toString()}`);
-            return;
+            params.set("phone", phone);
           }
+          router.push(`/auth/otp?${params.toString()}`);
+          return;
         }
 
         setError(result.error);

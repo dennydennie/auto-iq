@@ -19,54 +19,57 @@ export class OtpService {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async send(phone: string) {
+  async send(identifier: string) {
+    const value = identifier.trim();
     const attemptsRemaining = await this.rateLimitService.consume(
-      `otp:${phone}`,
+      `otp:${value.toLowerCase()}`,
       OTP_SEND_LIMIT,
       60 * 15,
     );
-    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-    await this.redisService.set(this.key(phone), this.hash(code), OTP_TTL_SECONDS);
-    if (this.config.get<string>("NODE_ENV") !== "production") {
-      await this.redisService.set(this.deliveryKey(phone), code, OTP_TTL_SECONDS);
+    const user = await this.userRepository.findByIdentifier(value);
+    if (!user) {
+      return { expiresIn: OTP_TTL_SECONDS, attemptsRemaining };
     }
-    const user = await this.userRepository.findByPhone(phone);
-    if (user) {
-      const channels = this.otpChannels(user);
-      const deliveries = await this.notificationService.notifyUser({
-        userId: user.id,
-        email: user.email,
-        phone: user.phone,
-        template: "OTP_VERIFY",
-        idempotencyKeyBase: `otp:${phone}:${code}`,
-        payload: { code, expiresIn: OTP_TTL_SECONDS, phone },
-        channels,
-      });
 
-      const sentChannels = new Set(
-        deliveries
-          .filter((delivery) => delivery.status === "SENT")
-          .map((delivery) => delivery.channel),
-      );
-      if (!channels.every((channel) => sentChannels.has(channel))) {
-        await this.redisService.del(this.key(phone));
-        await this.redisService.del(this.deliveryKey(phone));
-        throw new ServiceUnavailableException({
-          code: "DELIVERY_UNAVAILABLE",
-          message: "Unable to deliver a verification code right now. Please try again shortly.",
-        });
-      }
+    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    await this.redisService.set(this.key(user.phone), this.hash(code), OTP_TTL_SECONDS);
+    if (this.config.get<string>("NODE_ENV") !== "production") {
+      await this.redisService.set(this.deliveryKey(user.phone), code, OTP_TTL_SECONDS);
+    }
+    const channels = this.otpChannels(user);
+    const deliveries = await this.notificationService.notifyUser({
+      userId: user.id,
+      email: user.email,
+      phone: user.phone,
+      template: "OTP_VERIFY",
+      idempotencyKeyBase: `otp:${user.phone}:${code}`,
+      payload: { code, expiresIn: OTP_TTL_SECONDS, phone: user.phone },
+      channels,
+    });
+
+    const sentChannels = new Set(
+      deliveries
+        .filter((delivery) => delivery.status === "SENT")
+        .map((delivery) => delivery.channel),
+    );
+    if (!channels.every((channel) => sentChannels.has(channel))) {
+      await this.redisService.del(this.key(user.phone));
+      await this.redisService.del(this.deliveryKey(user.phone));
+      throw new ServiceUnavailableException({
+        code: "DELIVERY_UNAVAILABLE",
+        message: "Unable to deliver a verification code right now. Please try again shortly.",
+      });
     }
     return { expiresIn: OTP_TTL_SECONDS, attemptsRemaining };
   }
 
-  async verify(phone: string, code: string) {
-    const user = await this.userRepository.findByPhone(phone);
+  async verify(identifier: string, code: string) {
+    const user = await this.userRepository.findByIdentifier(identifier.trim());
     if (!user) {
-      throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Phone not found" });
+      throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Account not found" });
     }
 
-    const stored = await this.redisService.get(this.key(phone));
+    const stored = await this.redisService.get(this.key(user.phone));
     if (!stored) {
       throw new UnauthorizedException({ code: "OTP_EXPIRED", message: "OTP expired" });
     }
@@ -76,8 +79,8 @@ export class OtpService {
     user.phoneVerified = true;
     user.status = "ACTIVE";
     await this.userRepository.save(user);
-    await this.redisService.del(this.key(phone));
-    await this.redisService.del(this.deliveryKey(phone));
+    await this.redisService.del(this.key(user.phone));
+    await this.redisService.del(this.deliveryKey(user.phone));
     return { verified: true, userId: user.id };
   }
 
