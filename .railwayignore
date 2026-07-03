@@ -4,6 +4,7 @@
 !pnpm-workspace.yaml
 !turbo.json
 !railway.json
+!Dockerfile
 !.dockerignore
 !apps/
 apps/*
