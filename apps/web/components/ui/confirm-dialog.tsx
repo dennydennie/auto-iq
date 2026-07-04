@@ -60,7 +60,7 @@ export function ConfirmDialog({
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-description"
       className={cn(
-        "max-w-md rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-0 shadow-[0_40px_120px_-30px_rgba(22,31,58,0.45)] backdrop:bg-[rgba(10,30,77,0.45)] backdrop:backdrop-blur-sm",
+        "fixed left-1/2 top-1/2 m-0 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-0 shadow-[0_40px_120px_-30px_rgba(22,31,58,0.45)] backdrop:bg-[rgba(10,30,77,0.45)] backdrop:backdrop-blur-sm",
         "open:animate-in open:fade-in",
       )}
     >

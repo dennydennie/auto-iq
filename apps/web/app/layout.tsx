@@ -5,6 +5,8 @@ import "./globals.css";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { ToasterProvider } from "@/components/ui/toaster";
 
+const siteUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "https://web-staging-1017.up.railway.app";
+
 const bodyFont = Geist({
   subsets: ["latin"],
   variable: "--font-body",
@@ -21,8 +23,30 @@ const monoFont = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BiSell AutoIQ",
-  description: "Zimbabwe's trust-first vehicle marketplace",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "BiSell AutoIQ | Buy and Sell Cars in Zimbabwe",
+    template: "%s | BiSell AutoIQ",
+  },
+  description:
+    "Buy and sell inspected cars in Zimbabwe with verified sellers, buyer-safe vehicle specs, and structured viewings.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "BiSell AutoIQ | Buy and Sell Cars in Zimbabwe",
+    description:
+      "Zimbabwe's trust-first vehicle marketplace for inspected cars, verified sellers, and structured buyer workflows.",
+    siteName: "BiSell AutoIQ",
+    type: "website",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BiSell AutoIQ | Buy and Sell Cars in Zimbabwe",
+    description:
+      "Browse inspected cars, sell your vehicle, and manage viewings through BiSell AutoIQ.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

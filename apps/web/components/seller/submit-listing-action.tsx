@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send } from "lucide-react";
+import { CheckCircle2, Circle, Send } from "lucide-react";
 import type { SellerListingDto, SubmitListingRequest } from "@auto-iq/contracts/listings";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -18,9 +18,11 @@ import { isApiFailure, postJson } from "@/lib/web-api";
 export function SubmitListingAction({
   listingId,
   defaultDisclosure,
+  requirements = [],
 }: {
   listingId: string;
   defaultDisclosure?: string | null;
+  requirements?: Array<{ label: string; complete: boolean }>;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -28,8 +30,20 @@ export function SubmitListingAction({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const missingRequirements = requirements.filter((item) => !item.complete);
+
+  function requirementError() {
+    if (missingRequirements.length === 0) return "";
+    return `Complete before submission: ${missingRequirements.map((item) => item.label).join(", ")}.`;
+  }
 
   function attemptSubmit() {
+    const missing = requirementError();
+    if (missing) {
+      setError(missing);
+      return;
+    }
+
     if (disclosure.trim().length < 20) {
       setError("Add a short seller disclosure (at least 20 characters) so buyers can trust the listing.");
       return;
@@ -48,10 +62,12 @@ export function SubmitListingAction({
       );
 
       if (isApiFailure(result)) {
-        setError(result.error.message);
+        const details = result.error.details?.map((detail) => detail.message).join(", ");
+        const message = details ? `${result.error.message}: ${details}` : result.error.message;
+        setError(message);
         toast({
           title: "Couldn't submit for review",
-          description: result.error.message,
+          description: message,
           variant: "error",
         });
         return;
@@ -68,6 +84,29 @@ export function SubmitListingAction({
 
   return (
     <div className="space-y-3">
+      {requirements.length > 0 ? (
+        <div className="rounded-[1.15rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/60 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
+            Submission checklist
+          </p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {requirements.map((item) => (
+              <li
+                key={item.label}
+                className={item.complete ? "flex items-center gap-2 text-[var(--verified)]" : "flex items-center gap-2 text-[var(--ink-500)]"}
+              >
+                {item.complete ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <Circle className="h-4 w-4 text-[var(--amber-dark)]" />
+                )}
+                {item.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="seller-disclosure">Seller disclosure</Label>
         <Textarea

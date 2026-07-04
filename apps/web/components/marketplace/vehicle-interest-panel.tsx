@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toaster";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { isApiFailure, postJson } from "@/lib/web-api";
@@ -59,6 +60,7 @@ export function VehicleInterestPanel({
   const { toast } = useToast();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isPending, startTransition] = useTransition();
+  const [openModal, setOpenModal] = useState<"quote" | "viewing" | null>(null);
   const canBookViewing = viewerState === "buyer" && viewingLocations.length > 0;
 
   function setQuoteField<K extends keyof CreateQuoteRequest>(key: K, value: CreateQuoteRequest[K]) {
@@ -95,6 +97,7 @@ export function VehicleInterestPanel({
       }
 
       showSuccess(`Quote ${result.data.id} saved and sent for review.`);
+      setOpenModal(null);
     });
   }
 
@@ -111,6 +114,7 @@ export function VehicleInterestPanel({
       }
 
       showSuccess(`Viewing request ${result.data.id} saved with status ${result.data.status}.`);
+      setOpenModal(null);
     });
   }
 
@@ -149,21 +153,50 @@ export function VehicleInterestPanel({
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
-              <MessageSquareQuote className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Request a quote</CardTitle>
-              <p className="text-sm text-[var(--ink-500)]">Saved against the live listing record.</p>
-            </div>
-          </div>
+          <CardTitle>Start a buyer action</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleQuoteSubmit}>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <Button
+            type="button"
+            variant="amber"
+            className="h-auto justify-start p-4 text-left"
+            onClick={() => setOpenModal("quote")}
+          >
+            <MessageSquareQuote className="h-5 w-5" />
+            <span>
+              <span className="block font-semibold">Request a quote</span>
+              <span className="mt-1 block text-xs font-normal opacity-75">
+                Send an offer against this listing.
+              </span>
+            </span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto justify-start p-4 text-left"
+            onClick={() => setOpenModal("viewing")}
+          >
+            <CalendarClock className="h-5 w-5" />
+            <span>
+              <span className="block font-semibold">Request a viewing</span>
+              <span className="mt-1 block text-xs font-normal text-[var(--ink-500)]">
+                Pick a BiSell-approved location.
+              </span>
+            </span>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <ModalDialog
+        open={openModal === "quote"}
+        onClose={() => setOpenModal(null)}
+        title="Request a quote"
+        description="Saved against the live listing record and visible in your quote workspace."
+      >
+        <form className="space-y-4" onSubmit={handleQuoteSubmit}>
             <div className="space-y-2">
               <Label htmlFor="offerPriceUsd">Offer price (USD)</Label>
               <Input
@@ -200,22 +233,14 @@ export function VehicleInterestPanel({
               {isPending ? "Saving quote..." : "Send quote"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+      </ModalDialog>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
-              <CalendarClock className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Request a viewing</CardTitle>
-              <p className="text-sm text-[var(--ink-500)]">BiSell-approved locations only.</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <ModalDialog
+        open={openModal === "viewing"}
+        onClose={() => setOpenModal(null)}
+        title="Request a viewing"
+        description="Viewing requests use BiSell-approved locations so the admin team can confirm safely."
+      >
           {canBookViewing ? (
             <form className="space-y-4" onSubmit={handleViewingSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -273,12 +298,10 @@ export function VehicleInterestPanel({
               No approved viewing locations are currently available for booking.
             </div>
           )}
-        </CardContent>
-      </Card>
+      </ModalDialog>
 
       {feedback ? feedback.kind === "error" ? (
         <ErrorBanner
-          className="lg:col-span-2"
           message={feedback.message}
           correlationId={feedback.correlationId}
         />

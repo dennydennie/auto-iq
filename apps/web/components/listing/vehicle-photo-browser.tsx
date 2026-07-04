@@ -8,10 +8,12 @@ import { cn } from "@/lib/utils";
 
 export function VehiclePhotoBrowser({
   fallback,
+  frameClassName,
   images,
   title,
 }: {
   fallback: ReactNode;
+  frameClassName?: string;
   images: VehicleImageDto[];
   title: string;
 }) {
@@ -24,7 +26,7 @@ export function VehiclePhotoBrowser({
 
   return (
     <div className="space-y-3">
-      <div className="relative h-[18rem] overflow-hidden rounded-[1.7rem] bg-white/8">
+      <div className={cn("relative h-[18rem] overflow-hidden rounded-[1.7rem] bg-white/8", frameClassName)}>
         <Image
           src={active.url}
           alt={`${title} photo ${activeIndex + 1}`}

@@ -1,26 +1,18 @@
-import Image from "next/image";
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { PublicListingDto, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Fuel,
-  Gauge,
-  GitBranch,
-  Lock,
-  MapPin,
-  ShieldCheck,
-  Wrench,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, Lock, MapPin, ShieldCheck } from "lucide-react";
+import { VehiclePhotoBrowser } from "@/components/listing/vehicle-photo-browser";
+import { VehicleDetailSpecs } from "@/components/marketplace/vehicle-detail-specs";
+import { SaveVehicleButton } from "@/components/marketplace/save-vehicle-button";
+import { VehicleInterestPanel } from "@/components/marketplace/vehicle-interest-panel";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
-import { SaveVehicleButton } from "@/components/marketplace/save-vehicle-button";
-import { VehicleInterestPanel } from "@/components/marketplace/vehicle-interest-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { CarSilhouette } from "@/components/ui/car-silhouette";
@@ -30,14 +22,8 @@ import { formatDate, formatKm, formatPrice } from "@/lib/format";
 import { getOptionalSessionJson, getPublicJson, getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
 import { labelizeEnum, mapBodyType, relativeListingAge } from "@/lib/vehicle-ui";
 
-function specItems(listing: PublicListingDto) {
-  return [
-    { icon: Gauge, label: "Mileage", value: formatKm(listing.mileageKm) },
-    { icon: GitBranch, label: "Transmission", value: labelizeEnum(listing.transmission) },
-    { icon: Fuel, label: "Fuel", value: labelizeEnum(listing.fuelType) },
-    { icon: Wrench, label: "Engine", value: listing.engineCapacity || "Unspecified" },
-  ];
-}
+type PageParams = Promise<{ id: string }>;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function viewerState(
   result:
@@ -58,12 +44,56 @@ function readReturnHref(value: string | string[] | undefined, fallback: string) 
   return candidate.startsWith("/vehicles") ? candidate : fallback;
 }
 
+function pageTitle(listing: PublicListingDto) {
+  return `${listing.year} ${listing.make} ${listing.model}`;
+}
+
+function summarySpecs(listing: PublicListingDto) {
+  return [
+    { label: "Mileage", value: formatKm(listing.mileageKm) },
+    { label: "Drive Type", value: labelizeEnum(listing.driveType) },
+    { label: "Transmission", value: labelizeEnum(listing.transmission) },
+    { label: "Fuel", value: labelizeEnum(listing.fuelType) },
+    { label: "Engine", value: listing.engineCapacity || "Not provided" },
+    { label: "Body", value: labelizeEnum(listing.bodyType) },
+  ];
+}
+
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const { id } = await params;
+  const result = await getPublicJson<PublicListingDto>(ROUTES.catalogue.detail(id));
+
+  if (isServerApiFailure(result)) {
+    return {
+      title: "Vehicle not found",
+      alternates: { canonical: `/vehicles/${id}` },
+    };
+  }
+
+  const listing = result.data;
+  const title = `${pageTitle(listing)} for Sale`;
+  const description = `${formatPrice(listing.askPriceUsd, "USD")} ${listing.year} ${listing.make} ${listing.model} in ${listing.city}. View mileage, fuel, transmission, photos, and inspection details.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/vehicles/${listing.slug}` },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `/vehicles/${listing.slug}`,
+      images: listing.coverImageUrl ? [{ url: listing.coverImageUrl }] : undefined,
+    },
+  };
+}
+
 export default async function VehicleDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  params: PageParams;
+  searchParams: SearchParams;
 }) {
   const { id } = await params;
   const { return: returnParam } = await searchParams;
@@ -106,18 +136,16 @@ export default async function VehicleDetailPage({
   const locations = referenceDataResult && referenceDataResult.ok
     ? referenceDataResult.data.viewingLocations.filter((location) => location.active)
     : [];
-  const coverImage = listing.coverImageUrl ?? listing.images[0]?.url ?? null;
   const summary = listing.inspectionSummary;
+  const signedIn = currentViewer !== "anonymous";
+  const title = pageTitle(listing);
   const isSaved =
     savedResult !== null && savedResult.ok
       ? savedResult.data.data.some((entry) => entry.listing.id === listing.id)
       : false;
-  const signedIn = currentViewer !== "anonymous";
-
-  const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
       <Breadcrumb
         className="mb-4"
         items={[
@@ -127,224 +155,157 @@ export default async function VehicleDetailPage({
       />
       <Link href={backHref} className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
         <ArrowLeft className="h-4 w-4" />
-        Back to catalogue
+        Back to search
       </Link>
 
-      <div className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/92 shadow-[0_28px_90px_-50px_rgba(22,31,58,0.35)] backdrop-blur">
-        <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,205,83,0.18),transparent_36%),linear-gradient(180deg,#18233e_0%,#0f1830_100%)] px-6 py-8 sm:px-8">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            <div className="space-y-4 text-white">
-              <div className="flex flex-wrap gap-2">
-                {listing.bisellVerified ? <StatusBadge status="verified" /> : null}
-                <Badge variant="amber">{labelizeEnum(listing.bodyType)}</Badge>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start">
+        <div className="space-y-8">
+          <VehiclePhotoBrowser
+            images={listing.images}
+            title={title}
+            frameClassName="h-[24rem] bg-[var(--ink-900)] sm:h-[34rem]"
+            fallback={
+              <div className="flex h-[24rem] items-center justify-center rounded-[1.7rem] bg-[linear-gradient(180deg,#18233e_0%,#0f1830_100%)] sm:h-[34rem]">
+                <CarSilhouette type={mapBodyType(listing.bodyType)} width={420} shadow={false} />
               </div>
-              <div>
-                <h1 className="display text-4xl text-white sm:text-5xl">
-                  {listing.year} {listing.make} {listing.model}
-                </h1>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/70">
-                  <span className="inline-flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-[#FFC72C]" />
-                    {listing.city}
-                  </span>
-                  <span>{relativeListingAge(listing.daysListed)}</span>
-                  <span>{listing.viewCount} views</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-end gap-4">
-                <p className="display text-4xl text-white">{formatPrice(listing.askPriceUsd, "USD")}</p>
-                <p className="pb-1 text-sm text-white/65">
-                  {listing.negotiable ? "Negotiable" : "Fixed seller price"}
-                </p>
-                <SaveVehicleButton
-                  listingId={listing.id}
-                  listingSlugOrId={listing.slug}
-                  signedIn={signedIn}
-                  initialSaved={isSaved}
-                  variant="outline"
-                  size="sm"
-                  className="border-white/25 bg-white/5 text-white hover:bg-white/10"
-                />
-              </div>
-            </div>
+            }
+          />
 
-            <div className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/8 shadow-[0_20px_60px_-40px_rgba(5,10,26,0.85)]">
-              {coverImage ? (
-                <div className="relative h-[18rem] w-full">
-                  <Image
-                    src={coverImage}
-                    alt={`${listing.year} ${listing.make} ${listing.model}`}
-                    fill
-                    sizes="(min-width: 1024px) 42vw, 100vw"
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex h-[18rem] items-center justify-center">
-                  <CarSilhouette type={mapBodyType(listing.bodyType)} width={320} shadow={false} />
-                </div>
-              )}
+          <VehicleDetailSpecs listing={listing} />
+
+          <section className="rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-5">
+            <h2 className="display text-2xl text-[var(--ink-900)]">Seller disclosure</h2>
+            <p className="mt-3 text-sm leading-7 text-[var(--ink-500)]">
+              {listing.sellerDisclosure || "The seller has not added a public disclosure yet."}
+            </p>
+          </section>
+
+          <section className="rounded-[1.5rem] bg-[#FDE6CD] p-5">
+            <div className="flex gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[#9A3412]" />
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#7C2D12]">
+                  Avoid side deals
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[#9A3412]">
+                  Keep viewings, quotes, and seller contact inside BiSell so the interaction remains traceable.
+                </p>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className="grid gap-8 px-6 py-8 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-          <div className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {specItems(listing).map(({ icon: Icon, label, value }) => (
-                <div
-                  key={label}
-                  className="rounded-[1.25rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[var(--amber-dark)]">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">{label}</p>
-                      <p className="mt-1 text-sm font-semibold text-[var(--ink-900)]">{value}</p>
-                    </div>
-                  </div>
+        <aside className="space-y-5 lg:sticky lg:top-24">
+          <section className="rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-[0_28px_90px_-52px_rgba(22,31,58,0.45)]">
+            <div className="flex flex-wrap gap-2">
+              {listing.bisellVerified ? <StatusBadge status="verified" /> : null}
+              <Badge variant="amber">{labelizeEnum(listing.bodyType)}</Badge>
+            </div>
+            <h1 className="display mt-4 text-3xl leading-tight text-[var(--ink-900)]">
+              {title}
+            </h1>
+            <p className="display mt-4 text-4xl text-[var(--amber-dark)]">
+              {formatPrice(listing.askPriceUsd, "USD")}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[var(--ink-500)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ink-50)] px-3 py-1 font-semibold text-[var(--ink-900)]">
+                <MapPin className="h-4 w-4 text-[var(--amber-dark)]" />
+                {listing.city}
+              </span>
+              <span className="rounded-full bg-[var(--ink-50)] px-3 py-1">
+                {relativeListingAge(listing.daysListed)}
+              </span>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 border-y border-[var(--ink-100)] py-5">
+              {summarySpecs(listing).map((spec) => (
+                <div key={spec.label} className="rounded-2xl bg-[var(--ink-50)]/80 p-3 text-center">
+                  <p className="text-xs text-[var(--ink-400)]">{spec.label}</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--ink-900)]">{spec.value}</p>
                 </div>
               ))}
             </div>
 
-            <div className="rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-5">
-              <h2 className="display text-2xl text-[var(--ink-900)]">Seller disclosure</h2>
-              <p className="mt-3 text-sm leading-7 text-[var(--ink-500)]">
-                {listing.sellerDisclosure || "The seller has not added a public disclosure yet."}
-              </p>
-            </div>
-
-            <div className="rounded-[1.5rem] bg-[#FDE6CD] p-5">
-              <div className="flex gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[#9A3412]" />
-                <div>
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#7C2D12]">
-                    Avoid side deals
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-[#9A3412]">
-                    Viewings and negotiations must stay inside BiSell. The live buyer actions below now save through the API so the admin team can track and protect the interaction.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div id="contact" className="scroll-mt-24">
-              <VehicleInterestPanel
+            <div className="mt-5 grid gap-2">
+              <Link href="#contact" className={buttonVariants({ variant: "amber" })}>
+                Request viewing or quote
+              </Link>
+              <SaveVehicleButton
                 listingId={listing.id}
-                viewerState={currentViewer}
-                viewingLocations={locations}
+                listingSlugOrId={listing.slug}
+                signedIn={signedIn}
+                initialSaved={isSaved}
+                variant="outline"
               />
             </div>
-          </div>
+          </section>
 
-          <div className="space-y-6">
-            {currentViewer === "anonymous" ? (
-              <div className="rounded-[1.5rem] border border-[var(--amber-dark)]/30 bg-[var(--amber-soft)]/55 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--amber-dark)]">
-                    <Lock className="h-4 w-4" />
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--amber-dark)]">
-                        Contact protected
-                      </p>
-                      <h2 className="display mt-1 text-xl text-[var(--ink-900)]">
-                        Seller contact unlocks on sign-in
-                      </h2>
-                    </div>
-                    <p className="text-sm leading-6 text-[var(--ink-700)]">
-                      To keep sellers safe from spam, contact details and viewing
-                      requests are only visible to signed-in buyers. Browsing the
-                      catalogue stays open to everyone.
-                    </p>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <Link
-                        href={`/auth/login?next=${encodeURIComponent(`/vehicles/${id}`)}`}
-                        className={buttonVariants({ variant: "amber", size: "sm" })}
-                      >
-                        Sign in
-                      </Link>
-                      <Link
-                        href={`/auth/signup?role=buyer&next=${encodeURIComponent(`/vehicles/${id}`)}`}
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
-                      >
-                        Create buyer account
-                      </Link>
-                    </div>
-                  </div>
+          {currentViewer === "anonymous" ? (
+            <section className="rounded-[1.5rem] border border-[var(--amber-dark)]/30 bg-[var(--amber-soft)]/55 p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--amber-dark)]">
+                  <Lock className="h-4 w-4" />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="display text-xl text-[var(--ink-900)]">Contact unlocks on sign-in</h2>
+                  <p className="text-sm leading-6 text-[var(--ink-700)]">
+                    Sign in to request viewings, send quotes, and keep the buyer workflow tied to your account.
+                  </p>
+                  <Link
+                    href={`/auth/login?next=${encodeURIComponent(`/vehicles/${id}`)}`}
+                    className={buttonVariants({ variant: "amber", size: "sm" })}
+                  >
+                    Sign in
+                  </Link>
                 </div>
               </div>
-            ) : null}
+            </section>
+          ) : null}
 
-            <div className="rounded-[1.5rem] bg-[linear-gradient(180deg,#18233e_0%,#0f1830_100%)] p-5 text-white">
-              {summary ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <ScoreGauge
-                      score={summary.overallScore}
-                      size={76}
-                      light
-                      ariaLabel={`${listing.year} ${listing.make} ${listing.model} inspection score ${summary.overallScore} out of 100`}
-                    />
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.14em] text-white/45">BiSell health check</p>
-                      <h2 className="display mt-2 text-2xl text-white">{summary.overallScore}/100</h2>
-                      <p className="mt-1 text-sm text-white/65">
-                        Inspected {formatDate(summary.inspectionDate)} by {summary.inspectorName}
-                      </p>
-                    </div>
+          <section className="rounded-[1.5rem] bg-[linear-gradient(180deg,#18233e_0%,#0f1830_100%)] p-5 text-white">
+            {summary ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <ScoreGauge
+                    score={summary.overallScore}
+                    size={76}
+                    light
+                    ariaLabel={`${title} inspection score ${summary.overallScore} out of 100`}
+                  />
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.14em] text-white/45">BiSell health check</p>
+                    <h2 className="display mt-2 text-2xl text-white">{summary.overallScore}/100</h2>
+                    <p className="mt-1 text-sm text-white/65">
+                      Inspected {formatDate(summary.inspectionDate)}
+                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={summary.roadworthy ? "success" : "warning"}>
-                      {summary.roadworthy ? "Roadworthy" : "Needs review"}
-                    </Badge>
-                    {summary.categories.slice(0, 3).map((category) => (
-                      <Badge key={category.category} variant="outline" className="border-white/20 text-white">
-                        {labelizeEnum(category.category)} {category.score}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-sm leading-6 text-white/72">
-                    {summary.inspectorNote || "Buyer-safe inspection notes are available for this vehicle."}
-                  </p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-xs uppercase tracking-[0.14em] text-white/45">BiSell health check</p>
-                  <h2 className="display text-2xl text-white">Summary pending</h2>
-                  <p className="text-sm leading-6 text-white/70">
-                    This listing is live, but the buyer-safe inspection summary has not been approved for publication yet.
-                  </p>
-                </div>
-              )}
-            </div>
+                <Badge variant={summary.roadworthy ? "success" : "warning"}>
+                  {summary.roadworthy ? "Roadworthy" : "Needs review"}
+                </Badge>
+                <p className="text-sm leading-6 text-white/72">
+                  {summary.inspectorNote || "Buyer-safe inspection notes are available for this vehicle."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.14em] text-white/45">BiSell health check</p>
+                <h2 className="display text-2xl text-white">Summary pending</h2>
+                <p className="text-sm leading-6 text-white/70">
+                  The buyer-safe inspection summary has not been approved for publication yet.
+                </p>
+              </div>
+            )}
+          </section>
 
-            <div className="rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-5">
-              <h2 className="display text-2xl text-[var(--ink-900)]">Vehicle profile</h2>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between gap-4 border-b border-[var(--ink-100)] pb-3">
-                  <dt className="text-[var(--ink-400)]">Drive type</dt>
-                  <dd className="font-semibold text-[var(--ink-900)]">{labelizeEnum(listing.driveType)}</dd>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-[var(--ink-100)] pb-3">
-                  <dt className="text-[var(--ink-400)]">Colour</dt>
-                  <dd className="font-semibold text-[var(--ink-900)]">{listing.colour}</dd>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-[var(--ink-100)] pb-3">
-                  <dt className="text-[var(--ink-400)]">Published</dt>
-                  <dd className="font-semibold text-[var(--ink-900)]">{formatDate(listing.publishedAt)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[var(--ink-400)]">Photos</dt>
-                  <dd className="font-semibold text-[var(--ink-900)]">{listing.images.length}</dd>
-                </div>
-              </dl>
-            </div>
+          <div id="contact" className="scroll-mt-24">
+            <VehicleInterestPanel
+              listingId={listing.id}
+              viewerState={currentViewer}
+              viewingLocations={locations}
+            />
           </div>
-        </div>
+        </aside>
       </div>
     </main>
   );
