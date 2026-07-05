@@ -25,6 +25,14 @@ export class CatalogueService {
     };
   }
 
+  listMakeFacets() {
+    return this.catalogueQueryService.listMakeFacets();
+  }
+
+  listModelFacets(make?: string) {
+    return this.catalogueQueryService.listModelFacets(make);
+  }
+
   async detail(slugOrId: string, user?: AuthenticatedUser) {
     if (user?.roles.includes("SELLER")) {
       const owned = await this.vehicleRepository.findOwnedById(slugOrId, user.id);

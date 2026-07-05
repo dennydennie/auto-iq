@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { CatalogueMakeFacet } from "@auto-iq/contracts/catalogue";
 import { BODY_TYPES, FUEL_TYPES, TRANSMISSION_TYPES } from "@auto-iq/contracts/enums";
 import { Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -55,10 +56,16 @@ export function FilterSidebar({
   filters,
   className,
   clearHref,
+  makes,
+  buildMakeHref,
 }: {
   filters: CatalogueFilterState;
   className?: string;
   clearHref: string;
+  /** API-backed distinct makes with counts. Empty array hides the section. */
+  makes?: CatalogueMakeFacet[];
+  /** Builds the Shop-by-make link for a given make value. */
+  buildMakeHref?: (make: string) => string;
 }) {
   return (
     <aside
@@ -97,6 +104,47 @@ export function FilterSidebar({
             />
           </div>
         </Section>
+
+        {makes && makes.length > 0 && buildMakeHref ? (
+          <Section title="Shop by make">
+            <ul className="grid gap-1 text-sm">
+              {makes.slice(0, 12).map((facet) => {
+                const active = filters.make.toLowerCase() === facet.make.toLowerCase();
+                return (
+                  <li key={facet.make}>
+                    <a
+                      href={buildMakeHref(facet.make)}
+                      aria-current={active ? "true" : undefined}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg px-2 py-1.5 transition hover:bg-[var(--ink-50)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45",
+                        active
+                          ? "bg-[var(--ink-900)] text-white hover:bg-[var(--ink-900)]"
+                          : "text-[var(--ink-700)]",
+                      )}
+                    >
+                      <span className="truncate font-medium">{facet.make}</span>
+                      <span
+                        className={cn(
+                          "ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                          active
+                            ? "bg-[var(--amber)] text-[var(--ink-900)]"
+                            : "bg-[var(--ink-50)] text-[var(--ink-500)]",
+                        )}
+                      >
+                        {facet.count}
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+            {makes.length > 12 ? (
+              <p className="mt-2 text-[11px] text-[var(--ink-400)]">
+                Showing top 12 · use the Make input above to filter to a specific make.
+              </p>
+            ) : null}
+          </Section>
+        ) : null}
 
         <Section title="Location">
           <div className="space-y-2">

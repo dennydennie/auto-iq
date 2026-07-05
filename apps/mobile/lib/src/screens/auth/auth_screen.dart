@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../core/config/app_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
 import '../../state/session_controller.dart';
+import 'otp_verification_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -21,31 +23,31 @@ class _AuthScreenState extends State<AuthScreen> {
 
   final _loginIdentifierController = TextEditingController();
   final _loginPasswordController = TextEditingController();
-  final _otpCodeController = TextEditingController();
 
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController(text: '+263');
   final _registerPasswordController = TextEditingController();
+  final _registerConfirmPasswordController = TextEditingController();
   final _cityController = TextEditingController(text: 'Harare');
 
   bool _isRegisterMode = false;
   bool _busy = false;
+  bool _showLoginPassword = false;
+  bool _showRegisterPassword = false;
+  bool _showRegisterConfirmPassword = false;
+  bool _acceptedRules = false;
   String _selectedRole = 'BUYER';
-  String? _otpIdentifier;
-  String? _otpPhone;
-  String? _otpPassword;
-  String? _otpMessage;
 
   @override
   void dispose() {
     _loginIdentifierController.dispose();
     _loginPasswordController.dispose();
-    _otpCodeController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _registerPasswordController.dispose();
+    _registerConfirmPasswordController.dispose();
     _cityController.dispose();
     super.dispose();
   }
@@ -65,9 +67,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   const BiSellLogo(size: 36),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Android runtime for Auto IQ',
-                    style: TextStyle(
+                  Text(
+                    _isRegisterMode ? 'Create your account' : 'Welcome back',
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       color: AppColors.ink900,
@@ -75,27 +77,29 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'This mobile build talks directly to ${AppConfig.apiLabel}.',
+                    _isRegisterMode
+                        ? 'Sign up to browse verified vehicles or list your own.'
+                        : 'Sign in to continue where you left off.',
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: AppColors.ink500,
                     ),
                   ),
                   const SizedBox(height: 24),
                   _ModeSwitch(
                     isRegisterMode: _isRegisterMode,
-                    onChanged: _switchMode,
+                    onChanged: (value) =>
+                        setState(() => _isRegisterMode = value),
                   ),
                   const SizedBox(height: 16),
+                  if (AppConfig.isInsecureRemote)
+                    const _InsecureRemoteBanner(),
                   if (session.errorMessage != null)
                     _ErrorBanner(
                       message: session.errorMessage!,
                       onDismiss: session.clearError,
                     ),
-                  if (_otpIdentifier != null && !_isRegisterMode)
-                    _buildOtpCard()
-                  else
-                    _isRegisterMode ? _buildRegisterCard() : _buildLoginCard(),
+                  _isRegisterMode ? _buildRegisterCard() : _buildLoginCard(),
                 ],
               ),
             ),
@@ -113,17 +117,42 @@ class _AuthScreenState extends State<AuthScreen> {
         children: [
           TextFormField(
             controller: _loginIdentifierController,
-            decoration: const InputDecoration(labelText: 'Email or phone'),
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'Email or phone',
+              hintText: 'you@example.com or +263...',
+            ),
             validator: _required,
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _loginPasswordController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Password'),
+            obscureText: !_showLoginPassword,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.password],
+            decoration: InputDecoration(
+              labelText: 'Password',
+              suffixIcon: IconButton(
+                icon: Icon(_showLoginPassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _showLoginPassword = !_showLoginPassword),
+                tooltip: _showLoginPassword ? 'Hide password' : 'Show password',
+              ),
+            ),
+            onFieldSubmitted: (_) => _login(),
             validator: _required,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _openForgotPassword,
+              child: const Text('Forgot password?'),
+            ),
+          ),
+          const SizedBox(height: 4),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -143,13 +172,21 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildRegisterCard() {
+    final password = _registerPasswordController.text;
+    final confirm = _registerConfirmPasswordController.text;
+    final passwordsMismatch = confirm.isNotEmpty && password != confirm;
+
     return Form(
       key: _registerFormKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
             controller: _fullNameController,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.name],
             decoration: const InputDecoration(labelText: 'Full name'),
             validator: _required,
           ),
@@ -157,6 +194,9 @@ class _AuthScreenState extends State<AuthScreen> {
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email],
+            autocorrect: false,
             decoration: const InputDecoration(labelText: 'Email'),
             validator: _emailValidator,
           ),
@@ -164,42 +204,105 @@ class _AuthScreenState extends State<AuthScreen> {
           TextFormField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone (+263...)'),
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.telephoneNumber],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Phone',
+              helperText: 'E.164 format, e.g. +263771234567',
+            ),
             validator: _phoneValidator,
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _cityController,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.addressCity],
             decoration: const InputDecoration(labelText: 'City'),
             validator: _required,
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _registerPasswordController,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Password'),
+            obscureText: !_showRegisterPassword,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.newPassword],
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Password',
+              helperText: 'Min 8 characters, mix of letters and numbers.',
+              suffixIcon: IconButton(
+                icon: Icon(_showRegisterPassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _showRegisterPassword = !_showRegisterPassword),
+                tooltip: _showRegisterPassword ? 'Hide password' : 'Show password',
+              ),
+            ),
             validator: _passwordValidator,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _registerConfirmPasswordController,
+            obscureText: !_showRegisterConfirmPassword,
+            textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Confirm password',
+              errorText: passwordsMismatch ? "Passwords don't match" : null,
+              suffixIcon: IconButton(
+                icon: Icon(_showRegisterConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(
+                    () => _showRegisterConfirmPassword = !_showRegisterConfirmPassword),
+                tooltip:
+                    _showRegisterConfirmPassword ? 'Hide password' : 'Show password',
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Confirm your password';
+              if (value != _registerPasswordController.text) {
+                return "Passwords don't match";
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _selectedRole,
-            decoration: const InputDecoration(labelText: 'Role'),
+            decoration: const InputDecoration(labelText: 'I want to'),
             items: const [
-              DropdownMenuItem(value: 'BUYER', child: Text('Buyer')),
-              DropdownMenuItem(value: 'SELLER', child: Text('Seller')),
+              DropdownMenuItem(
+                value: 'BUYER',
+                child: Text('Browse and buy vehicles'),
+              ),
+              DropdownMenuItem(
+                value: 'SELLER',
+                child: Text('List and sell a vehicle'),
+              ),
             ],
             onChanged: (value) {
-              if (value == null) {
-                return;
-              }
+              if (value == null) return;
               setState(() => _selectedRole = value);
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          CheckboxListTile(
+            value: _acceptedRules,
+            onChanged: (value) =>
+                setState(() => _acceptedRules = value ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'I agree to the platform rules and consent to verification and listing-related SMS/email.',
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _busy ? null : _register,
+              onPressed: _busy || !_acceptedRules || passwordsMismatch ? null : _register,
               child: _busy
                   ? const SizedBox(
                       height: 18,
@@ -214,82 +317,8 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildOtpCard() {
-    final identifier = _otpIdentifier ?? '';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Enter the 6-digit code',
-          style: TextStyle(
-            color: AppColors.ink900,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'We sent a verification code to the SMS and email channels tied to $identifier.',
-          style: const TextStyle(
-            color: AppColors.ink500,
-            fontSize: 13,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _otpCodeController,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            counterText: '',
-            labelText: 'Verification code',
-            hintText: '123456',
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (_otpMessage != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              _otpMessage!,
-              style: const TextStyle(color: AppColors.verified, fontSize: 13),
-            ),
-          ),
-        Row(
-          children: [
-            OutlinedButton(
-              onPressed: _busy ? null : _sendOtp,
-              child: const Text('Resend code'),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _busy ? null : _verifyOtp,
-                child: _busy
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Verify and sign in'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: _busy ? null : _clearOtpVerification,
-          child: const Text('Back to sign in'),
-        ),
-      ],
-    );
-  }
-
   Future<void> _login() async {
-    if (!_loginFormKey.currentState!.validate()) {
-      return;
-    }
+    if (!_loginFormKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
       await context.read<SessionController>().login(
@@ -298,25 +327,28 @@ class _AuthScreenState extends State<AuthScreen> {
           );
     } on ApiException catch (error) {
       if (error.code == 'OTP_REQUIRED' && mounted) {
-        _beginOtpVerification(
-          identifier: _loginIdentifierController.text,
-          phone: _loginIdentifierController.text.trim().startsWith('+')
-              ? _loginIdentifierController.text
-              : null,
-          password: _loginPasswordController.text,
+        final identifier = _loginIdentifierController.text.trim();
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => OtpVerificationScreen(
+              phone: identifier.startsWith('+') ? identifier : null,
+              identifier: identifier,
+              password: _loginPasswordController.text,
+            ),
+          ),
         );
         return;
       }
       _showError(error.message);
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _register() async {
-    if (!_registerFormKey.currentState!.validate()) {
+    if (!_registerFormKey.currentState!.validate()) return;
+    if (!_acceptedRules) {
+      _showError('Please accept the platform rules to continue.');
       return;
     }
     setState(() => _busy = true);
@@ -331,141 +363,65 @@ class _AuthScreenState extends State<AuthScreen> {
               city: _cityController.text,
             ),
           );
-      if (!mounted) {
-        return;
-      }
-      if (result.otpRequired) {
-        _beginOtpVerification(
-          identifier: _emailController.text,
-          phone: _phoneController.text,
-          password: _registerPasswordController.text,
-        );
-        await _sendOtp();
-      }
-    } on ApiException catch (error) {
-      _showError(error.message);
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
+      if (!mounted) return;
 
-  void _switchMode(bool value) {
-    setState(() {
-      _isRegisterMode = value;
-      if (value) {
-        _clearOtpState();
-      }
-    });
-  }
-
-  void _beginOtpVerification({
-    required String identifier,
-    required String password,
-    String? phone,
-  }) {
-    context.read<SessionController>().clearError();
-    setState(() {
-      _isRegisterMode = false;
-      _otpIdentifier = identifier.trim();
-      _otpPhone = phone?.trim();
-      _otpPassword = password;
-      _otpCodeController.clear();
-      _otpMessage = 'Code sent. Enter it below to finish signing in.';
-    });
-  }
-
-  void _clearOtpVerification() {
-    setState(_clearOtpState);
-  }
-
-  void _clearOtpState() {
-    _otpIdentifier = null;
-    _otpPhone = null;
-    _otpPassword = null;
-    _otpMessage = null;
-    _otpCodeController.clear();
-  }
-
-  Future<void> _sendOtp() async {
-    final identifier = _otpIdentifier;
-    if (identifier == null) {
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _otpMessage = null;
-    });
-    try {
-      await context.read<AuthRepository>().sendOtp(
-            identifier: identifier,
-            phone: _otpPhone,
-          );
-      if (mounted) {
-        setState(() => _otpMessage = 'Code sent. Check SMS and email.');
-      }
-    } on ApiException catch (error) {
-      _showError(error.message);
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _verifyOtp() async {
-    final identifier = _otpIdentifier;
-    final password = _otpPassword;
-    if (identifier == null || password == null) {
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _otpMessage = null;
-    });
-    try {
-      final authRepository = context.read<AuthRepository>();
-      final sessionController = context.read<SessionController>();
-      await authRepository.verifyOtp(
-        identifier: identifier,
-        phone: _otpPhone,
-        code: _otpCodeController.text,
+      // Always route through OTP verification. Even when the API says OTP
+      // isn't required, taking the user to a verification screen with an
+      // auto-send avoids a dead-end on the register screen.
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => OtpVerificationScreen(
+            phone: _phoneController.text,
+            identifier: _emailController.text,
+            password: _registerPasswordController.text,
+            autoSend: result.otpRequired,
+          ),
+        ),
       );
-      await sessionController.login(identifier: identifier, password: password);
+
+      // Clear the password once we come back; keeping the plaintext in memory
+      // any longer than necessary is a minor security posture win.
       if (mounted) {
-        _clearOtpState();
+        _registerPasswordController.clear();
+        _registerConfirmPasswordController.clear();
       }
     } on ApiException catch (error) {
       _showError(error.message);
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _openForgotPassword() {
+    // Mobile does not yet host a dedicated reset flow. Send the user to the
+    // web recovery route so they can complete the reset and come back.
+    final url = '${AppConfig.apiBaseUrl}/auth/forgot-password';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "Reset from a browser: $url — we don't yet host reset in the mobile app.",
+        ),
+        duration: const Duration(seconds: 8),
+      ),
+    );
   }
 
   void _showError(String message) {
-    if (!mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Required';
-    }
+    if (value == null || value.trim().isEmpty) return 'Required';
     return null;
   }
 
   String? _emailValidator(String? value) {
     final text = value?.trim() ?? '';
-    if (text.isEmpty || !text.contains('@')) {
-      return 'Enter a valid email';
-    }
+    // Tight but not exhaustive — server has the final say.
+    final looksValid = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(text);
+    if (!looksValid) return 'Enter a valid email address';
     return null;
   }
 
@@ -474,20 +430,30 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!text.startsWith('+263') || text.length < 13) {
       return 'Use E.164 format, for example +263771234567';
     }
+    // Only digits after the +263 prefix.
+    if (!RegExp(r'^\+263\d{9,10}$').hasMatch(text)) {
+      return 'Only digits after +263';
+    }
     return null;
   }
 
   String? _passwordValidator(String? value) {
     final text = value ?? '';
-    if (text.length < 8) {
-      return 'Use at least 8 characters';
+    if (text.length < 8) return 'Use at least 8 characters';
+    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(text);
+    final hasNumber = RegExp(r'\d').hasMatch(text);
+    if (!hasLetter || !hasNumber) {
+      return 'Include at least one letter and one number';
     }
     return null;
   }
 }
 
 class _ModeSwitch extends StatelessWidget {
-  const _ModeSwitch({required this.isRegisterMode, required this.onChanged});
+  const _ModeSwitch({
+    required this.isRegisterMode,
+    required this.onChanged,
+  });
 
   final bool isRegisterMode;
   final ValueChanged<bool> onChanged;
@@ -506,7 +472,10 @@ class _ModeSwitch extends StatelessWidget {
 }
 
 class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message, required this.onDismiss});
+  const _ErrorBanner({
+    required this.message,
+    required this.onDismiss,
+  });
 
   final String message;
   final VoidCallback onDismiss;
@@ -533,6 +502,35 @@ class _ErrorBanner extends StatelessWidget {
           IconButton(
             onPressed: onDismiss,
             icon: const Icon(Icons.close, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsecureRemoteBanner extends StatelessWidget {
+  const _InsecureRemoteBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFC72C), width: 1),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Color(0xFF8A5D00)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Talking to an insecure HTTP endpoint. Release builds require HTTPS.',
+              style: TextStyle(color: Color(0xFF8A5D00), fontSize: 12),
+            ),
           ),
         ],
       ),

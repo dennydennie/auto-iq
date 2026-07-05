@@ -7,8 +7,27 @@ import {
 } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 import { AuthShell } from "@/components/shared/auth-shell";
+import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+
+type SearchParams = Promise<{
+  identifier?: string | string[];
+  next?: string | string[];
+  verified?: string | string[];
+  reset?: string | string[];
+}>;
+
+function readParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function readNextHref(value: string | undefined) {
+  // Same-origin absolute path only — no open redirects.
+  if (!value || !value.startsWith("/")) return undefined;
+  if (value.startsWith("//")) return undefined;
+  return value;
+}
 
 const ACCESS_LANES = [
   {
@@ -28,25 +47,16 @@ const ACCESS_LANES = [
   },
 ] as const;
 
-type LoginSearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-function readNext(value: string | string[] | undefined) {
-  const next = Array.isArray(value) ? value[0] : value;
-
-  if (!next || !next.startsWith("/") || next.startsWith("//")) {
-    return null;
-  }
-
-  return next;
-}
-
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: LoginSearchParams;
+  searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const nextHref = readNext(params.next);
+  const identifier = readParam(params.identifier) ?? "";
+  const nextHref = readNextHref(readParam(params.next));
+  const justVerified = readParam(params.verified) === "1";
+  const justReset = readParam(params.reset) === "1";
 
   return (
     <AuthShell
@@ -116,9 +126,16 @@ export default async function LoginPage({
           </div>
         </div>
 
+        {justVerified ? (
+          <NoticeBanner message="Phone verified. Sign in with the password you set during registration." />
+        ) : null}
+        {justReset ? (
+          <NoticeBanner message="Password updated. Sign in with your new password." />
+        ) : null}
+
         <Card className="border-white/80 bg-white/96 shadow-[0_26px_80px_-58px_rgba(22,31,58,0.35)]">
           <CardContent className="p-6 sm:p-7">
-            <LoginForm nextHref={nextHref} />
+            <LoginForm defaultIdentifier={identifier} nextHref={nextHref} />
           </CardContent>
         </Card>
       </div>

@@ -26,12 +26,6 @@ export class AccountsController {
     return this.accountsService.updateMe(user.id, body);
   }
 
-  @Post("seller-profile")
-  @UseGuards(CsrfGuard)
-  activateSeller(@CurrentUser() user: AuthenticatedUser) {
-    return this.accountsService.activateSeller(user.id);
-  }
-
   @Post("consents")
   @UseGuards(CsrfGuard)
   recordConsent(@CurrentUser() user: AuthenticatedUser, @Body() body: RecordConsentDto) {

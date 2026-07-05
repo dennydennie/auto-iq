@@ -1,7 +1,10 @@
 import Link from "next/link";
-import type { CatalogueResponse, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
+import type {
+  CatalogueMakeFacetsResponse,
+  CatalogueResponse,
+  SavedVehicleDto,
+} from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
-import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { Lock, Search, ShieldCheck, SlidersHorizontal, Sparkles } from "lucide-react";
 import { FilterSidebar, type CatalogueFilterState } from "@/components/marketplace/filter-sidebar";
@@ -102,18 +105,19 @@ export default async function VehiclesPage({
     bisellVerified: filters.verified === "true" ? true : undefined,
   });
 
-  const [catalogueResult, meResult, savedResult] = await Promise.all([
+  const [catalogueResult, meResult, savedResult, makesResult] = await Promise.all([
     getPublicJson<CatalogueResponse>(cataloguePath),
     getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
-    getOptionalSessionJson<OffsetPaginatedResponse<SavedVehicleDto>>(
-      withQuery(ROUTES.me.savedVehicles, { page: 1, limit: 100 }),
-    ),
+    getOptionalSessionJson<SavedVehicleDto[]>(ROUTES.me.savedVehicles),
+    getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
   ]);
+
+  const makes = !isServerApiFailure(makesResult) ? makesResult.data : [];
 
   const signedIn = meResult !== null && meResult.ok;
   const savedIds = new Set(
     savedResult !== null && savedResult.ok
-      ? savedResult.data.data.map((entry) => entry.listing.id)
+      ? savedResult.data.map((entry) => entry.listing.id)
       : [],
   );
 
@@ -261,6 +265,8 @@ export default async function VehiclesPage({
             <FilterSidebar
               filters={filters}
               clearHref="/vehicles"
+              makes={makes}
+              buildMakeHref={(make) => vehiclesHref({ make, cursor: "" }, filters)}
             />
           </div>
         </div>
@@ -275,7 +281,12 @@ export default async function VehiclesPage({
                   Filters{filterCount > 0 ? ` (${filterCount})` : ""}
                 </summary>
                 <div className="absolute left-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))]">
-                  <FilterSidebar filters={filters} clearHref="/vehicles" />
+                  <FilterSidebar
+                    filters={filters}
+                    clearHref="/vehicles"
+                    makes={makes}
+                    buildMakeHref={(make) => vehiclesHref({ make, cursor: "" }, filters)}
+                  />
                 </div>
               </details>
               <p className="text-sm text-[var(--ink-500)]">

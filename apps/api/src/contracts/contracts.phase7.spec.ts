@@ -28,7 +28,6 @@ describe("Phase 7 contracts", () => {
       driveType: "4WD",
       engineCapacity: "2.8L",
       mileageKm: 123000,
-      locationCoordinates: { lat: -17.8252, lng: 31.0335 },
       askPriceUsd: 19500,
       negotiable: true,
       sellerDisclosure: "Maintained on schedule.",

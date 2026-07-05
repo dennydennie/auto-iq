@@ -35,8 +35,14 @@ class SessionController extends ChangeNotifier {
     try {
       await _hydrate();
     } on ApiException catch (error) {
+      // 401 → not logged in → routed to auth screen with no error banner.
+      // Anything else (network, 5xx) is treated as "unknown session, offline"
+      // — surface a banner so the user knows why they were bounced back to
+      // the auth screen.
       if (!error.isUnauthorized) {
-        _errorMessage = error.message;
+        _errorMessage = error.code == 'NETWORK_ERROR'
+            ? "We can't reach the server. Check your connection and try again."
+            : error.message;
       }
       _user = null;
       _referenceData = null;
@@ -97,11 +103,18 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> _hydrate() async {
+    // /me is authoritative — if it fails the session is dead. Reference data
+    // is best-effort; a signed-in user with stale reference data is better
+    // than being bounced back to the auth screen because the API blipped.
     final loadedUser = await _authRepository.me();
-    final loadedReferenceData = await _referenceRepository.load();
     _user = loadedUser;
-    _referenceData = loadedReferenceData;
     _errorMessage = null;
+    try {
+      _referenceData = await _referenceRepository.load();
+    } on ApiException {
+      // Keep whatever reference data we already have. UI callers should
+      // handle a null referenceData gracefully.
+    }
   }
 
   Future<void> _runBusy(Future<void> Function() action) async {

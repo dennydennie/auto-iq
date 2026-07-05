@@ -53,25 +53,6 @@ describe("validateEnv", () => {
     );
   });
 
-  it("allows staging to boot without a Sentry DSN", () => {
-    const env = validateEnv({
-      ...baseEnv,
-      NODE_ENV: "staging",
-      WEB_BASE_URL: "https://web-staging-1017.up.railway.app",
-      SESSION_COOKIE_SECURE: "true",
-      SENTRY_ENVIRONMENT: "staging",
-      SENTRY_RELEASE: "api@staging",
-      STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
-      STORAGE_REGION: "auto",
-      STORAGE_ACCESS_KEY: "tigris-access-key",
-      STORAGE_SECRET_KEY: "tigris-secret-key",
-      STORAGE_BUCKET: "auto-iq-staging",
-    });
-
-    expect(env.NODE_ENV).toBe("staging");
-    expect(env.SENTRY_DSN).toBeUndefined();
-  });
-
   it("rejects localhost web origins in production-like environments", () => {
     expect(() =>
       validateEnv({
@@ -105,30 +86,6 @@ describe("validateEnv", () => {
     expect(env.REDIS_CONNECT_TIMEOUT_MS).toBe(750);
   });
 
-  it("accepts SendGrid and stub SMS notification configuration in staging", () => {
-    const env = validateEnv({
-      ...baseEnv,
-      NODE_ENV: "production",
-      WEB_BASE_URL: "https://web-staging-1017.up.railway.app",
-      SESSION_COOKIE_SECURE: "true",
-      SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
-      SENTRY_ENVIRONMENT: "staging",
-      SENTRY_RELEASE: "api@staging",
-      STORAGE_ENDPOINT: "https://t3.storageapi.dev",
-      STORAGE_REGION: "ams",
-      STORAGE_ACCESS_KEY: "tigris-access-key",
-      STORAGE_SECRET_KEY: "tigris-secret-key",
-      STORAGE_BUCKET: "auto-iq-staging",
-      NOTIFICATION_EMAIL_PROVIDER: "sendgrid",
-      SENDGRID_API_KEY: "sendgrid-key",
-      SENDGRID_SENDER_EMAIL: "no-reply@autoiq.example",
-      NOTIFICATION_SMS_PROVIDER: "stub",
-    });
-
-    expect(env.NOTIFICATION_EMAIL_PROVIDER).toBe("sendgrid");
-    expect(env.NOTIFICATION_SMS_PROVIDER).toBe("stub");
-  });
-
   it("accepts SendGrid and Gikko notification configuration", () => {
     const env = validateEnv({
       ...baseEnv,
@@ -155,6 +112,26 @@ describe("validateEnv", () => {
     expect(env.GIKKO_API_KEY).toBe("gikko-key");
     expect(env.GIKKO_SMS_ENABLED).toBe(true);
     expect(env.GIKKO_SMS_TIMEOUT_MS).toBe(10000);
+  });
+
+  it("accepts SendGrid email with stub SMS for staging OTP delivery", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      STORAGE_ENDPOINT: "http://localhost:9000",
+      STORAGE_REGION: "us-east-1",
+      STORAGE_ACCESS_KEY: "minioadmin",
+      STORAGE_SECRET_KEY: "minioadmin",
+      STORAGE_BUCKET: "auto-iq-local",
+      NOTIFICATION_EMAIL_PROVIDER: "sendgrid",
+      SENDGRID_API_KEY: "sendgrid-key",
+      EMAIL_SENDER_EMAIL: "info@arcpay.cloud",
+      NOTIFICATION_EMAIL_FROM: "info@arcpay.cloud",
+      NOTIFICATION_SMS_PROVIDER: "stub",
+    });
+
+    expect(env.NOTIFICATION_EMAIL_PROVIDER).toBe("sendgrid");
+    expect(env.NOTIFICATION_SMS_PROVIDER).toBe("stub");
+    expect(env.EMAIL_SENDER_EMAIL).toBe("info@arcpay.cloud");
   });
 
   it("accepts database-only configuration for cli migrations", () => {

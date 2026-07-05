@@ -149,8 +149,8 @@ class EnvironmentVariables {
   EMAIL_SENDER_EMAIL?: string;
 
   @IsOptional()
-  @IsIn(["sandbox", "stub", "twilio", "gikko"])
-  NOTIFICATION_SMS_PROVIDER?: "sandbox" | "stub" | "twilio" | "gikko";
+  @IsIn(["sandbox", "twilio", "gikko", "stub"])
+  NOTIFICATION_SMS_PROVIDER?: "sandbox" | "twilio" | "gikko" | "stub";
 
   @IsOptional()
   @IsString()
@@ -279,7 +279,7 @@ function assertProductionEnv(env: ValidatedEnvironment) {
 function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   const missing: string[] = [];
 
-  if (env.NODE_ENV === "production" && !env.SENTRY_DSN) {
+  if (!env.SENTRY_DSN) {
     missing.push("SENTRY_DSN");
   }
   if (!env.SENTRY_ENVIRONMENT) {

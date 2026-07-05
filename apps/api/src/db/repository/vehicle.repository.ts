@@ -51,9 +51,8 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
   }
 
   findPublicBySlugOrId(slugOrId: string): Promise<VehicleEntity | null> {
-    const where = isUuid(slugOrId) ? [{ id: slugOrId }, { slug: slugOrId }] : { slug: slugOrId };
     return this.repository.findOne({
-      where,
+      where: [{ id: slugOrId }, { slug: slugOrId }],
       relations: ["seller", "specs", "pricing", "images"],
     });
   }
@@ -124,10 +123,10 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
     sortDir: SellerListingPageParams["sortDir"],
   ): void {
     if (sortBy === "askPriceUsd") {
-      query.orderBy("pricing.askPriceUsd", sortDir, "NULLS LAST");
+      query.orderBy("pricing.ask_price_usd", sortDir, "NULLS LAST");
       return;
     }
-    const column = sortBy === "createdAt" ? "vehicle.createdAt" : "vehicle.updatedAt";
+    const column = sortBy === "createdAt" ? "vehicle.created_at" : "vehicle.updated_at";
     query.orderBy(column, sortDir);
   }
 
@@ -137,18 +136,14 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
     sortDir: AdminListingPageParams["sortDir"],
   ): void {
     if (sortBy === "price") {
-      query.orderBy("pricing.askPriceUsd", sortDir, "NULLS LAST");
+      query.orderBy("pricing.ask_price_usd", sortDir, "NULLS LAST");
       return;
     }
     if (sortBy === "submittedAt") {
-      query.orderBy("vehicle.submittedAt", sortDir, "NULLS LAST");
+      query.orderBy("vehicle.submitted_at", sortDir, "NULLS LAST");
       return;
     }
-    const column = sortBy === "createdAt" ? "vehicle.createdAt" : "vehicle.updatedAt";
+    const column = sortBy === "createdAt" ? "vehicle.created_at" : "vehicle.updated_at";
     query.orderBy(column, sortDir);
   }
-}
-
-function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

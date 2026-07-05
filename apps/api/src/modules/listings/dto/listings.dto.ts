@@ -6,7 +6,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   Min,
   MinLength,
@@ -21,17 +20,9 @@ import {
 } from "../../../common/constants/listing.constants";
 
 export class UpsertListingSpecsDto {
-  @IsOptional()
-  @IsUUID()
-  makeId?: string;
-
   @IsString()
   @MinLength(1)
   make!: string;
-
-  @IsOptional()
-  @IsUUID()
-  modelId?: string;
 
   @IsString()
   @MinLength(1)
@@ -75,18 +66,6 @@ export class UpsertListingSpecsDto {
   @IsOptional()
   @IsString()
   accidentNote?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(-90)
-  @Max(90)
-  locationLatitude?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(-180)
-  @Max(180)
-  locationLongitude?: number;
 }
 
 export class UpsertListingPricingDto {

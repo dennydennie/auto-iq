@@ -18,7 +18,6 @@ export interface PublicListingDto {
   driveType: DriveType;
   engineCapacity: string | null;
   mileageKm: number;
-  locationCoordinates: { lat: number; lng: number } | null;
   askPriceUsd: number;
   negotiable: boolean;
   /** Seller disclosure — no PII */
@@ -72,6 +71,24 @@ export interface CatalogueFilters extends CursorPaginationParams {
 }
 
 export type CatalogueResponse = CursorPaginatedResponse<PublicListingCardDto>;
+
+// ─── Catalogue facets (drives Shop by make sidebar etc.) ─────────────────────
+
+/** Distinct make + published-listing count. Sorted DESC by count on the API. */
+export interface CatalogueMakeFacet {
+  make: string;
+  count: number;
+}
+
+/** Distinct model within a specific make. */
+export interface CatalogueModelFacet {
+  make: string;
+  model: string;
+  count: number;
+}
+
+export type CatalogueMakeFacetsResponse = CatalogueMakeFacet[];
+export type CatalogueModelFacetsResponse = CatalogueModelFacet[];
 
 // ─── Buyer-safe inspection summary ────────────────────────────────────────────
 

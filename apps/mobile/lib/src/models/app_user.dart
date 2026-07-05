@@ -78,6 +78,15 @@ class AppUser {
 
   bool get isBuyer => roles.contains('BUYER');
   bool get isSeller => roles.contains('SELLER');
+
+  /// True when the account has captured all consents required for its role.
+  ///
+  /// NOTE: buyer consent is currently short-circuited to `true` because the
+  /// backend does not yet return a `consentsComplete` flag on `BuyerProfile`.
+  /// When the backend adds it, propagate through `BuyerProfile.consentsComplete`
+  /// and drop this fallback. Silently returning `true` here is fine for MVP
+  /// where consent is captured at registration via the accepted-rules
+  /// checkbox — but before shipping to app stores, wire this up properly.
   bool get consentsComplete {
     if (isSeller) {
       return sellerProfile?.consentsComplete ?? false;

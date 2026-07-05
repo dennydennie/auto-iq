@@ -15,22 +15,13 @@ import { Label } from "@/components/ui/label";
 
 const ADMIN_ROLES = new Set(["ADMIN", "PARTNER_ADMIN", "SYSTEM_ADMINISTRATOR"]);
 
-type LoginFormProps = {
-  mode?: "user" | "admin";
-  nextHref?: string | null;
-};
-
-function destinationFor(role: LoginResponse["role"], mode: "user" | "admin", nextHref?: string | null) {
+function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
   if (mode === "admin") {
     return "/admin";
   }
 
   if (ADMIN_ROLES.has(role)) {
     return "/admin";
-  }
-
-  if (nextHref) {
-    return nextHref;
   }
 
   if (role === "SELLER") {
@@ -44,9 +35,22 @@ function validateAdmin(role: LoginResponse["role"]) {
   return ADMIN_ROLES.has(role);
 }
 
-export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
+export function LoginForm({
+  mode = "user",
+  defaultIdentifier = "",
+  nextHref,
+}: {
+  mode?: "user" | "admin";
+  /** Pre-fill the identifier field (used after email verification, password reset). */
+  defaultIdentifier?: string;
+  /** Optional same-origin redirect target after successful login. */
+  nextHref?: string;
+}) {
   const router = useRouter();
-  const [form, setForm] = useState<LoginRequest>({ identifier: "", password: "" });
+  const [form, setForm] = useState<LoginRequest>({
+    identifier: defaultIdentifier,
+    password: "",
+  });
   const [error, setError] = useState<{
     message: string;
     correlationId?: string;
@@ -58,6 +62,7 @@ export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
 
   function setField<K extends keyof LoginRequest>(key: K, value: LoginRequest[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    if (error) setError(null);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -89,8 +94,11 @@ export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
         return;
       }
 
-      router.push(destinationFor(result.data.role, mode, nextHref));
-      router.refresh();
+      const destination = nextHref ?? destinationFor(result.data.role, mode);
+      // Hard reload so RSC caches for the authenticated view are cleared.
+      // router.push + refresh() alone doesn't consistently repopulate the
+      // marketplace layout's `signedIn` state fast enough.
+      window.location.assign(destination);
     });
   }
 
@@ -106,11 +114,20 @@ export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
           <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
           <Input
             id={`${mode}-identifier`}
+            name="identifier"
+            type="email"
+            // Mobile keyboards react to inputMode. Email variant lets iOS/Android
+            // offer @ and . without switching. Users who paste a phone (+263…)
+            // still work because the API accepts either.
+            inputMode="email"
             value={form.identifier}
             onChange={(event) => setField("identifier", event.target.value)}
             placeholder="you@example.com or +263..."
-            autoComplete="username"
+            autoComplete="username webauthn"
+            autoCapitalize="none"
+            spellCheck={false}
             aria-invalid={Boolean(error)}
+            enterKeyHint="next"
             className="h-12 rounded-2xl border-[var(--ink-300)] bg-[var(--ink-50)]/55 pl-11"
             required
           />
@@ -134,20 +151,24 @@ export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
           <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
           <Input
             id={`${mode}-password`}
+            name="password"
             type={showPassword ? "text" : "password"}
             value={form.password}
             onChange={(event) => setField("password", event.target.value)}
             placeholder="Enter your password"
-            autoComplete="current-password"
+            autoComplete="current-password webauthn"
             aria-invalid={Boolean(error)}
+            enterKeyHint="go"
             className="h-12 rounded-2xl border-[var(--ink-300)] bg-[var(--ink-50)]/55 pl-11 pr-12"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword((current) => !current)}
-            className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ink-400)] transition hover:bg-white hover:text-[var(--ink-700)]"
+            // 44×44 touch target — WCAG AA on mobile.
+            className="absolute right-1 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ink-400)] transition hover:bg-white hover:text-[var(--ink-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45"
             aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -157,11 +178,8 @@ export function LoginForm({ mode = "user", nextHref = null }: LoginFormProps) {
         </p>
       </div>
 
-      <div className="rounded-[1.25rem] border border-[var(--ink-100)] bg-[linear-gradient(180deg,#fffdfa_0%,#f8fafc_100%)] px-4 py-3">
-        <p className="text-sm leading-6 text-[var(--ink-500)]">
-          Sessions are established server-side and kept out of browser storage.
-        </p>
-      </div>
+      {/* No dev-facing "sessions server-side" copy on the buyer/seller path.
+          Admin operators may want the note; buyers should not care. */}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button type="submit" variant="amber" className="flex-1" disabled={isPending}>

@@ -9,9 +9,7 @@ import type { OffsetPaginationParams, SortDirection } from './pagination.js';
 // ─── Shared sub-shapes ────────────────────────────────────────────────────────
 
 export interface VehicleSpecsDto {
-  makeId: string | null;
   make: string;
-  modelId: string | null;
   model: string;
   year: number;
   bodyType: BodyType;
@@ -24,7 +22,6 @@ export interface VehicleSpecsDto {
   condition: ConditionGrade;
   hasAccidentHistory: boolean;
   accidentNote: string | null;
-  locationCoordinates: { lat: number; lng: number } | null;
 }
 
 export interface VehiclePricingDto {
@@ -89,9 +86,7 @@ export interface SellerListingSummaryDto {
 
 /** Step 1: vehicle basics */
 export interface UpsertListingSpecsRequest {
-  makeId?: string;
   make: string;
-  modelId?: string;
   model: string;
   year: number;
   bodyType: BodyType;
@@ -104,8 +99,6 @@ export interface UpsertListingSpecsRequest {
   condition: ConditionGrade;
   hasAccidentHistory: boolean;
   accidentNote?: string;
-  locationLatitude?: number;
-  locationLongitude?: number;
 }
 
 /** Step 2a: set asking price */

@@ -14,8 +14,8 @@ describe("StorageService", () => {
           const values: Record<string, string> = {
             STORAGE_ENDPOINT: "http://localhost:9000",
             STORAGE_REGION: "us-east-1",
-            STORAGE_ACCESS_KEY: "local-storage-access-key",
-            STORAGE_SECRET_KEY: "local-storage-signing-key",
+            STORAGE_ACCESS_KEY: "minioadmin",
+            STORAGE_SECRET_KEY: "minioadmin",
             STORAGE_BUCKET: "auto-iq-local",
             STORAGE_PRESIGN_TTL_SECONDS: "900",
           };

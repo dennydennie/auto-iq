@@ -4,20 +4,21 @@ import { ROUTES } from "@auto-iq/contracts/routes";
 import { SiteHeader } from "@/components/shared/site-header";
 import { getOptionalSessionJson } from "@/lib/server-api";
 
+// Consumer-friendly labels. Routes stay lean — one canonical /vehicles for
+// buying and one canonical /seller for selling — because separate marketing
+// pages fragment SEO and split the maintenance surface.
 const GUEST_LINKS = [
-  { href: "/buy-a-car", label: "Buy a Car" },
-  { href: "/sell-my-car", label: "Sell My Car" },
-  { href: "/vehicles", label: "Browse" },
+  { href: "/vehicles", label: "Buy a car" },
+  { href: "/seller", label: "Sell my car" },
   { href: "/about", label: "About" },
 ];
 
 const AUTHED_LINKS = [
-  { href: "/buy-a-car", label: "Buy a Car" },
-  { href: "/vehicles", label: "Browse" },
+  { href: "/vehicles", label: "Buy a car" },
   { href: "/saved", label: "Saved" },
   { href: "/quotes", label: "Quotes" },
   { href: "/viewings", label: "Viewings" },
-  { href: "/seller", label: "Sell My Car" },
+  { href: "/seller", label: "Sell my car" },
 ];
 
 export default async function MarketplaceLayout({ children }: { children: ReactNode }) {

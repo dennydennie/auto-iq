@@ -16,6 +16,7 @@ class ApiClient {
   final Dio _dio;
   final PersistCookieJar _cookieJar;
   String? _csrfToken;
+  Future<void>? _csrfInFlight;
 
   static Future<ApiClient> create() async {
     final directory = await getApplicationSupportDirectory();
@@ -29,11 +30,17 @@ class ApiClient {
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
         sendTimeout: const Duration(seconds: 30),
-        headers: const {'Accept': 'application/json'},
+        headers: const {
+          'Accept': 'application/json',
+        },
         validateStatus: (status) => status != null && status < 500,
       ),
     );
     dio.interceptors.add(CookieManager(cookieJar));
+    // Unwrap Dio errors to raw ApiException so call sites can do
+    //   try { … } on ApiException catch (e) { … }
+    // without also handling DioException. Without this the network-error and
+    // 5xx paths silently fall through to unhandled DioException in the UI.
     dio.interceptors.add(
       InterceptorsWrapper(
         onError: (error, handler) {
@@ -52,9 +59,9 @@ class ApiClient {
             DioException(
               requestOptions: error.requestOptions,
               error: ApiException(
-                message:
-                    'Network request failed. Check that the API is running.',
+                message: _networkErrorMessage(error),
                 statusCode: 0,
+                code: 'NETWORK_ERROR',
               ),
               type: error.type,
             ),
@@ -65,15 +72,53 @@ class ApiClient {
     return ApiClient._(dio, cookieJar);
   }
 
+  /// Wraps a Dio call and re-throws the underlying ApiException so UI code
+  /// only has to `catch on ApiException`. Without this shim, network errors
+  /// and 5xx responses surface as DioException whose `.error` is the real
+  /// ApiException — which no callsite currently handles.
+  Future<Response<dynamic>> _dioCall(
+    Future<Response<dynamic>> Function() call,
+  ) async {
+    try {
+      return await call();
+    } on DioException catch (error) {
+      final wrapped = error.error;
+      if (wrapped is ApiException) throw wrapped;
+      throw ApiException(
+        message: _networkErrorMessage(error),
+        statusCode: 0,
+        code: 'NETWORK_ERROR',
+      );
+    }
+  }
+
+  static String _networkErrorMessage(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return "The server took too long to respond. Check your connection and try again.";
+      case DioExceptionType.connectionError:
+        return "Can't reach the server. Check your internet connection.";
+      case DioExceptionType.cancel:
+        return "The request was cancelled.";
+      case DioExceptionType.badCertificate:
+        return "The server's security certificate isn't trusted. Update the app.";
+      case DioExceptionType.badResponse:
+      case DioExceptionType.unknown:
+        return "Something went wrong reaching the server. Please try again.";
+    }
+  }
+
   Future<T> getJson<T>(
     String path,
     T Function(dynamic json) parser, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    final response = await _dio.get<dynamic>(
-      path,
-      queryParameters: _clean(queryParameters),
-    );
+    final response = await _dioCall(() => _dio.get<dynamic>(
+          path,
+          queryParameters: _clean(queryParameters),
+        ));
     _ensureSuccess(response);
     return parser(response.data);
   }
@@ -125,17 +170,10 @@ class ApiClient {
 
   Future<void> delete(String path, {bool includeCsrf = false}) async {
     final headers = await _headers(includeCsrf: includeCsrf);
-    var response = await _dio.delete<dynamic>(
-      path,
-      options: Options(headers: headers),
-    );
-    if (includeCsrf && _shouldRetryWithFreshCsrf(response)) {
-      _csrfToken = null;
-      response = await _dio.delete<dynamic>(
-        path,
-        options: Options(headers: await _headers(includeCsrf: true)),
-      );
-    }
+    final response = await _dioCall(() => _dio.delete<dynamic>(
+          path,
+          options: Options(headers: headers),
+        ));
     _ensureSuccess(response);
   }
 
@@ -155,7 +193,10 @@ class ApiClient {
       url,
       data: Stream.fromIterable([bytes]),
       options: Options(
-        headers: {'Content-Type': contentType, 'Content-Length': bytes.length},
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': bytes.length,
+        },
         validateStatus: (status) => status != null && status < 500,
       ),
     );
@@ -168,10 +209,17 @@ class ApiClient {
   }
 
   Future<void> ensureCsrfToken() async {
-    if (_csrfToken != null) {
-      return;
-    }
-    final response = await _dio.get<dynamic>(ApiRoutes.authCsrf);
+    if (_csrfToken != null) return;
+    // Coalesce concurrent bootstraps so parallel mutations only fire one
+    // /auth/csrf round-trip.
+    _csrfInFlight ??= _fetchCsrfToken().whenComplete(() {
+      _csrfInFlight = null;
+    });
+    await _csrfInFlight;
+  }
+
+  Future<void> _fetchCsrfToken() async {
+    final response = await _dioCall(() => _dio.get<dynamic>(ApiRoutes.authCsrf));
     _ensureSuccess(response);
     final data = response.data;
     if (data is Map<String, dynamic>) {
@@ -191,22 +239,24 @@ class ApiClient {
     required bool includeCsrf,
   }) async {
     final headers = await _headers(includeCsrf: includeCsrf);
-    var response = await _dio.request<dynamic>(
-      path,
-      data: _cleanPayload(body),
-      options: Options(method: method, headers: headers),
-    );
-    if (includeCsrf && _shouldRetryWithFreshCsrf(response)) {
+    Response<dynamic> response = await _dioCall(() => _dio.request<dynamic>(
+          path,
+          data: body,
+          options: Options(method: method, headers: headers),
+        ));
+
+    // Retry once on CSRF token rotation. Backend rotates the token on session
+    // refresh; without this, every mutation after a rotation blows up 403.
+    if (includeCsrf && response.statusCode == 403 && _csrfToken != null) {
       _csrfToken = null;
-      response = await _dio.request<dynamic>(
-        path,
-        data: _cleanPayload(body),
-        options: Options(
-          method: method,
-          headers: await _headers(includeCsrf: true),
-        ),
-      );
+      final refreshedHeaders = await _headers(includeCsrf: includeCsrf);
+      response = await _dioCall(() => _dio.request<dynamic>(
+            path,
+            data: body,
+            options: Options(method: method, headers: refreshedHeaders),
+          ));
     }
+
     _ensureSuccess(response);
     return response;
   }
@@ -216,7 +266,10 @@ class ApiClient {
       return const {'Content-Type': 'application/json'};
     }
     await ensureCsrfToken();
-    return {'Content-Type': 'application/json', 'X-CSRF-Token': _csrfToken};
+    return {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': _csrfToken,
+    };
   }
 
   void _ensureSuccess(Response<dynamic> response) {
@@ -225,25 +278,11 @@ class ApiClient {
     }
   }
 
-  bool _shouldRetryWithFreshCsrf(Response<dynamic> response) {
-    if (response.statusCode != 403) {
-      return false;
-    }
-    final data = response.data;
-    if (data is! Map<String, dynamic>) {
-      return false;
-    }
-    final code = data['code']?.toString().toUpperCase() ?? '';
-    final message = data['message']?.toString().toLowerCase() ?? '';
-    return code.contains('CSRF') || message.contains('csrf');
-  }
-
   static ApiException _toApiException(Response<dynamic>? response) {
     final statusCode = response?.statusCode ?? 500;
     final data = response?.data;
     if (data is Map<String, dynamic>) {
-      final message =
-          data['message']?.toString() ??
+      final message = data['message']?.toString() ??
           data['error']?.toString() ??
           'Request failed.';
       return ApiException(
@@ -274,30 +313,5 @@ class ApiClient {
       clean[entry.key] = value;
     }
     return clean;
-  }
-
-  static dynamic _cleanPayload(dynamic value) {
-    if (value is Map) {
-      final clean = <String, dynamic>{};
-      for (final entry in value.entries) {
-        final key = entry.key?.toString();
-        if (key == null || key.isEmpty) {
-          continue;
-        }
-        final child = _cleanPayload(entry.value);
-        if (child == null) {
-          continue;
-        }
-        if (child is String && child.trim().isEmpty) {
-          continue;
-        }
-        clean[key] = child;
-      }
-      return clean;
-    }
-    if (value is List) {
-      return value.map(_cleanPayload).where((item) => item != null).toList();
-    }
-    return value;
   }
 }

@@ -6,11 +6,35 @@ import type {
 
 export type VehicleBodyTone = "bakkie" | "hatch" | "sedan" | "suv";
 
+// Automotive / product acronyms we want to keep in their canonical casing
+// instead of Title Case (e.g. "AWD", not "Awd"). Add new ones here — matched
+// case-insensitively.
+const ACRONYMS = new Set([
+  "SUV",
+  "AWD",
+  "FWD",
+  "RWD",
+  "4WD",
+  "4X4",
+  "2WD",
+  "VIN",
+  "USD",
+  "GPS",
+  "AC",
+  "ABS",
+  "CC",
+]);
+
 export function labelizeEnum(value: string) {
+  if (!value) return value;
   return value
-    .toLowerCase()
     .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => {
+      const upper = part.toUpperCase();
+      if (ACRONYMS.has(upper)) return upper;
+      const lower = part.toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
     .join(" ");
 }
 

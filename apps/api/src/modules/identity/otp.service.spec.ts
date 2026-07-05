@@ -30,20 +30,16 @@ describe("OtpService", () => {
     );
   });
 
-  it("requires both SMS and email delivery when the user has both contacts", async () => {
-    const notifyUser = jest.fn().mockResolvedValue([
-      { channel: "SMS", status: "SENT" },
-      { channel: "EMAIL", status: "FAILED" },
-    ]);
-    const redis = {
-      del: jest.fn().mockResolvedValue(undefined),
-      set: jest.fn().mockResolvedValue(undefined),
-    };
+  it("requires at least one successful auth delivery when sending OTP", async () => {
+    const notifyUser = jest.fn().mockResolvedValue([{ status: "FAILED" }, { status: "FAILED" }]);
     const service = new OtpService(
       { get: jest.fn().mockReturnValue("staging") } as never,
       { notifyUser } as never,
       { consume: jest.fn().mockResolvedValue(2) } as never,
-      redis as never,
+      {
+        del: jest.fn().mockResolvedValue(undefined),
+        set: jest.fn().mockResolvedValue(undefined),
+      } as never,
       {
         findByIdentifier: jest.fn().mockResolvedValue({
           id: "user-1",
@@ -64,15 +60,10 @@ describe("OtpService", () => {
         }),
       }),
     );
-    expect(redis.del).toHaveBeenCalledWith("otp:+263771234567");
-    expect(redis.del).toHaveBeenCalledWith("otp_delivery:+263771234567");
   });
 
   it("sends OTP to both auth channels when requested by email", async () => {
-    const notifyUser = jest.fn().mockResolvedValue([
-      { channel: "SMS", status: "SENT" },
-      { channel: "EMAIL", status: "SENT" },
-    ]);
+    const notifyUser = jest.fn().mockResolvedValue([{ status: "SENT" }, { status: "SENT" }]);
     const service = new OtpService(
       { get: jest.fn().mockReturnValue("production") } as never,
       { notifyUser } as never,

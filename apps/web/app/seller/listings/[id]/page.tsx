@@ -75,14 +75,6 @@ export default async function SellerListingDetailPage({
   const listing = result.data;
   const coverImage = listing.images[0]?.url ?? null;
   const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
-  const hasCoverImage = listing.images.some((image) => image.isCover);
-  const submissionRequirements = [
-    { label: "Vehicle basics saved", complete: Boolean(listing.specs) },
-    { label: "Price saved", complete: Boolean(listing.pricing) },
-    { label: "At least one photo uploaded", complete: listing.images.length > 0 },
-    { label: "Cover photo selected", complete: hasCoverImage },
-    { label: "At least one document uploaded", complete: listing.documents.length > 0 },
-  ];
 
   return (
     <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
@@ -183,11 +175,7 @@ export default async function SellerListingDetailPage({
                 <CardTitle>Submit for review</CardTitle>
               </CardHeader>
               <CardContent>
-                <SubmitListingAction
-                  listingId={listing.id}
-                  defaultDisclosure={listing.sellerDisclosure}
-                  requirements={submissionRequirements}
-                />
+                <SubmitListingAction listing={listing} />
               </CardContent>
             </Card>
           ) : null}

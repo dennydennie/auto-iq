@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 type SearchParams = Promise<{
   identifier?: string | string[];
   phone?: string | string[];
-  email?: string | string[];
   registered?: string | string[];
 }>;
 
@@ -21,9 +20,8 @@ export default async function OtpPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
+  const identifier = readParam(params.identifier) ?? readParam(params.phone) ?? null;
   const phone = readParam(params.phone) ?? null;
-  const email = readParam(params.email) ?? null;
-  const identifier = readParam(params.identifier) ?? email ?? phone;
   const autoSend = readParam(params.registered) === "1";
 
   return (
@@ -53,18 +51,8 @@ export default async function OtpPage({
           <p className="text-sm leading-7 text-[var(--ink-500)]">
             {identifier ? (
               <>
-                We&apos;ve sent the same one-time code to the SMS and email channels tied to{" "}
-                <span className="font-semibold text-[var(--ink-700)]">{identifier}</span>
-                {phone && email ? (
-                  <>
-                    {" "}using{" "}
-                    <span className="font-semibold text-[var(--ink-700)]">{phone}</span>
-                    {" "}and{" "}
-                    <span className="font-semibold text-[var(--ink-700)]">{email}</span>.
-                  </>
-                ) : (
-                  "."
-                )}
+                We&apos;ve sent a one-time code to the SMS and email channels tied to{" "}
+                <span className="font-semibold text-[var(--ink-700)]">{identifier}</span>.
               </>
             ) : (
               "Open this page from login or registration so we know which account to verify."

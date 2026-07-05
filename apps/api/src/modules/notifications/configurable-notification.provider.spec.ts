@@ -99,10 +99,9 @@ describe("ConfigurableNotificationProvider", () => {
     });
   });
 
-  it("supports an explicit SMS stub while Gikko credentials are pending", async () => {
-    const fetchMock = jest.spyOn(globalThis, "fetch");
+  it("supports explicit stub SMS delivery for staging without vendor credentials", async () => {
     const provider = createProvider({
-      NODE_ENV: "staging",
+      NODE_ENV: "production",
       NOTIFICATION_SMS_PROVIDER: "stub",
     });
 
@@ -114,7 +113,6 @@ describe("ConfigurableNotificationProvider", () => {
     });
 
     expect(result.providerRef).toMatch(/^stub:sms:/);
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

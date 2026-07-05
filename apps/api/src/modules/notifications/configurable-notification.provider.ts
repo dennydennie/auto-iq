@@ -55,16 +55,16 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
       return this.sandboxOrThrow(input.channel, "sms");
     }
 
-    if (provider === "stub") {
-      return this.stub(input.channel);
-    }
-
     if (provider === "twilio") {
       return this.sendTwilioSms(input);
     }
 
     if (provider === "gikko") {
       return this.sendGikkoSms(input);
+    }
+
+    if (provider === "stub") {
+      return this.sendStubSms(input);
     }
 
     throw new Error(`Unsupported sms provider: ${provider}`);
@@ -219,6 +219,12 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
     };
   }
 
+  private sendStubSms(input: ProviderSendInput) {
+    return Promise.resolve({
+      providerRef: `stub:${input.channel.toLowerCase()}:${Date.now()}`,
+    });
+  }
+
   private sandboxOrThrow(channel: ProviderSendInput["channel"], label: string) {
     if (!isProductionLike(this.configService.get<string>("NODE_ENV"))) {
       return Promise.resolve({
@@ -227,12 +233,6 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
     }
 
     throw new Error(`No ${label} notification provider is configured`);
-  }
-
-  private stub(channel: ProviderSendInput["channel"]) {
-    return Promise.resolve({
-      providerRef: `stub:${channel.toLowerCase()}:${Date.now()}`,
-    });
   }
 
   private emailProvider() {

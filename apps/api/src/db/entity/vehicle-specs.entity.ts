@@ -27,14 +27,8 @@ export class VehicleSpecsEntity {
   @Column({ type: "text" })
   make!: string;
 
-  @Column({ name: "make_id", type: "uuid", nullable: true })
-  makeId!: string | null;
-
   @Column({ type: "text" })
   model!: string;
-
-  @Column({ name: "model_id", type: "uuid", nullable: true })
-  modelId!: string | null;
 
   @Column({ type: "integer" })
   year!: number;
@@ -68,12 +62,6 @@ export class VehicleSpecsEntity {
 
   @Column({ name: "accident_note", type: "text", nullable: true })
   accidentNote!: string | null;
-
-  @Column({ name: "location_latitude", type: "numeric", precision: 9, scale: 6, nullable: true })
-  locationLatitude!: string | null;
-
-  @Column({ name: "location_longitude", type: "numeric", precision: 9, scale: 6, nullable: true })
-  locationLongitude!: string | null;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;

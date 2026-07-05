@@ -14,6 +14,19 @@ export class CatalogueController {
     return this.catalogueService.list(query);
   }
 
+  // NOTE: facet routes must be declared BEFORE the `:slugOrId` catchall so the
+  // NestJS router matches them literally rather than treating "facets" as a
+  // slug value.
+  @Get("facets/makes")
+  listMakeFacets() {
+    return this.catalogueService.listMakeFacets();
+  }
+
+  @Get("facets/models")
+  listModelFacets(@Query("make") make?: string) {
+    return this.catalogueService.listModelFacets(make);
+  }
+
   @Get(":slugOrId/inspection-summary")
   inspectionSummary(@Param("slugOrId") slugOrId: string) {
     return this.catalogueService.inspectionSummary(slugOrId);

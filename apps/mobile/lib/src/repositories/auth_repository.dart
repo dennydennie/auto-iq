@@ -21,10 +21,7 @@ class RegisterInput {
 }
 
 class RegisterResult {
-  RegisterResult({
-    required this.userId,
-    required this.otpRequired,
-  });
+  RegisterResult({required this.userId, required this.otpRequired});
 
   final String userId;
   final bool otpRequired;
@@ -45,17 +42,16 @@ class AuthRepository {
 
   Future<RegisterResult> register(RegisterInput input) {
     return _apiClient.postJson<RegisterResult>(
-      ApiRoutes.authRegister,
-      {
-        'fullName': input.fullName.trim(),
-        'email': input.email.trim().toLowerCase(),
-        'phone': input.phone.trim(),
-        'password': input.password,
-        'role': input.role,
-        'city': input.city.trim(),
-      },
-      RegisterResult.fromJson,
-    );
+        ApiRoutes.authRegister,
+        {
+          'fullName': input.fullName.trim(),
+          'email': input.email.trim().toLowerCase(),
+          'phone': input.phone.trim(),
+          'password': input.password,
+          'role': input.role,
+          'city': input.city.trim(),
+        },
+        RegisterResult.fromJson);
   }
 
   Future<void> login({
@@ -63,13 +59,12 @@ class AuthRepository {
     required String password,
   }) async {
     await _apiClient.postJson<void>(
-      ApiRoutes.authLogin,
-      {
-        'identifier': identifier.trim(),
-        'password': password,
-      },
-      (_) {},
-    );
+        ApiRoutes.authLogin,
+        {
+          'identifier': identifier.trim(),
+          'password': password,
+        },
+        (_) {});
   }
 
   Future<AppUser> me() {
@@ -91,13 +86,12 @@ class AuthRepository {
 
   Future<void> sendOtp({required String identifier, String? phone}) async {
     await _apiClient.postJson<void>(
-      ApiRoutes.authSendOtp,
-      {
-        'identifier': identifier.trim(),
-        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
-      },
-      (_) {},
-    );
+        ApiRoutes.authSendOtp,
+        {
+          'identifier': identifier.trim(),
+          if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+        },
+        (_) {});
   }
 
   Future<void> verifyOtp({
@@ -106,14 +100,13 @@ class AuthRepository {
     String? phone,
   }) async {
     await _apiClient.postJson<void>(
-      ApiRoutes.authVerifyOtp,
-      {
-        'identifier': identifier.trim(),
-        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
-        'code': code.trim(),
-      },
-      (_) {},
-    );
+        ApiRoutes.authVerifyOtp,
+        {
+          'identifier': identifier.trim(),
+          if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+          'code': code.trim(),
+        },
+        (_) {});
   }
 
   Future<AppUser> updateProfile(Map<String, dynamic> payload) {
@@ -128,11 +121,7 @@ class AuthRepository {
   Future<void> recordConsent(String consentType) async {
     await _apiClient.postJson<void>(
       ApiRoutes.meConsents,
-      {
-        'consentType': consentType,
-        'version': '1.0.0',
-        'accepted': true,
-      },
+      {'consentType': consentType, 'version': '1.0.0', 'accepted': true},
       (_) {},
       includeCsrf: true,
     );

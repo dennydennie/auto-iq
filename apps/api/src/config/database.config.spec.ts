@@ -11,21 +11,21 @@ describe("database.config", () => {
   const runtimeEnv = {
     NODE_ENV: "development",
     PORT: "4000",
-    DATABASE_URL: "postgresql://auto_iq:local-db-auth-token@localhost:5432/auto_iq",
+    DATABASE_URL: "postgresql://auto_iq:auto_iq_dev@localhost:5432/auto_iq",
     DATABASE_SSL: "false",
     REDIS_URL: "redis://localhost:6379",
     CORS_ORIGINS: "http://localhost:3000",
-    SESSION_SECRET: "local-session-signing-key",
+    SESSION_SECRET: "secret",
     STORAGE_ENDPOINT: "http://localhost:9000",
     STORAGE_REGION: "us-east-1",
-    STORAGE_ACCESS_KEY: "local-storage-access-key",
-    STORAGE_SECRET_KEY: "local-storage-signing-key",
+    STORAGE_ACCESS_KEY: "minioadmin",
+    STORAGE_SECRET_KEY: "minioadmin",
     STORAGE_BUCKET: "auto-iq-local",
   } satisfies NodeJS.ProcessEnv;
 
   const cliEnv = {
     NODE_ENV: "development",
-    DATABASE_URL: "postgresql://auto_iq:local-db-auth-token@localhost:5432/auto_iq",
+    DATABASE_URL: "postgresql://auto_iq:auto_iq_dev@localhost:5432/auto_iq",
     DATABASE_SSL: "false",
   } satisfies NodeJS.ProcessEnv;
 

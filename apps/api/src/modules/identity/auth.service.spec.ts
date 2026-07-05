@@ -5,7 +5,6 @@ describe("AuthService", () => {
   function createService(overrides?: {
     configGet?: (key: string, defaultValue?: string) => string | undefined;
     notifyUser?: jest.Mock;
-    sendOtp?: jest.Mock;
     findByEmail?: jest.Mock;
     findByIdentifier?: jest.Mock;
     verifyPassword?: jest.Mock;
@@ -37,9 +36,6 @@ describe("AuthService", () => {
       findByPhone: jest.fn(),
       save: jest.fn(),
     };
-    const otpService = {
-      send: overrides?.sendOtp ?? jest.fn().mockResolvedValue({ expiresIn: 300, attemptsRemaining: 2 }),
-    };
     const notificationService = {
       notifyUser: overrides?.notifyUser ?? jest.fn().mockResolvedValue([{ status: "SENT" }]),
     };
@@ -53,13 +49,11 @@ describe("AuthService", () => {
         rateLimitService as never,
         redisService as never,
         userRepository as never,
-        otpService as never,
         notificationService as never,
       ),
       auditLogRepository,
       config,
       notificationService,
-      otpService,
       passwordService,
       rateLimitService,
       redisService,
@@ -76,7 +70,7 @@ describe("AuthService", () => {
       status: "PENDING_VERIFICATION",
       roles: [{ role: "BUYER" }],
     };
-    const { otpService, service } = createService({
+    const { service } = createService({
       findByIdentifier: jest.fn().mockResolvedValue(user),
     });
 
@@ -85,36 +79,9 @@ describe("AuthService", () => {
     expect(error).toBeInstanceOf(UnauthorizedException);
     expect(error.getResponse()).toMatchObject({
       code: "OTP_REQUIRED",
-      message: "Verify your account with the code sent by SMS and email.",
-      details: [
-        { field: "phone", value: user.phone },
-        { field: "email", value: user.email },
-      ],
+      message: "Verify your phone number before signing in.",
+      details: [{ field: "phone", value: user.phone }],
     });
-    expect(otpService.send).toHaveBeenCalledWith(user.email);
-  });
-
-  it("surfaces login OTP delivery outages before entering verification", async () => {
-    const deliveryError = new ServiceUnavailableException({
-      code: "DELIVERY_UNAVAILABLE",
-      message: "Unable to deliver a verification code right now. Please try again shortly.",
-    });
-    const user = {
-      id: "user-1",
-      email: "buyer@example.com",
-      phone: "+263771111111",
-      passwordHash: "hash",
-      status: "PENDING_VERIFICATION",
-      roles: [{ role: "BUYER" }],
-    };
-    const { service } = createService({
-      findByIdentifier: jest.fn().mockResolvedValue(user),
-      sendOtp: jest.fn().mockRejectedValue(deliveryError),
-    });
-
-    await expect(service.login({ identifier: user.email, password: "password-123" })).rejects.toBe(
-      deliveryError,
-    );
   });
 
   it("sends password reset notifications with a reset link", async () => {

@@ -19,7 +19,10 @@ import '../../widgets/status_chip.dart';
 import '../../widgets/vehicle_image.dart';
 
 class ListingEditorScreen extends StatefulWidget {
-  const ListingEditorScreen({super.key, this.listingId});
+  const ListingEditorScreen({
+    super.key,
+    this.listingId,
+  });
 
   final String? listingId;
 
@@ -35,7 +38,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
   final _colourController = TextEditingController();
   final _engineController = TextEditingController();
   final _mileageController = TextEditingController(text: '0');
-  final _priceController = TextEditingController();
+  final _priceController = TextEditingController(text: '0');
   final _accidentNoteController = TextEditingController();
   final _disclosureController = TextEditingController();
 
@@ -192,7 +195,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                   controller: _yearController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Year'),
-                  validator: _yearRequired,
+                  validator: _required,
                   enabled: detail?.isEditable ?? true,
                 ),
               ),
@@ -283,7 +286,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
             ],
             onChanged: detail?.isEditable ?? true
                 ? (value) =>
-                      setState(() => _selectedCondition = value ?? 'GOOD')
+                    setState(() => _selectedCondition = value ?? 'GOOD')
                 : null,
           ),
           const SizedBox(height: 12),
@@ -292,9 +295,8 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
               Expanded(
                 child: TextFormField(
                   controller: _engineController,
-                  decoration: const InputDecoration(
-                    labelText: 'Engine (optional)',
-                  ),
+                  decoration:
+                      const InputDecoration(labelText: 'Engine (optional)'),
                   enabled: detail?.isEditable ?? true,
                 ),
               ),
@@ -304,7 +306,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                   controller: _mileageController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Mileage (km)'),
-                  validator: _nonNegativeIntegerRequired,
+                  validator: _required,
                   enabled: detail?.isEditable ?? true,
                 ),
               ),
@@ -350,9 +352,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
             PriceDisplay(amount: detail.pricing.askPriceUsd.toStringAsFixed(0)),
           TextFormField(
             controller: _priceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: 'Ask price (USD)'),
-            validator: _positiveMoneyRequired,
+            validator: _required,
             enabled: detail?.isEditable ?? true,
           ),
           const SizedBox(height: 12),
@@ -420,8 +422,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children:
-                detail?.images
+            children: detail?.images
                     .map(
                       (image) => SizedBox(
                         width: 120,
@@ -451,9 +452,8 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: editable && _listingId != null
-                      ? _pickImages
-                      : null,
+                  onPressed:
+                      editable && _listingId != null ? _pickImages : null,
                   icon: const Icon(Icons.photo_library_outlined),
                   label: const Text('Upload images'),
                 ),
@@ -474,9 +474,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                 .toList(growable: false),
             onChanged: editable && _listingId != null
                 ? (value) => setState(
-                    () => _selectedDocumentType =
-                        value ?? SellerRepository.documentTypes.first,
-                  )
+                      () => _selectedDocumentType =
+                          value ?? SellerRepository.documentTypes.first,
+                    )
                 : null,
           ),
           const SizedBox(height: 12),
@@ -535,8 +535,8 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                           children: [
                             Text(
                               DateFormat.yMMMd().add_jm().format(
-                                DateTime.parse(entry.occurredAt).toLocal(),
-                              ),
+                                    DateTime.parse(entry.occurredAt).toLocal(),
+                                  ),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.ink500,
@@ -578,9 +578,8 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: _busy || _listingId == null || !editable
-                ? null
-                : _submit,
+            onPressed:
+                _busy || _listingId == null || !editable ? null : _submit,
             child: const Text('Submit for review'),
           ),
         ),
@@ -682,17 +681,15 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
           askPriceUsd: double.parse(_priceController.text),
           negotiable: _negotiable,
         );
-        if (_disclosureController.text.trim().isNotEmpty) {
-          await repository.updateDisclosure(
-            listingId: _listingId!,
-            sellerDisclosure: _disclosureController.text,
-          );
-        }
+        await repository.updateDisclosure(
+          listingId: _listingId!,
+          sellerDisclosure: _disclosureController.text,
+        );
       }
       await _refreshLoadedState();
-      _showSnack(
-        _listingId == widget.listingId ? 'Listing updated.' : 'Draft created.',
-      );
+      _showSnack(_listingId == widget.listingId
+          ? 'Listing updated.'
+          : 'Draft created.');
     } on ApiException catch (error) {
       _showSnack(error.message);
     } finally {
@@ -703,15 +700,11 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
   }
 
   Future<void> _submit() async {
-    if (_disclosureController.text.trim().isEmpty) {
-      _showSnack('Seller disclosure is required before review.');
-      return;
-    }
     try {
       await context.read<SellerRepository>().submit(
-        listingId: _listingId!,
-        disclosure: _disclosureController.text,
-      );
+            listingId: _listingId!,
+            disclosure: _disclosureController.text,
+          );
       await _refreshLoadedState();
       _showSnack('Listing submitted for review.');
     } on ApiException catch (error) {
@@ -744,7 +737,11 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
         }
         await repository.uploadImage(
           listingId: _listingId!,
-          file: LocalUpload(bytes: bytes, fileType: fileType, name: file.name),
+          file: LocalUpload(
+            bytes: bytes,
+            fileType: fileType,
+            name: file.name,
+          ),
           slot: SellerRepository.imageSlots[nextIndex],
           isCover: nextIndex == 0,
         );
@@ -817,49 +814,11 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
     return null;
   }
 
-  String? _nonNegativeIntegerRequired(String? value) {
-    final requiredError = _required(value);
-    if (requiredError != null) {
-      return requiredError;
-    }
-    final parsed = int.tryParse(value!.trim());
-    if (parsed == null || parsed < 0) {
-      return 'Enter a valid whole number';
-    }
-    return null;
-  }
-
-  String? _positiveMoneyRequired(String? value) {
-    final requiredError = _required(value);
-    if (requiredError != null) {
-      return requiredError;
-    }
-    final parsed = double.tryParse(value!.trim());
-    if (parsed == null || parsed < 0.01) {
-      return 'Enter an amount of at least 0.01';
-    }
-    return null;
-  }
-
-  String? _yearRequired(String? value) {
-    final parsedError = _nonNegativeIntegerRequired(value);
-    if (parsedError != null) {
-      return parsedError;
-    }
-    final year = int.parse(value!.trim());
-    final maxYear = DateTime.now().year + 1;
-    if (year < 1900 || year > maxYear) {
-      return 'Enter a year between 1900 and $maxYear';
-    }
-    return null;
-  }
-
   void _showSnack(String message) {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }

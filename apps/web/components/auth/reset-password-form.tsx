@@ -1,15 +1,14 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
+import { PasswordField, assessPassword } from "@/components/auth/password-field";
 import { isApiFailure, postJson } from "@/lib/web-api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 function readToken(location: Location) {
   const hashToken = new URLSearchParams(location.hash.replace(/^#/, "")).get("token");
@@ -28,11 +27,25 @@ export function ResetPasswordForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Scrub token from the URL as soon as we've read it into React state — the
+  // reset link is single-use, and leaving it in the URL means it can leak via
+  // Referer / analytics / browser history.
   useEffect(() => {
-    if (token) {
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    if (!token) return;
+    window.history.replaceState(null, "", window.location.pathname);
   }, [token]);
+
+  const strength = assessPassword(password);
+  const passwordsMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
+
+  const disableSubmit = useMemo(() => {
+    if (isPending) return true;
+    if (!token) return true;
+    if (strength === "weak" || strength === "empty") return true;
+    if (passwordsMismatch || confirmPassword.length === 0) return true;
+    return false;
+  }, [isPending, token, strength, passwordsMismatch, confirmPassword.length]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +53,17 @@ export function ResetPasswordForm() {
     setNotice(null);
 
     if (!token) {
-      setError({ message: "A reset token is required before the password can be changed." });
+      setError({
+        message:
+          "This reset link is missing its token. Open the link from your reset email again, or request a new one.",
+      });
+      return;
+    }
+
+    if (strength === "weak") {
+      setError({
+        message: "Choose a password with at least 8 characters and a mix of letters and numbers.",
+      });
       return;
     }
 
@@ -60,62 +83,69 @@ export function ResetPasswordForm() {
         return;
       }
 
-      setNotice("Password updated. Redirecting you back to login.");
+      setNotice("Password updated. Redirecting you to sign-in…");
+      // Give screen readers and the notice-banner enough time to be read.
       window.setTimeout(() => {
         router.push("/auth/login?reset=1");
-      }, 800);
+      }, 1500);
     });
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
       {error ? (
         <ErrorBanner message={error.message} correlationId={error.correlationId} />
       ) : null}
 
-      {notice ? (
-        <NoticeBanner message={notice} />
-      ) : null}
+      {notice ? <NoticeBanner message={notice} /> : null}
 
-      <div className="space-y-2">
-        <Label htmlFor="new-password">New password</Label>
-        <Input
-          id="new-password"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Create a new password"
-          autoComplete="new-password"
-          aria-invalid={Boolean(error)}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm password</Label>
-        <Input
-          id="confirm-password"
-          type="password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          placeholder="Repeat your new password"
-          autoComplete="new-password"
-          aria-invalid={Boolean(error)}
-          required
-        />
-      </div>
+      <PasswordField
+        id="new-password"
+        name="newPassword"
+        label="New password"
+        value={password}
+        onChange={setPassword}
+        placeholder="Create a new password"
+        showStrength
+        invalid={Boolean(error) && strength === "weak"}
+      />
+
+      <PasswordField
+        id="confirm-password"
+        name="confirmPassword"
+        label="Confirm password"
+        value={confirmPassword}
+        onChange={setConfirmPassword}
+        placeholder="Repeat your new password"
+        requirementHint={
+          passwordsMismatch
+            ? "Passwords don't match yet."
+            : confirmPassword.length > 0
+              ? "Matches — you're good to go."
+              : "Retype the password above to confirm."
+        }
+        invalid={passwordsMismatch}
+      />
+
       <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 text-sm leading-6 text-[var(--ink-500)]">
         <div className="flex items-center gap-2 font-semibold text-[var(--ink-700)]">
-          <LockKeyhole className="h-4 w-4 text-[var(--amber-dark)]" />
+          <LockKeyhole className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
           Security guidance
         </div>
         <p className="mt-2">
-          Avoid reusing passwords from email or banking accounts. Password updates should
-          feel like the end of the task, not the start of another one.
+          Avoid reusing passwords from email or banking accounts. This reset link is
+          single-use — after a successful reset the link is invalidated immediately.
         </p>
       </div>
-      <Button type="submit" variant="amber" className="w-full" disabled={isPending}>
+
+      <Button
+        type="submit"
+        variant="amber"
+        className="w-full"
+        disabled={disableSubmit}
+      >
         {isPending ? "Resetting..." : "Reset password"}
-        <ArrowRight className="h-4 w-4" />
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Button>
     </form>
   );

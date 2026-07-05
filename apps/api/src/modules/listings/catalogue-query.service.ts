@@ -133,6 +133,67 @@ export class CatalogueQueryService {
     };
   }
 
+  /**
+   * Distinct makes with published-listing counts. Feeds the Shop by make
+   * sidebar on /vehicles. Cheap enough to fetch on every catalogue render
+   * (single indexed aggregate), but consider memoising for 30s if traffic
+   * grows.
+   */
+  async listMakeFacets() {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .from(VehicleEntity, "vehicle")
+      .innerJoin(VehicleSpecsEntity, "specs", "specs.vehicle_id = vehicle.id")
+      .where("vehicle.status = 'PUBLISHED'")
+      .andWhere("specs.make IS NOT NULL")
+      .andWhere("specs.make <> ''")
+      .select("specs.make", "make")
+      .addSelect("COUNT(vehicle.id)::int", "count")
+      .groupBy("specs.make")
+      .orderBy("count", "DESC")
+      .addOrderBy("specs.make", "ASC")
+      .getRawMany<{ make: string; count: string | number }>();
+
+    return rows.map((row) => ({
+      make: row.make,
+      count: typeof row.count === "string" ? Number(row.count) : row.count,
+    }));
+  }
+
+  /**
+   * Distinct models within a specific make. When `make` is omitted, returns
+   * models across every make (rarely useful but harmless).
+   */
+  async listModelFacets(make?: string) {
+    const builder = this.dataSource
+      .createQueryBuilder()
+      .from(VehicleEntity, "vehicle")
+      .innerJoin(VehicleSpecsEntity, "specs", "specs.vehicle_id = vehicle.id")
+      .where("vehicle.status = 'PUBLISHED'")
+      .andWhere("specs.model IS NOT NULL")
+      .andWhere("specs.model <> ''");
+
+    if (make && make.trim().length > 0) {
+      builder.andWhere("specs.make ILIKE :make", { make: make.trim() });
+    }
+
+    const rows = await builder
+      .select("specs.make", "make")
+      .addSelect("specs.model", "model")
+      .addSelect("COUNT(vehicle.id)::int", "count")
+      .groupBy("specs.make")
+      .addGroupBy("specs.model")
+      .orderBy("count", "DESC")
+      .addOrderBy("specs.model", "ASC")
+      .getRawMany<{ make: string; model: string; count: string | number }>();
+
+    return rows.map((row) => ({
+      make: row.make,
+      model: row.model,
+      count: typeof row.count === "string" ? Number(row.count) : row.count,
+    }));
+  }
+
   async explainPublishedPath() {
     return this.dataSource.query(`
       EXPLAIN

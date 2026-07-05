@@ -10,21 +10,6 @@ export interface MakeDto {
   name: string;
   logoUrl: string | null;
   popularModels: string[];
-  models: VehicleModelDto[];
-}
-
-export interface VehicleModelDto {
-  id: string;
-  makeId: string;
-  name: string;
-}
-
-export interface CreateVehicleMakeRequest {
-  name: string;
-}
-
-export interface CreateVehicleModelRequest {
-  name: string;
 }
 
 export interface BodyTypeDto {

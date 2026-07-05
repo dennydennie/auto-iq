@@ -26,7 +26,6 @@ export const ROUTES = {
 
   me: {
     profile: `${BASE}/me`,
-    sellerProfile: `${BASE}/me/seller-profile`,
     consents: `${BASE}/me/consents`,
     savedVehicles: `${BASE}/me/saved-vehicles`,
     savedVehicle: (listingId: string) =>
@@ -37,8 +36,6 @@ export const ROUTES = {
 
   referenceData: {
     all: `${BASE}/reference-data`,
-    makes: `${BASE}/reference-data/makes`,
-    models: (makeId: string) => `${BASE}/reference-data/makes/${makeId}/models`,
   },
 
   // ─── Storage ───────────────────────────────────────────────────────────────
@@ -75,6 +72,10 @@ export const ROUTES = {
     detail: (slugOrId: string) => `${BASE}/listings/${slugOrId}`,
     inspectionSummary: (slugOrId: string) =>
       `${BASE}/listings/${slugOrId}/inspection-summary`,
+    /** Distinct make + count aggregated across PUBLISHED listings. */
+    makeFacets: `${BASE}/listings/facets/makes`,
+    /** Distinct models for a make. Query param: ?make=Toyota */
+    modelFacets: `${BASE}/listings/facets/models`,
   },
 
   // ─── Quotes ────────────────────────────────────────────────────────────────
