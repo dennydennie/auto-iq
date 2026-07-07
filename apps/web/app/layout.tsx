@@ -23,6 +23,9 @@ const monoFont = Geist_Mono({
 export const metadata: Metadata = {
   title: "BiSell AutoIQ",
   description: "Zimbabwe's trust-first vehicle marketplace",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

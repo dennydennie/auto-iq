@@ -5,6 +5,7 @@ import type {
   SavedVehicleDto,
 } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
+import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { Lock, Search, ShieldCheck, SlidersHorizontal, Sparkles } from "lucide-react";
 import { FilterSidebar, type CatalogueFilterState } from "@/components/marketplace/filter-sidebar";
@@ -18,6 +19,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { getOptionalSessionJson, getPublicJson, isServerApiFailure, withQuery } from "@/lib/server-api";
+import { extractSavedVehicles } from "@/lib/saved-vehicles";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -108,18 +110,18 @@ export default async function VehiclesPage({
   const [catalogueResult, meResult, savedResult, makesResult] = await Promise.all([
     getPublicJson<CatalogueResponse>(cataloguePath),
     getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
-    getOptionalSessionJson<SavedVehicleDto[]>(ROUTES.me.savedVehicles),
+    getOptionalSessionJson<SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>>(
+      ROUTES.me.savedVehicles,
+    ),
     getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
   ]);
 
   const makes = !isServerApiFailure(makesResult) ? makesResult.data : [];
 
   const signedIn = meResult !== null && meResult.ok;
-  const savedIds = new Set(
-    savedResult !== null && savedResult.ok
-      ? savedResult.data.map((entry) => entry.listing.id)
-      : [],
-  );
+  const savedVehicles =
+    savedResult !== null && savedResult.ok ? extractSavedVehicles(savedResult.data) : [];
+  const savedIds = new Set(savedVehicles.map((entry) => entry.listing.id));
 
   const chips: FilterChip[] = [];
   if (filters.make) chips.push({ label: `Make: ${filters.make}`, removeHref: vehiclesHref({ make: "", cursor: "" }, filters) });

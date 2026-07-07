@@ -1,8 +1,12 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { PublicListingDto, SavedVehicleDto } from "@auto-iq/contracts/catalogue";
+import type {
+  PublicListingDto,
+  SavedVehicleDto,
+} from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
+import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import {
@@ -28,6 +32,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ScoreGauge } from "@/components/ui/score-gauge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatKm, formatPrice } from "@/lib/format";
+import { extractSavedVehicles } from "@/lib/saved-vehicles";
 import { getOptionalSessionJson, getPublicJson, getSessionJson, isServerApiFailure } from "@/lib/server-api";
 import { labelizeEnum, mapBodyType, relativeListingAge } from "@/lib/vehicle-ui";
 
@@ -95,7 +100,9 @@ export default async function VehicleDetailPage({
       ? getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all)
       : Promise.resolve(null),
     currentViewer === "buyer"
-      ? getOptionalSessionJson<SavedVehicleDto[]>(ROUTES.me.savedVehicles)
+      ? getOptionalSessionJson<SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>>(
+          ROUTES.me.savedVehicles,
+        )
       : Promise.resolve(null),
   ]);
 
@@ -124,10 +131,9 @@ export default async function VehicleDetailPage({
     ? referenceDataResult.data.viewingLocations.filter((location) => location.active)
     : [];
   const summary = listing.inspectionSummary;
-  const isSaved =
-    savedResult !== null && savedResult.ok
-      ? savedResult.data.some((entry) => entry.listing.id === listing.id)
-      : false;
+  const savedVehicles =
+    savedResult !== null && savedResult.ok ? extractSavedVehicles(savedResult.data) : [];
+  const isSaved = savedVehicles.some((entry) => entry.listing.id === listing.id);
   const signedIn = currentViewer !== "anonymous";
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 

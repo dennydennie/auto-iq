@@ -16,16 +16,16 @@ for (const routeFile of routeFiles) {
     failures.push(`${routeFile} must import OffsetPaginatedResponse for /me/saved-vehicles.`);
   }
 
-  if (!source.includes("getOptionalSessionJson<OffsetPaginatedResponse<SavedVehicleDto>>")) {
-    failures.push(`${routeFile} must request the paginated saved-vehicles response shape.`);
+  if (!source.includes("extractSavedVehicles")) {
+    failures.push(`${routeFile} must normalize saved vehicles through extractSavedVehicles.`);
   }
 
   if (source.includes("savedResult.data.map(")) {
     failures.push(`${routeFile} must not call .map() on the saved-vehicles response wrapper.`);
   }
 
-  if (!source.includes("savedResult.data.data")) {
-    failures.push(`${routeFile} must read saved vehicles from response.data.data.`);
+  if (!source.includes("OffsetPaginatedResponse<SavedVehicleDto>")) {
+    failures.push(`${routeFile} must type /me/saved-vehicles as an offset-paginated response.`);
   }
 }
 
