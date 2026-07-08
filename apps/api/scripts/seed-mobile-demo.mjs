@@ -79,25 +79,9 @@ async function createSubmittedListing(session) {
     0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
     0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xff, 0xd9,
   ]);
-  const imagePresign = await session.post(
-    '/storage/images/presign',
-    {
-      slot: 'FRONT_THREE_QUARTER',
-      contentType: 'image/jpeg',
-      contentLength: imageBytes.length,
-    },
-    { csrf: true },
-  );
-  await rawUpload(imagePresign.uploadUrl, imageBytes, 'image/jpeg');
-  await session.post(
-    `/listings/${listing.id}/images`,
-    {
-      storageKey: imagePresign.storageKey,
-      slot: 'FRONT_THREE_QUARTER',
-      isCover: true,
-    },
-    { csrf: true },
-  );
+  for (const [index, slot] of ['FRONT_THREE_QUARTER', 'DRIVER_SIDE', 'INTERIOR_FRONT'].entries()) {
+    await uploadListingImage(session, listing.id, imageBytes, slot, index === 0);
+  }
 
   const pdfBytes = new TextEncoder().encode(
     '%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n',
@@ -126,6 +110,20 @@ async function createSubmittedListing(session) {
     { csrf: true },
   );
   return listing.id;
+}
+
+async function uploadListingImage(session, listingId, imageBytes, slot, isCover) {
+  const presign = await session.post(
+    '/storage/images/presign',
+    { slot, contentType: 'image/jpeg', contentLength: imageBytes.length },
+    { csrf: true },
+  );
+  await rawUpload(presign.uploadUrl, imageBytes, 'image/jpeg');
+  await session.post(
+    `/listings/${listingId}/images`,
+    { storageKey: presign.storageKey, slot, isCover },
+    { csrf: true },
+  );
 }
 
 async function insertUser({ email, phone, fullName, city, role }) {
