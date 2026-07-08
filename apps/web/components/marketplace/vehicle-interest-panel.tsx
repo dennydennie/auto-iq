@@ -2,31 +2,29 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarClock, MessageSquareQuote, ShieldCheck } from "lucide-react";
+import { CalendarClock, MessageSquareQuote, ShieldCheck, type LucideIcon } from "lucide-react";
 import type { QuoteDto, CreateQuoteRequest } from "@auto-iq/contracts/quotes";
 import type { ApprovedViewingLocationDto } from "@auto-iq/contracts/reference-data";
 import type { RequestViewingRequest, ViewingDto } from "@auto-iq/contracts/viewings";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useToast } from "@/components/ui/toaster";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModalDialog } from "@/components/ui/modal-dialog";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toaster";
 import { isApiFailure, postJson } from "@/lib/web-api";
 
 type ViewerState = "anonymous" | "buyer" | "other";
+type OpenModal = "quote" | "viewing" | null;
 
-type FeedbackState = {
-  kind: "success";
-  message: string;
-} | {
-  kind: "error";
-  message: string;
-  correlationId?: string;
-} | null;
+type FeedbackState =
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string; correlationId?: string }
+  | null;
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -45,6 +43,7 @@ export function VehicleInterestPanel({
   viewerState: ViewerState;
   viewingLocations: ApprovedViewingLocationDto[];
 }) {
+  const [openModal, setOpenModal] = useState<OpenModal>(null);
   const [quoteForm, setQuoteForm] = useState<CreateQuoteRequest>({
     offerPriceUsd: 0,
     paymentPlan: "FULL_CASH",
@@ -59,7 +58,7 @@ export function VehicleInterestPanel({
   const { toast } = useToast();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isPending, startTransition] = useTransition();
-  const canBookViewing = viewerState === "buyer" && viewingLocations.length > 0;
+  const canBookViewing = viewingLocations.length > 0;
 
   function setQuoteField<K extends keyof CreateQuoteRequest>(key: K, value: CreateQuoteRequest[K]) {
     setQuoteForm((current) => ({ ...current, [key]: value }));
@@ -75,6 +74,7 @@ export function VehicleInterestPanel({
   }
 
   function showSuccess(message: string) {
+    setOpenModal(null);
     setFeedback({ kind: "success", message });
     toast({ title: "Saved", description: message, variant: "success" });
   }
@@ -124,7 +124,7 @@ export function VehicleInterestPanel({
           <div>
             <h2 className="display text-2xl text-[var(--ink-900)]">Sign in to book or quote</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--ink-500)]">
-              Buyer actions now hit the live API. Use a buyer account first, then come back here to save a quote or viewing request.
+              Buyer actions hit the live API. Use a buyer account first, then come back here to save a quote or viewing request.
             </p>
           </div>
           <Link href="/auth/login" className={buttonVariants({ variant: "amber" })}>
@@ -141,7 +141,7 @@ export function VehicleInterestPanel({
         <CardContent className="space-y-3 p-6">
           <h2 className="display text-2xl text-[var(--ink-900)]">Buyer-only actions</h2>
           <p className="text-sm leading-6 text-[var(--ink-500)]">
-            This listing detail is live, but quote and viewing flows are restricted to buyer accounts by the API contracts.
+            Quote and viewing flows are restricted to buyer accounts by the API contracts.
           </p>
         </CardContent>
       </Card>
@@ -149,142 +149,179 @@ export function VehicleInterestPanel({
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
-              <MessageSquareQuote className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Request a quote</CardTitle>
-              <p className="text-sm text-[var(--ink-500)]">Saved against the live listing record.</p>
-            </div>
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ActionCard
+          icon={MessageSquareQuote}
+          title="Request a quote"
+          body="Send an offer that is saved against the live listing record."
+          buttonLabel="Open quote form"
+          onClick={() => setOpenModal("quote")}
+        />
+        <ActionCard
+          icon={CalendarClock}
+          title="Request a viewing"
+          body="Choose a BiSell-approved location and preferred time."
+          buttonLabel="Open viewing form"
+          disabled={!canBookViewing}
+          onClick={() => setOpenModal("viewing")}
+        />
+      </div>
+
+      {feedback ? feedback.kind === "error" ? (
+        <ErrorBanner message={feedback.message} correlationId={feedback.correlationId} />
+      ) : (
+        <NoticeBanner message={feedback.message} />
+      ) : null}
+
+      <ModalDialog
+        open={openModal === "quote"}
+        onOpenChange={(open) => setOpenModal(open ? "quote" : null)}
+        title="Request a quote"
+        description="Submit a buyer offer that the seller and admin team can track."
+      >
+        <form className="space-y-4" onSubmit={handleQuoteSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="offerPriceUsd">Offer price (USD)</Label>
+            <Input
+              id="offerPriceUsd"
+              type="number"
+              min={1}
+              value={quoteForm.offerPriceUsd || ""}
+              onChange={(event) => setQuoteField("offerPriceUsd", Number(event.target.value))}
+              required
+            />
           </div>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleQuoteSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="offerPriceUsd">Offer price (USD)</Label>
-              <Input
-                id="offerPriceUsd"
-                type="number"
-                min={1}
-                value={quoteForm.offerPriceUsd || ""}
-                onChange={(event) => setQuoteField("offerPriceUsd", Number(event.target.value))}
-                required
-              />
+          <div className="space-y-2">
+            <Label htmlFor="paymentPlan">Payment plan</Label>
+            <Select
+              id="paymentPlan"
+              value={quoteForm.paymentPlan}
+              onChange={(event) => setQuoteField("paymentPlan", event.target.value as CreateQuoteRequest["paymentPlan"])}
+            >
+              <option value="FULL_CASH">Full cash</option>
+              <option value="BANK_TRANSFER">Bank transfer</option>
+              <option value="OTHER">Other</option>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="quoteMessage">Message</Label>
+            <Textarea
+              id="quoteMessage"
+              value={quoteForm.message}
+              onChange={(event) => setQuoteField("message", event.target.value)}
+              placeholder="Optional context for the seller or admin team"
+            />
+          </div>
+          <Button type="submit" variant="amber" className="w-full" disabled={isPending}>
+            {isPending ? "Saving quote..." : "Send quote"}
+          </Button>
+        </form>
+      </ModalDialog>
+
+      <ModalDialog
+        open={openModal === "viewing"}
+        onOpenChange={(open) => setOpenModal(open ? "viewing" : null)}
+        title="Request a viewing"
+        description="Pick a preferred date, time, and approved location."
+      >
+        {canBookViewing ? (
+          <form className="space-y-4" onSubmit={handleViewingSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="preferredDate">Preferred date</Label>
+                <Input
+                  id="preferredDate"
+                  type="date"
+                  min={todayIso()}
+                  value={viewingForm.preferredDate}
+                  onChange={(event) => setViewingField("preferredDate", event.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="preferredTime">Preferred time</Label>
+                <Input
+                  id="preferredTime"
+                  type="time"
+                  value={viewingForm.preferredTime}
+                  onChange={(event) => setViewingField("preferredTime", event.target.value)}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="paymentPlan">Payment plan</Label>
+              <Label htmlFor="locationId">Approved location</Label>
               <Select
-                id="paymentPlan"
-                value={quoteForm.paymentPlan}
-                onChange={(event) => setQuoteField("paymentPlan", event.target.value as CreateQuoteRequest["paymentPlan"])}
+                id="locationId"
+                value={viewingForm.locationId}
+                onChange={(event) => setViewingField("locationId", event.target.value)}
               >
-                <option value="FULL_CASH">Full cash</option>
-                <option value="BANK_TRANSFER">Bank transfer</option>
-                <option value="OTHER">Other</option>
+                {viewingLocations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name} · {location.city}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="quoteMessage">Message</Label>
+              <Label htmlFor="viewingNote">Note</Label>
               <Textarea
-                id="quoteMessage"
-                value={quoteForm.message}
-                onChange={(event) => setQuoteField("message", event.target.value)}
-                placeholder="Optional context for the seller or admin team"
+                id="viewingNote"
+                value={viewingForm.note}
+                onChange={(event) => setViewingField("note", event.target.value)}
+                placeholder="Anything the admin team should know before confirming the slot"
               />
             </div>
             <Button type="submit" variant="amber" className="w-full" disabled={isPending}>
-              {isPending ? "Saving quote..." : "Send quote"}
+              {isPending ? "Saving viewing..." : "Request viewing"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
-              <CalendarClock className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Request a viewing</CardTitle>
-              <p className="text-sm text-[var(--ink-500)]">BiSell-approved locations only.</p>
-            </div>
+        ) : (
+          <div className="rounded-[1.25rem] border border-dashed border-[var(--ink-200)] bg-[var(--ink-50)]/55 p-4 text-sm leading-6 text-[var(--ink-500)]">
+            No approved viewing locations are currently available for booking.
           </div>
-        </CardHeader>
-        <CardContent>
-          {canBookViewing ? (
-            <form className="space-y-4" onSubmit={handleViewingSubmit}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="preferredDate">Preferred date</Label>
-                  <Input
-                    id="preferredDate"
-                    type="date"
-                    min={todayIso()}
-                    value={viewingForm.preferredDate}
-                    onChange={(event) => setViewingField("preferredDate", event.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="preferredTime">Preferred time</Label>
-                  <Input
-                    id="preferredTime"
-                    type="time"
-                    value={viewingForm.preferredTime}
-                    onChange={(event) => setViewingField("preferredTime", event.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="locationId">Approved location</Label>
-                <Select
-                  id="locationId"
-                  value={viewingForm.locationId}
-                  onChange={(event) => setViewingField("locationId", event.target.value)}
-                >
-                  {viewingLocations.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name} · {location.city}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="viewingNote">Note</Label>
-                <Textarea
-                  id="viewingNote"
-                  value={viewingForm.note}
-                  onChange={(event) => setViewingField("note", event.target.value)}
-                  placeholder="Anything the admin team should know before confirming the slot"
-                />
-              </div>
-              <Button type="submit" variant="amber" className="w-full" disabled={isPending}>
-                {isPending ? "Saving viewing..." : "Request viewing"}
-              </Button>
-            </form>
-          ) : (
-            <div className="rounded-[1.25rem] border border-dashed border-[var(--ink-200)] bg-[var(--ink-50)]/55 p-4 text-sm leading-6 text-[var(--ink-500)]">
-              No approved viewing locations are currently available for booking.
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {feedback ? feedback.kind === "error" ? (
-        <ErrorBanner
-          className="lg:col-span-2"
-          message={feedback.message}
-          correlationId={feedback.correlationId}
-        />
-      ) : (
-        <NoticeBanner className="lg:col-span-2" message={feedback.message} />
-      ) : null}
+        )}
+      </ModalDialog>
     </div>
+  );
+}
+
+function ActionCard({
+  icon: Icon,
+  title,
+  body,
+  buttonLabel,
+  disabled = false,
+  onClick,
+}: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  buttonLabel: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-4 p-5">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="display text-xl text-[var(--ink-900)]">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--ink-500)]">{body}</p>
+        </div>
+        <Button
+          type="button"
+          variant="amber"
+          className="w-full"
+          disabled={disabled}
+          onClick={onClick}
+        >
+          {disabled ? "No viewing locations" : buttonLabel}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

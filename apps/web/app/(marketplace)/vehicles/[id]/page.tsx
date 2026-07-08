@@ -12,18 +12,15 @@ import { ROUTES } from "@auto-iq/contracts/routes";
 import {
   AlertTriangle,
   ArrowLeft,
-  Fuel,
-  Gauge,
-  GitBranch,
   Lock,
   MapPin,
   ShieldCheck,
-  Wrench,
 } from "lucide-react";
-import { PhotoGallery } from "@/components/marketplace/photo-gallery";
 import { SaveVehicleButton } from "@/components/marketplace/save-vehicle-button";
 import { SimilarVehicles } from "@/components/marketplace/similar-vehicles";
+import { VehicleDetailSpecs } from "@/components/marketplace/vehicle-detail-specs";
 import { VehicleInterestPanel } from "@/components/marketplace/vehicle-interest-panel";
+import { VehiclePhotoBrowser } from "@/components/marketplace/vehicle-photo-browser";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -54,16 +51,6 @@ export async function generateMetadata({
       l.sellerDisclosure ??
       `${formatKm(l.mileageKm)}, ${labelizeEnum(l.transmission)}, ${labelizeEnum(l.fuelType)} in ${l.city}.`,
   };
-}
-
-// ─── Spec chips (single source of truth for header spec row) ───────────────
-function specItems(listing: PublicListingDto) {
-  return [
-    { icon: Gauge, label: "Mileage", value: formatKm(listing.mileageKm) },
-    { icon: GitBranch, label: "Transmission", value: labelizeEnum(listing.transmission) },
-    { icon: Fuel, label: "Fuel", value: labelizeEnum(listing.fuelType) },
-    { icon: Wrench, label: "Engine", value: listing.engineCapacity || "Unspecified" },
-  ];
 }
 
 function viewerState(
@@ -153,7 +140,7 @@ export default async function VehicleDetailPage({
 
       {/* ─── Hero: gallery on the left, price + trust column on the right ─── */}
       <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-        <PhotoGallery
+        <VehiclePhotoBrowser
           images={listing.images}
           bodyTone={mapBodyType(listing.bodyType)}
           alt={title}
@@ -251,30 +238,9 @@ export default async function VehicleDetailPage({
         </aside>
       </section>
 
-      {/* ─── Spec chip row: single source of truth for headline specs ─── */}
-      <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {specItems(listing).map(({ icon: Icon, label, value }) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-[var(--ink-100)] bg-white p-4"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink-50)] text-[var(--amber-dark)]">
-                <Icon className="h-4 w-4" aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
-                  {label}
-                </p>
-                <p className="text-sm font-semibold text-[var(--ink-900)]">{value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
+      <VehicleDetailSpecs listing={listing} />
 
-      {/* ─── Body: disclosure + interest panel on the left; profile dl on the right ─── */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:items-start">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-start">
         <div className="space-y-6">
           <section className="rounded-2xl border border-[var(--ink-100)] bg-white p-5">
             <h2 className="display text-xl text-[var(--ink-900)]">Seller disclosure</h2>
@@ -338,6 +304,7 @@ export default async function VehicleDetailPage({
           </section>
 
           <section id="contact" className="scroll-mt-24">
+            <h2 className="sr-only">Request viewing or quote</h2>
             <VehicleInterestPanel
               listingId={listing.id}
               viewerState={currentViewer}
@@ -346,24 +313,10 @@ export default async function VehicleDetailPage({
           </section>
         </div>
 
-        {/* Full vehicle profile — no coordinates, no listing ref, no "photos" count */}
         <aside className="rounded-2xl border border-[var(--ink-100)] bg-white p-5 lg:sticky lg:top-24 lg:self-start">
-          <h2 className="display text-xl text-[var(--ink-900)]">Vehicle profile</h2>
-          <dl className="mt-4 space-y-3 text-sm">
-            <ProfileRow label="Year" value={String(listing.year)} />
-            <ProfileRow label="Body type" value={labelizeEnum(listing.bodyType)} />
-            <ProfileRow label="Drive type" value={labelizeEnum(listing.driveType)} />
-            <ProfileRow label="Transmission" value={labelizeEnum(listing.transmission)} />
-            <ProfileRow label="Fuel" value={labelizeEnum(listing.fuelType)} />
-            <ProfileRow label="Engine" value={listing.engineCapacity || "Unspecified"} />
-            <ProfileRow label="Mileage" value={formatKm(listing.mileageKm)} />
-            <ProfileRow label="Colour" value={listing.colour} />
-            <ProfileRow label="Location" value={listing.city} />
-            <ProfileRow label="Published" value={formatDate(listing.publishedAt)} isLast />
-          </dl>
-
+          <h2 className="display text-xl text-[var(--ink-900)]">Inspection summary</h2>
           {summary ? (
-            <div className="mt-5 space-y-2 border-t border-[var(--ink-100)] pt-4">
+            <div className="mt-4 space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
                 Inspection categories
               </p>
@@ -375,7 +328,11 @@ export default async function VehicleDetailPage({
                 ))}
               </div>
             </div>
-          ) : null}
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-[var(--ink-500)]">
+              Inspection category details will appear once admin publishes the buyer-safe summary.
+            </p>
+          )}
         </aside>
       </div>
 
@@ -383,28 +340,5 @@ export default async function VehicleDetailPage({
         <SimilarVehicles listing={listing} signedIn={signedIn} />
       </Suspense>
     </main>
-  );
-}
-
-function ProfileRow({
-  label,
-  value,
-  isLast = false,
-}: {
-  label: string;
-  value: string;
-  isLast?: boolean;
-}) {
-  return (
-    <div
-      className={
-        isLast
-          ? "flex justify-between gap-4"
-          : "flex justify-between gap-4 border-b border-[var(--ink-100)] pb-3"
-      }
-    >
-      <dt className="text-[var(--ink-400)]">{label}</dt>
-      <dd className="text-right font-semibold text-[var(--ink-900)]">{value}</dd>
-    </div>
   );
 }

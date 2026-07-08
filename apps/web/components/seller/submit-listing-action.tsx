@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Send } from "lucide-react";
+import type { ApiError } from "@auto-iq/contracts/error";
 import type { SellerListingDto, SubmitListingRequest } from "@auto-iq/contracts/listings";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -86,6 +87,14 @@ function buildChecklist(listing: SellerListingDto, disclosure: string): Checklis
   ];
 }
 
+function submitErrorMessage(error: ApiError) {
+  if (!error.details || error.details.length === 0) {
+    return error.message;
+  }
+
+  return `${error.message}: ${error.details.map((detail) => detail.message).join("; ")}`;
+}
+
 /**
  * Sends the listing to admin review. Gated on a checklist so sellers never
  * submit an incomplete listing that admin will bounce back.
@@ -126,10 +135,11 @@ export function SubmitListingAction({
       );
 
       if (isApiFailure(result)) {
-        setError(result.error.message);
+        const message = submitErrorMessage(result.error);
+        setError(message);
         toast({
           title: "Couldn't submit for review",
-          description: result.error.message,
+          description: message,
           variant: "error",
         });
         return;
@@ -150,7 +160,7 @@ export function SubmitListingAction({
       <div className="rounded-2xl border border-[var(--ink-100)] bg-[var(--ink-50)]/60 p-4">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
-            Ready to submit?
+            Submission checklist
           </p>
           <span
             className={cn(

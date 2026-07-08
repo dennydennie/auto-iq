@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { SiteHeader } from "@/components/shared/site-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,14 @@ const STATUS_TONE: Record<
   CANCELLED: { tone: "outline", label: "Cancelled" },
 };
 
+const BUYER_LINKS = [
+  { href: "/vehicles", label: "Buy a car" },
+  { href: "/saved", label: "Saved" },
+  { href: "/quotes", label: "Quotes" },
+  { href: "/viewings", label: "Viewings" },
+  { href: "/seller", label: "Sell my car" },
+];
+
 function quotesHref(page: number) {
   const params = new URLSearchParams();
   if (page > 1) params.set("page", String(page));
@@ -53,107 +62,117 @@ export default async function BuyerQuotesPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
-          <EmptyState
-            icon={MessageSquareQuote}
-            headline="Sign in to see your quotes"
-            body="Quote requests you send to sellers appear here with real-time status."
-            cta={{ label: "Go to login", href: "/auth/login?next=/quotes" }}
-          />
-        ) : (
-          <ErrorBanner
-            message={result.error.message}
-            correlationId={result.error.correlationId}
-          />
-        )}
-      </main>
+      <>
+        <SiteHeader
+          links={BUYER_LINKS}
+          homeHref="/vehicles"
+          primaryCta={{ href: "/auth/login?next=/quotes", label: "Sign in" }}
+        />
+        <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+          {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
+            <EmptyState
+              icon={MessageSquareQuote}
+              headline="Sign in to see your quotes"
+              body="Quote requests you send to sellers appear here with real-time status."
+              cta={{ label: "Go to login", href: "/auth/login?next=/quotes" }}
+            />
+          ) : (
+            <ErrorBanner
+              message={result.error.message}
+              correlationId={result.error.correlationId}
+            />
+          )}
+        </main>
+      </>
     );
   }
 
   const quotes = result.data;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <PageHeader
-        eyebrow="Buyer workspace"
-        title="Your quote requests"
-        description="Track offers you've sent — including counter-offers and seller responses."
-      />
-
-      {quotes.data.length === 0 ? (
-        <EmptyState
-          icon={MessageSquareQuote}
-          headline="No quotes yet"
-          body="Open a vehicle detail page and use the Request a quote form to send your first offer."
-          cta={{ label: "Browse catalogue", href: "/vehicles" }}
+    <>
+      <SiteHeader links={BUYER_LINKS} homeHref="/vehicles" signedIn />
+      <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        <PageHeader
+          eyebrow="Buyer workspace"
+          title="Your quote requests"
+          description="Track offers you've sent — including counter-offers and seller responses."
         />
-      ) : (
-        <div className="space-y-4">
-          {quotes.data.map((quote) => {
-            const status = STATUS_TONE[quote.status] ?? { tone: "outline" as const, label: quote.status };
-            const priceDelta = quote.offerPriceUsd - quote.askPriceUsd;
-            return (
-              <Card key={quote.id}>
-                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={status.tone}>{status.label}</Badge>
-                      <span className="text-xs text-[var(--ink-400)]">
-                        Sent {formatDate(quote.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-[var(--ink-500)]">
-                      Your offer{" "}
-                      <span className="font-semibold text-[var(--ink-900)]">
-                        {formatPrice(quote.offerPriceUsd, "USD")}
-                      </span>{" "}
-                      · asking {formatPrice(quote.askPriceUsd, "USD")}
-                      {priceDelta !== 0 ? (
-                        <span className={priceDelta < 0 ? "text-emerald-600" : "text-[var(--reject)]"}>
-                          {" "}({priceDelta > 0 ? "+" : ""}
-                          {formatPrice(priceDelta, "USD")})
+
+        {quotes.data.length === 0 ? (
+          <EmptyState
+            icon={MessageSquareQuote}
+            headline="No quotes yet"
+            body="Open a vehicle detail page and use the Request a quote form to send your first offer."
+            cta={{ label: "Browse catalogue", href: "/vehicles" }}
+          />
+        ) : (
+          <div className="space-y-4">
+            {quotes.data.map((quote) => {
+              const status = STATUS_TONE[quote.status] ?? { tone: "outline" as const, label: quote.status };
+              const priceDelta = quote.offerPriceUsd - quote.askPriceUsd;
+              return (
+                <Card key={quote.id}>
+                  <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={status.tone}>{status.label}</Badge>
+                        <span className="text-xs text-[var(--ink-400)]">
+                          Sent {formatDate(quote.createdAt)}
                         </span>
-                      ) : null}
-                    </p>
-                    {quote.counterPriceUsd !== null ? (
+                      </div>
                       <p className="text-sm text-[var(--ink-500)]">
-                        Counter offer:{" "}
+                        Your offer{" "}
                         <span className="font-semibold text-[var(--ink-900)]">
-                          {formatPrice(quote.counterPriceUsd, "USD")}
-                        </span>
-                        {quote.responseNote ? ` — ${quote.responseNote}` : ""}
+                          {formatPrice(quote.offerPriceUsd, "USD")}
+                        </span>{" "}
+                        · asking {formatPrice(quote.askPriceUsd, "USD")}
+                        {priceDelta !== 0 ? (
+                          <span className={priceDelta < 0 ? "text-emerald-600" : "text-[var(--reject)]"}>
+                            {" "}({priceDelta > 0 ? "+" : ""}
+                            {formatPrice(priceDelta, "USD")})
+                          </span>
+                        ) : null}
                       </p>
-                    ) : null}
-                    {quote.message ? (
-                      <p className="text-xs italic text-[var(--ink-400)]">
-                        &ldquo;{quote.message}&rdquo;
-                      </p>
-                    ) : null}
-                  </div>
-                  <Link
-                    href={`/vehicles/${quote.listingId}#contact`}
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
-                  >
-                    View listing
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                      {quote.counterPriceUsd !== null ? (
+                        <p className="text-sm text-[var(--ink-500)]">
+                          Counter offer:{" "}
+                          <span className="font-semibold text-[var(--ink-900)]">
+                            {formatPrice(quote.counterPriceUsd, "USD")}
+                          </span>
+                          {quote.responseNote ? ` — ${quote.responseNote}` : ""}
+                        </p>
+                      ) : null}
+                      {quote.message ? (
+                        <p className="text-xs italic text-[var(--ink-400)]">
+                          &ldquo;{quote.message}&rdquo;
+                        </p>
+                      ) : null}
+                    </div>
+                    <Link
+                      href={`/vehicles/${quote.listingId}#contact`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      View listing
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-      {quotes.data.length > 0 ? (
-        <PaginationFooter
-          page={quotes.meta.page}
-          totalPages={quotes.meta.totalPages}
-          limit={quotes.meta.limit}
-          total={quotes.meta.total}
-          buildHref={quotesHref}
-        />
-      ) : null}
-    </main>
+        {quotes.data.length > 0 ? (
+          <PaginationFooter
+            page={quotes.meta.page}
+            totalPages={quotes.meta.totalPages}
+            limit={quotes.meta.limit}
+            total={quotes.meta.total}
+            buildHref={quotesHref}
+          />
+        ) : null}
+      </main>
+    </>
   );
 }

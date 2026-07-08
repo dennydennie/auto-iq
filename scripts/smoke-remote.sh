@@ -15,6 +15,10 @@ json_field() {
   node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); const path=process.argv[1].split("."); let cur=data; for (const key of path) cur = cur?.[key]; if (cur === undefined) process.exit(2); if (typeof cur === "object") console.log(JSON.stringify(cur)); else console.log(String(cur));' "$1"
 }
 
+catalogue_count() {
+  node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); if (!Array.isArray(data.data)) { console.error("catalogue response did not include a data array"); process.exit(2); } console.log(data.data.length);'
+}
+
 login() {
   local email=$1
   local password=$2
@@ -32,7 +36,7 @@ CATALOGUE=$(curl -fsS "$API_BASE/listings")
 
 printf 'LIVE=%s\n' "$(printf '%s' "$LIVE" | json_field status)"
 printf 'READY=%s\n' "$(printf '%s' "$READY" | json_field status)"
-printf 'CATALOGUE_OK=%s\n' "$(printf '%s' "$CATALOGUE" | json_field meta.hasMore || echo "n/a")"
+printf 'CATALOGUE_COUNT=%s\n' "$(printf '%s' "$CATALOGUE" | catalogue_count)"
 
 if [ -n "$SMOKE_EMAIL" ] && [ -n "$SMOKE_PASSWORD" ]; then
   login "$SMOKE_EMAIL" "$SMOKE_PASSWORD" "$COOKIE_USER"
