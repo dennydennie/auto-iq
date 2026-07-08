@@ -34,6 +34,7 @@ async function registerSeller() {
       city: 'Harare',
     },
   });
+  await markUserVerified(sellerEmail);
   const sellerSession = await login(sellerEmail);
   for (const consent of ['TERMS', 'PRIVACY', 'SELLER_RULES', 'NO_SIDE_DEAL']) {
     await sellerSession.post(
@@ -43,6 +44,13 @@ async function registerSeller() {
     );
   }
   return sellerSession;
+}
+
+async function markUserVerified(email) {
+  await client.query(
+    'UPDATE users SET phone_verified = true, email_verified = true WHERE email = $1',
+    [email],
+  );
 }
 
 async function createSubmittedListing(session) {
