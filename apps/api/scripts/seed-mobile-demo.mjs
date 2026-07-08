@@ -48,7 +48,7 @@ async function registerSeller() {
 
 async function markUserVerified(email) {
   await client.query(
-    'UPDATE users SET phone_verified = true, email_verified = true WHERE email = $1',
+    "UPDATE users SET status = 'ACTIVE', phone_verified = true, email_verified = true WHERE email = $1",
     [email],
   );
 }
