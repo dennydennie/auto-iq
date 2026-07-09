@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toaster";
+import { shouldBypassNextImageOptimization } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
 import { isApiFailure, postJson } from "@/lib/web-api";
 
@@ -192,6 +193,7 @@ export function PhotoUploader({
                       fill
                       sizes="(min-width: 1024px) 20rem, 45vw"
                       className="object-cover"
+                      unoptimized={shouldBypassNextImageOptimization(existing.url)}
                     />
                     {existing.isCover ? (
                       <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white backdrop-blur">

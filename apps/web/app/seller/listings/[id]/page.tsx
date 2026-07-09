@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CarSilhouette } from "@/components/ui/car-silhouette";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatKm, formatPrice } from "@/lib/format";
+import { shouldBypassNextImageOptimization } from "@/lib/image-url";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 import { labelizeEnum, mapBodyType, mapListingStatus } from "@/lib/vehicle-ui";
 
@@ -129,6 +130,7 @@ export default async function SellerListingDetailPage({
                       fill
                       sizes="(min-width: 1024px) 40vw, 100vw"
                       className="object-cover"
+                      unoptimized={shouldBypassNextImageOptimization(coverImage)}
                     />
                   </div>
                 ) : (

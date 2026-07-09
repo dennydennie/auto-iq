@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 import type { VehicleImageDto } from "@auto-iq/contracts/storage";
 import { CarSilhouette } from "@/components/ui/car-silhouette";
+import { shouldBypassNextImageOptimization } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
 
 type GalleryImage = { id: string; url: string; slot?: string };
@@ -112,6 +113,7 @@ export function PhotoGallery({ images, bodyTone, alt, className }: PhotoGalleryP
             fill
             sizes="(min-width: 1024px) 60vw, 100vw"
             className="object-cover"
+            unoptimized={shouldBypassNextImageOptimization(activeImage.url)}
             priority
           />
         </button>
@@ -176,6 +178,7 @@ export function PhotoGallery({ images, bodyTone, alt, className }: PhotoGalleryP
                   fill
                   sizes="96px"
                   className="object-cover"
+                  unoptimized={shouldBypassNextImageOptimization(img.url)}
                 />
               </button>
             );
@@ -224,6 +227,7 @@ export function PhotoGallery({ images, bodyTone, alt, className }: PhotoGalleryP
                 fill
                 sizes="100vw"
                 className="object-contain"
+                unoptimized={shouldBypassNextImageOptimization(activeImage.url)}
                 priority
               />
 

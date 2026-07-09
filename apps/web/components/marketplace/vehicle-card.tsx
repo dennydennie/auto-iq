@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { CarSilhouette } from "@/components/ui/car-silhouette";
 import { formatPrice } from "@/lib/format";
+import { shouldBypassNextImageOptimization } from "@/lib/image-url";
 import { labelizeEnum, mapBodyType, relativeListingAge } from "@/lib/vehicle-ui";
 
 type LegacyBodyType = "bakkie" | "hatch" | "sedan" | "suv";
@@ -103,6 +104,7 @@ export function VehicleCard({
               fill
               sizes="(min-width: 1280px) 22rem, (min-width: 768px) 32vw, 100vw"
               className="object-cover transition group-hover:scale-[1.03]"
+              unoptimized={shouldBypassNextImageOptimization(coverImageUrl)}
             />
           ) : (
             <div className="flex h-full items-center justify-center">

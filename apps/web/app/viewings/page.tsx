@@ -3,6 +3,7 @@ import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import type { ViewingDto } from "@auto-iq/contracts/viewings";
 import { ArrowRight, CalendarClock, MapPinned } from "lucide-react";
+import { BuyerWorkspaceShell } from "@/components/marketplace/buyer-workspace-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -44,33 +45,36 @@ export default async function BuyerViewingsPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
-          <EmptyState
-            icon={CalendarClock}
-            headline="Sign in to see your viewings"
-            body="Viewing requests you send appear here with their scheduled slot and status."
-            cta={{ label: "Go to login", href: "/auth/login?next=/viewings" }}
-          />
-        ) : (
-          <ErrorBanner
-            message={result.error.message}
-            correlationId={result.error.correlationId}
-          />
-        )}
-      </main>
+      <BuyerWorkspaceShell>
+        <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+          {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
+            <EmptyState
+              icon={CalendarClock}
+              headline="Sign in to see your viewings"
+              body="Viewing requests you send appear here with their scheduled slot and status."
+              cta={{ label: "Go to login", href: "/auth/login?next=/viewings" }}
+            />
+          ) : (
+            <ErrorBanner
+              message={result.error.message}
+              correlationId={result.error.correlationId}
+            />
+          )}
+        </main>
+      </BuyerWorkspaceShell>
     );
   }
 
   const viewings = result.data;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      <PageHeader
-        eyebrow="Buyer workspace"
-        title="Your viewings"
-        description="Requested and confirmed viewings — plus their status and location."
-      />
+    <BuyerWorkspaceShell>
+      <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        <PageHeader
+          eyebrow="Buyer workspace"
+          title="Your viewings"
+          description="Requested and confirmed viewings — plus their status and location."
+        />
 
       {viewings.data.length === 0 ? (
         <EmptyState
@@ -120,15 +124,16 @@ export default async function BuyerViewingsPage({
         </div>
       )}
 
-      {viewings.data.length > 0 ? (
-        <PaginationFooter
-          page={viewings.meta.page}
-          totalPages={viewings.meta.totalPages}
-          limit={viewings.meta.limit}
-          total={viewings.meta.total}
-          buildHref={viewingsHref}
-        />
-      ) : null}
-    </main>
+        {viewings.data.length > 0 ? (
+          <PaginationFooter
+            page={viewings.meta.page}
+            totalPages={viewings.meta.totalPages}
+            limit={viewings.meta.limit}
+            total={viewings.meta.total}
+            buildHref={viewingsHref}
+          />
+        ) : null}
+      </main>
+    </BuyerWorkspaceShell>
   );
 }
