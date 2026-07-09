@@ -97,10 +97,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                'We sent an SMS to the phone tied to ${widget.identifier}. '
-                'The code arrives in a few seconds — your keyboard may fill it in automatically.',
-                style: const TextStyle(
+              const Text(
+                'We send the code by SMS and email when both contact channels are on file. '
+                'It arrives in a few seconds and your keyboard may fill it in automatically.',
+                style: TextStyle(
                   fontSize: 14,
                   color: AppColors.ink500,
                   height: 1.5,
@@ -132,7 +132,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ),
                 textAlign: TextAlign.center,
                 decoration: const InputDecoration(
-                  labelText: 'OTP code',
+                  labelText: 'Verification code',
                   hintText: '••••••',
                 ),
               ),
@@ -152,10 +152,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 children: [
                   OutlinedButton.icon(
                     onPressed: _busy || _resendIn > 0 ? null : _sendCode,
-                    icon: const Icon(Icons.sms_outlined),
+                    icon: const Icon(Icons.mark_email_unread_outlined),
                     label: Text(_resendIn > 0
                         ? 'Resend in ${_resendIn}s'
-                        : 'Send code'),
+                        : 'Resend code'),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -165,8 +165,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           ? const SizedBox(
                               height: 18,
                               width: 18,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('Verify and sign in'),
                     ),
@@ -176,7 +175,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               const SizedBox(height: 12),
               Text(
                 "Didn't receive it? Check your SMS after a minute, "
-                'then tap Resend. Codes expire 5 minutes after they arrive.',
+                'then check your email before tapping Resend. Codes expire 5 minutes after they arrive.',
                 style: TextStyle(
                   color: AppColors.ink500.withValues(alpha: 0.9),
                   fontSize: 12,
@@ -201,7 +200,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             phone: widget.phone,
           );
       if (!mounted) return;
-      setState(() => _message = 'Code sent. Check your SMS.');
+      setState(() => _message = 'Code sent. Check your SMS and email.');
       _startResendCooldown();
     } on ApiException catch (error) {
       _showError(error.message);

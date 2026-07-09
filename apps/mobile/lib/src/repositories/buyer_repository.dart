@@ -2,6 +2,7 @@ import '../core/config/api_routes.dart';
 import '../core/network/api_client.dart';
 import '../models/activity_models.dart';
 import '../models/listing_models.dart';
+import 'catalogue_pager.dart';
 
 class BuyerRepository {
   BuyerRepository(this._apiClient);
@@ -12,12 +13,15 @@ class BuyerRepository {
     String? bodyType,
     String? city,
     bool? verifiedOnly,
+    String? cursor,
+    int limit = 100,
   }) {
     return _apiClient.getJson<CataloguePage>(
       ApiRoutes.catalogue,
       (json) => CataloguePage.fromJson((json as Map).cast<String, dynamic>()),
       queryParameters: {
-        'limit': 20,
+        'limit': limit,
+        'cursor': cursor,
         'sortBy': 'publishedAt',
         'sortDir': 'DESC',
         'bodyType': bodyType,
@@ -25,6 +29,21 @@ class BuyerRepository {
         'bisellVerified': verifiedOnly,
       },
     );
+  }
+
+  Future<List<ListingCard>> browseAll({
+    String? bodyType,
+    String? city,
+    bool? verifiedOnly,
+  }) {
+    return CataloguePager(
+      fetchPage: ({String? cursor}) => browse(
+        bodyType: bodyType,
+        city: city,
+        verifiedOnly: verifiedOnly,
+        cursor: cursor,
+      ),
+    ).loadAll();
   }
 
   Future<ListingDetail> fetchDetail(String listingId) {

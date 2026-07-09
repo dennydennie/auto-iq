@@ -94,6 +94,28 @@ class AuthRepository {
         (_) {});
   }
 
+  Future<void> forgotPassword(String email) async {
+    await _apiClient.postJson<void>(
+      ApiRoutes.authForgotPassword,
+      {'email': email.trim().toLowerCase()},
+      (_) {},
+    );
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    await _apiClient.postJson<void>(
+      ApiRoutes.authResetPassword,
+      {
+        'token': token.trim(),
+        'newPassword': newPassword,
+      },
+      (_) {},
+    );
+  }
+
   Future<void> verifyOtp({
     required String identifier,
     required String code,

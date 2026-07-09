@@ -33,10 +33,11 @@ void main() {
     );
     await tester.tap(find.widgetWithText(ElevatedButton, 'Sign in'));
     await tester.pump();
+    await tester.pump();
 
     expect(find.text('Enter the 6-digit code'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Verification code'), findsOneWidget);
-    expect(find.text('Resend code'), findsOneWidget);
+    expect(find.textContaining('SMS and email'), findsWidgets);
   });
 }
 
@@ -119,6 +120,19 @@ class _UnusedAuthRepository implements AuthRepository {
 
   @override
   Future<void> sendOtp({required String identifier, String? phone}) {
+    return Future<void>.value();
+  }
+
+  @override
+  Future<void> forgotPassword(String email) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) {
     throw UnimplementedError();
   }
 

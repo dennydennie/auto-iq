@@ -9,6 +9,7 @@ import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
 import '../../state/session_controller.dart';
 import 'otp_verification_screen.dart';
+import 'password_reset_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -92,8 +93,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         setState(() => _isRegisterMode = value),
                   ),
                   const SizedBox(height: 16),
-                  if (AppConfig.isInsecureRemote)
-                    const _InsecureRemoteBanner(),
+                  if (AppConfig.isInsecureRemote) const _InsecureRemoteBanner(),
                   if (session.errorMessage != null)
                     _ErrorBanner(
                       message: session.errorMessage!,
@@ -136,8 +136,11 @@ class _AuthScreenState extends State<AuthScreen> {
             decoration: InputDecoration(
               labelText: 'Password',
               suffixIcon: IconButton(
-                icon: Icon(_showLoginPassword ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _showLoginPassword = !_showLoginPassword),
+                icon: Icon(_showLoginPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility),
+                onPressed: () =>
+                    setState(() => _showLoginPassword = !_showLoginPassword),
                 tooltip: _showLoginPassword ? 'Hide password' : 'Show password',
               ),
             ),
@@ -235,9 +238,13 @@ class _AuthScreenState extends State<AuthScreen> {
               labelText: 'Password',
               helperText: 'Min 8 characters, mix of letters and numbers.',
               suffixIcon: IconButton(
-                icon: Icon(_showRegisterPassword ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _showRegisterPassword = !_showRegisterPassword),
-                tooltip: _showRegisterPassword ? 'Hide password' : 'Show password',
+                icon: Icon(_showRegisterPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility),
+                onPressed: () => setState(
+                    () => _showRegisterPassword = !_showRegisterPassword),
+                tooltip:
+                    _showRegisterPassword ? 'Hide password' : 'Show password',
               ),
             ),
             validator: _passwordValidator,
@@ -252,15 +259,20 @@ class _AuthScreenState extends State<AuthScreen> {
               labelText: 'Confirm password',
               errorText: passwordsMismatch ? "Passwords don't match" : null,
               suffixIcon: IconButton(
-                icon: Icon(_showRegisterConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(
-                    () => _showRegisterConfirmPassword = !_showRegisterConfirmPassword),
-                tooltip:
-                    _showRegisterConfirmPassword ? 'Hide password' : 'Show password',
+                icon: Icon(_showRegisterConfirmPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility),
+                onPressed: () => setState(() => _showRegisterConfirmPassword =
+                    !_showRegisterConfirmPassword),
+                tooltip: _showRegisterConfirmPassword
+                    ? 'Hide password'
+                    : 'Show password',
               ),
             ),
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Confirm your password';
+              if (value == null || value.isEmpty) {
+                return 'Confirm your password';
+              }
               if (value != _registerPasswordController.text) {
                 return "Passwords don't match";
               }
@@ -302,7 +314,9 @@ class _AuthScreenState extends State<AuthScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _busy || !_acceptedRules || passwordsMismatch ? null : _register,
+              onPressed: _busy || !_acceptedRules || passwordsMismatch
+                  ? null
+                  : _register,
               child: _busy
                   ? const SizedBox(
                       height: 18,
@@ -393,15 +407,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _openForgotPassword() {
-    // Mobile does not yet host a dedicated reset flow. Send the user to the
-    // web recovery route so they can complete the reset and come back.
-    final url = '${AppConfig.apiBaseUrl}/auth/forgot-password';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Reset from a browser: $url — we don't yet host reset in the mobile app.",
-        ),
-        duration: const Duration(seconds: 8),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const PasswordResetScreen(),
       ),
     );
   }

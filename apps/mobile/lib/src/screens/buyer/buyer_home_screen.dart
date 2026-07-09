@@ -384,14 +384,14 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
   Future<ListingViewState> _loadBrowse() async {
     final repository = context.read<BuyerRepository>();
-    final page = await repository.browse(
+    final listings = await repository.browseAll(
       bodyType: _selectedBodyType,
       verifiedOnly: _verifiedOnly ? true : null,
     );
     final savedItems = await repository.savedVehicles();
     final savedIds = savedItems.map((item) => item.listing.id).toSet();
     return ListingViewState(
-      listings: page.data,
+      listings: listings,
       savedIds: savedIds,
     );
   }
