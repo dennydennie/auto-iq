@@ -27,7 +27,10 @@ jobs:
           cache: true
 
       - name: Test release source guard
-        run: node --test scripts/mobile/assert-committed-source.test.mjs
+        run: >-
+          node --test
+          scripts/mobile/assert-committed-source.test.mjs
+          scripts/mobile/assert-release-apk.test.mjs
 
       - name: Install mobile dependencies
         run: flutter pub get --enforce-lockfile

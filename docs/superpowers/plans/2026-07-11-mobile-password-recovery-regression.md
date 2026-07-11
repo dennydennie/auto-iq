@@ -23,6 +23,8 @@
 **Files:**
 - Create: `scripts/mobile/assert-committed-source.mjs`
 - Create: `scripts/mobile/assert-committed-source.test.mjs`
+- Create: `scripts/mobile/assert-release-apk.mjs`
+- Create: `scripts/mobile/assert-release-apk.test.mjs`
 - Modify: `scripts/mobile/build-release-live.sh`
 - Modify: `.github/workflows/ci.yml`
 
@@ -64,6 +66,8 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 ```
 
 - [x] **Step 5: Run the focused tests and YAML/static checks, commit, and push the guardrail change before starting Task 2**
+
+- [x] **Step 6: Reject stale or mismatched APKs by deleting generated output before assembly and verifying package, version, deep-link manifest, and API origin afterward**
 
 ### Task 2: Add a server-owned native reset destination
 
