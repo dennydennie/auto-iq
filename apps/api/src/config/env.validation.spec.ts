@@ -19,6 +19,16 @@ describe("validateEnv", () => {
     STORAGE_PRESIGN_TTL_SECONDS: "900",
   };
 
+  it("keeps local storage defaults when no aliases are configured", () => {
+    const env = validateEnv(baseEnv);
+
+    expect(env.STORAGE_ENDPOINT).toBe("http://localhost:9000");
+    expect(env.STORAGE_REGION).toBe("us-east-1");
+    expect(env.STORAGE_ACCESS_KEY).toBe("minioadmin");
+    expect(env.STORAGE_SECRET_KEY).toBe("minioadmin");
+    expect(env.STORAGE_BUCKET).toBe("auto-iq-local");
+  });
+
   it("maps Railway Tigris AWS variables into the storage config", () => {
     const env = validateEnv({
       ...baseEnv,

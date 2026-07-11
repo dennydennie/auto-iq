@@ -76,6 +76,8 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 
 - [x] **Step 9: Remove the stale API test import exposed by the newly active lint gate**
 
+- [x] **Step 10: Export OpenAPI in Nest preview mode and preserve test storage defaults so contract checks do not require live infrastructure**
+
 ### Task 2: Add a server-owned native reset destination
 
 **Files:**

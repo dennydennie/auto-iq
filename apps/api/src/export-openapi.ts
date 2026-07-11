@@ -5,7 +5,11 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 
 async function exportOpenApi() {
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create(AppModule, {
+    abortOnError: false,
+    logger: false,
+    preview: true,
+  });
   app.setGlobalPrefix("api/v1");
   const outputPath = resolve(
     process.cwd(),
@@ -25,4 +29,8 @@ async function exportOpenApi() {
   await app.close();
 }
 
-void exportOpenApi();
+void exportOpenApi().catch((error: unknown) => {
+  const detail = error instanceof Error ? error.stack ?? error.message : String(error);
+  process.stderr.write(`OpenAPI export failed:\n${detail}\n`);
+  process.exitCode = 1;
+});

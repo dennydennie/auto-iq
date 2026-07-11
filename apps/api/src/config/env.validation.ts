@@ -365,7 +365,7 @@ function assertValidEnv(env: object) {
 }
 
 function withStorageAliases(config: Record<string, unknown>) {
-  return {
+  const values = {
     ...config,
     STORAGE_ENDPOINT:
       config.STORAGE_ENDPOINT ??
@@ -379,4 +379,7 @@ function withStorageAliases(config: Record<string, unknown>) {
     STORAGE_BUCKET:
       config.STORAGE_BUCKET ?? config.BUCKET_NAME ?? config.AWS_BUCKET_NAME,
   };
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined),
+  );
 }
