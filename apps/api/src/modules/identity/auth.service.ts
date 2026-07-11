@@ -17,13 +17,19 @@ import { AuditLogRepository } from "../../db/repository/audit-log.repository";
 import { UserRepository } from "../../db/repository/user.repository";
 import { RedisService } from "../redis/redis.service";
 import { NotificationService } from "../notifications/notification.service";
-import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from "./dto/auth.dto";
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+} from "./dto/auth.dto";
 import { PasswordService } from "./password.service";
 import { RateLimitService } from "./rate-limit.service";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 const RESET_TTL_SECONDS = 60 * 30;
 const DEFAULT_WEB_BASE_URL = "https://web-staging-1017.up.railway.app";
+const LOGIN_RATE_WINDOW_SECONDS = 60 * 15;
 
 @Injectable()
 export class AuthService {
@@ -53,11 +59,20 @@ export class AuthService {
         city: body.city,
         status: "PENDING_VERIFICATION",
       });
-      await manager.save(UserRoleEntity, { userId: savedUser.id, role: body.role });
+      await manager.save(UserRoleEntity, {
+        userId: savedUser.id,
+        role: body.role,
+      });
       if (body.role === "BUYER") {
-        await manager.save(BuyerProfileEntity, { userId: savedUser.id, city: body.city });
+        await manager.save(BuyerProfileEntity, {
+          userId: savedUser.id,
+          city: body.city,
+        });
       } else {
-        await manager.save(SellerProfileEntity, { userId: savedUser.id, city: body.city });
+        await manager.save(SellerProfileEntity, {
+          userId: savedUser.id,
+          city: body.city,
+        });
       }
       await manager.save(AuditLogEntity, {
         actorUserId: savedUser.id,
@@ -78,10 +93,12 @@ export class AuthService {
     };
   }
 
-  async login(body: LoginDto) {
-    await this.rateLimitService.consume(`login:${body.identifier.toLowerCase()}`, 5, 60 * 15);
+  async login(body: LoginDto, clientIp: string) {
+    await this.consumeLoginLimits(body.identifier, clientIp);
     const user = await this.userRepository.findByIdentifier(body.identifier);
-    const valid = user ? await this.passwordService.verify(body.password, user.passwordHash) : false;
+    const valid = user
+      ? await this.passwordService.verify(body.password, user.passwordHash)
+      : false;
     if (!user || !valid || user.status === "SUSPENDED") {
       await this.audit("auth.login", user?.id ?? null, "failure");
       throw new UnauthorizedException({
@@ -94,7 +111,13 @@ export class AuthService {
       throw new UnauthorizedException({
         code: "OTP_REQUIRED",
         message: "Verify your phone number before signing in.",
-        details: [{ field: "phone", message: "Registered phone number", value: user.phone }],
+        details: [
+          {
+            field: "phone",
+            message: "Registered phone number",
+            value: maskPhone(user.phone),
+          },
+        ],
       });
     }
     await this.audit("auth.login", user.id, "success");
@@ -107,7 +130,11 @@ export class AuthService {
   }
 
   async forgotPassword(body: ForgotPasswordDto) {
-    await this.rateLimitService.consume(`forgot:${body.email.toLowerCase()}`, 3, 60 * 15);
+    await this.rateLimitService.consume(
+      `forgot:${body.email.toLowerCase()}`,
+      3,
+      60 * 15,
+    );
     const user = await this.userRepository.findByEmail(body.email);
     if (!user) {
       return;
@@ -132,7 +159,11 @@ export class AuthService {
     });
 
     if (this.config.get<string>("NODE_ENV") !== "production") {
-      await this.redisService.set(`reset_delivery:${user.email}`, token, RESET_TTL_SECONDS);
+      await this.redisService.set(
+        `reset_delivery:${user.email}`,
+        token,
+        RESET_TTL_SECONDS,
+      );
     }
 
     if (!deliveries.some((delivery) => delivery.status === "SENT")) {
@@ -140,7 +171,8 @@ export class AuthService {
       await this.redisService.del(`reset_delivery:${user.email}`);
       throw new ServiceUnavailableException({
         code: "DELIVERY_UNAVAILABLE",
-        message: "Password reset is temporarily unavailable. Please try again shortly.",
+        message:
+          "Password reset is temporarily unavailable. Please try again shortly.",
       });
     }
 
@@ -172,15 +204,39 @@ export class AuthService {
   private async assertUnique(email: string, phone: string) {
     const existingEmail = await this.userRepository.findByEmail(email);
     if (existingEmail) {
-      throw new ConflictException({ code: "VALIDATION_FAILED", message: "Email already registered" });
+      throw new ConflictException({
+        code: "VALIDATION_FAILED",
+        message: "Email already registered",
+      });
     }
     const existingPhone = await this.userRepository.findByPhone(phone);
     if (existingPhone) {
-      throw new ConflictException({ code: "VALIDATION_FAILED", message: "Phone already registered" });
+      throw new ConflictException({
+        code: "VALIDATION_FAILED",
+        message: "Phone already registered",
+      });
     }
   }
 
-  private async audit(action: string, actorUserId: string | null, outcome: string) {
+  private async consumeLoginLimits(identifier: string, clientIp: string) {
+    const normalized = identifier.trim().toLowerCase();
+    await this.rateLimitService.consume(
+      `login-client:${hashKey(`${normalized}:${clientIp}`)}`,
+      5,
+      LOGIN_RATE_WINDOW_SECONDS,
+    );
+    await this.rateLimitService.consume(
+      `login-account:${hashKey(normalized)}`,
+      25,
+      LOGIN_RATE_WINDOW_SECONDS,
+    );
+  }
+
+  private async audit(
+    action: string,
+    actorUserId: string | null,
+    outcome: string,
+  ) {
     await this.auditLogRepository.save(
       this.auditLogRepository.create({
         action,
@@ -193,11 +249,24 @@ export class AuthService {
   }
 
   private resetUrl(token: string) {
-    const baseUrl = this.config.get<string>("WEB_BASE_URL")
-      ?? this.config.get<string>("CORS_ORIGINS", DEFAULT_WEB_BASE_URL).split(",")[0]?.trim()
-      ?? DEFAULT_WEB_BASE_URL;
+    const baseUrl =
+      this.config.get<string>("WEB_BASE_URL") ??
+      this.config
+        .get<string>("CORS_ORIGINS", DEFAULT_WEB_BASE_URL)
+        .split(",")[0]
+        ?.trim() ??
+      DEFAULT_WEB_BASE_URL;
     const url = new URL("/auth/reset-password", baseUrl);
     url.hash = `token=${encodeURIComponent(token)}`;
     return url.toString();
   }
+}
+
+function hashKey(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function maskPhone(phone: string) {
+  const prefixLength = Math.max(1, Math.min(4, phone.length - 4));
+  return `${phone.slice(0, prefixLength)}••••${phone.slice(-4)}`;
 }

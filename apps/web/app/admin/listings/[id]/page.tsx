@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AdminListingActions } from "@/components/admin/admin-listing-actions";
+import { AdminVerificationActions } from "@/components/admin/admin-verification-actions";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -28,15 +29,33 @@ import { labelizeEnum, mapBodyType, mapListingStatus } from "@/lib/vehicle-ui";
 
 function checklist(listing: AdminListingDto) {
   return [
-    { label: "Seller disclosure submitted", complete: Boolean(listing.sellerDisclosure) },
-    { label: "At least one photo uploaded", complete: listing.images.length > 0 },
-    { label: "Ownership verification approved", complete: listing.ownershipVerification?.status === "APPROVED" },
-    { label: "Inspection task assigned", complete: Boolean(listing.inspectionTask) },
-    { label: "Buyer summary approved", complete: Boolean(listing.inspectionReport?.buyerSummaryApproved) },
+    {
+      label: "Seller disclosure submitted",
+      complete: Boolean(listing.sellerDisclosure),
+    },
+    {
+      label: "At least one photo uploaded",
+      complete: listing.images.length > 0,
+    },
+    {
+      label: "Ownership verification approved",
+      complete: listing.ownershipVerification?.status === "APPROVED",
+    },
+    {
+      label: "Inspection task assigned",
+      complete: Boolean(listing.inspectionTask),
+    },
+    {
+      label: "Buyer summary approved",
+      complete: Boolean(listing.inspectionReport?.buyerSummaryApproved),
+    },
   ];
 }
 
-function readReturnHref(value: string | string[] | undefined, fallback: string) {
+function readReturnHref(
+  value: string | string[] | undefined,
+  fallback: string,
+) {
   const candidate = Array.isArray(value) ? value[0] : value;
   if (typeof candidate !== "string") return fallback;
   // Only allow same-origin admin paths to prevent open redirect.
@@ -53,7 +72,9 @@ export default async function AdminListingReviewPage({
   const { id } = await params;
   const { return: returnParam } = await searchParams;
   const backHref = readReturnHref(returnParam, "/admin/listings");
-  const result = await getSessionJson<AdminListingDto>(ROUTES.admin.listing(id));
+  const result = await getSessionJson<AdminListingDto>(
+    ROUTES.admin.listing(id),
+  );
 
   if (isServerApiFailure(result)) {
     return (
@@ -66,7 +87,10 @@ export default async function AdminListingReviewPage({
             cta={{ label: "Back to moderation queue", href: backHref }}
           />
         ) : (
-          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+          <ErrorBanner
+            message={result.error.message}
+            correlationId={result.error.correlationId}
+          />
         )}
       </main>
     );
@@ -89,7 +113,10 @@ export default async function AdminListingReviewPage({
           { label: title },
         ]}
       />
-      <Link href={backHref} className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
+      <Link
+        href={backHref}
+        className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}
+      >
         <ArrowLeft className="h-4 w-4" />
         Back to moderation queue
       </Link>
@@ -102,11 +129,14 @@ export default async function AdminListingReviewPage({
                 <div className="space-y-4 text-white">
                   <div className="flex flex-wrap gap-2">
                     <StatusBadge status={mapListingStatus(listing.status)} />
-                    <Badge variant="amber">{labelizeEnum(listing.specs.bodyType)}</Badge>
+                    <Badge variant="amber">
+                      {labelizeEnum(listing.specs.bodyType)}
+                    </Badge>
                   </div>
                   <div>
                     <h1 className="display text-4xl text-white">
-                      {listing.specs.year} {listing.specs.make} {listing.specs.model}
+                      {listing.specs.year} {listing.specs.make}{" "}
+                      {listing.specs.model}
                     </h1>
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/70">
                       <span>{listing.id}</span>
@@ -130,12 +160,18 @@ export default async function AdminListingReviewPage({
                         fill
                         sizes="(min-width: 1024px) 40vw, 100vw"
                         className="object-cover"
-                        unoptimized={shouldBypassNextImageOptimization(coverImage)}
+                        unoptimized={shouldBypassNextImageOptimization(
+                          coverImage,
+                        )}
                       />
                     </div>
                   ) : (
                     <div className="flex h-[18rem] items-center justify-center">
-                      <CarSilhouette type={mapBodyType(listing.specs.bodyType)} width={320} shadow={false} />
+                      <CarSilhouette
+                        type={mapBodyType(listing.specs.bodyType)}
+                        width={320}
+                        shadow={false}
+                      />
                     </div>
                   )}
                 </div>
@@ -149,21 +185,46 @@ export default async function AdminListingReviewPage({
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Mileage</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{formatKm(listing.specs.mileageKm)}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                  Mileage
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+                  {formatKm(listing.specs.mileageKm)}
+                </p>
               </div>
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Transmission</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{labelizeEnum(listing.specs.transmission)}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                  Transmission
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+                  {labelizeEnum(listing.specs.transmission)}
+                </p>
               </div>
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Fuel</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{labelizeEnum(listing.specs.fuelType)}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                  Fuel
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+                  {labelizeEnum(listing.specs.fuelType)}
+                </p>
               </div>
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Engine</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{listing.specs.engineCapacity || "Unspecified"}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                  Engine
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+                  {listing.specs.engineCapacity || "Unspecified"}
+                </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Verification actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminVerificationActions listing={listing} />
             </CardContent>
           </Card>
 
@@ -173,7 +234,8 @@ export default async function AdminListingReviewPage({
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-7 text-[var(--ink-500)]">
-                {listing.sellerDisclosure || "No seller disclosure has been saved yet."}
+                {listing.sellerDisclosure ||
+                  "No seller disclosure has been saved yet."}
               </p>
             </CardContent>
           </Card>
@@ -183,21 +245,25 @@ export default async function AdminListingReviewPage({
               <CardTitle>Ownership documents</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {listing.documents.length > 0 ? listing.documents.map((document) => (
-                <a
-                  key={document.id}
-                  href={document.downloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between rounded-[1.1rem] border border-[var(--ink-100)] px-4 py-3 text-sm transition hover:bg-[var(--ink-50)]"
-                >
-                  <span className="inline-flex items-center gap-3 text-[var(--ink-900)]">
-                    <FileText className="h-4 w-4 text-[var(--amber-dark)]" />
-                    {labelizeEnum(document.documentType)}
-                  </span>
-                  <span className="text-[var(--ink-500)]">{document.reviewStatus}</span>
-                </a>
-              )) : (
+              {listing.documents.length > 0 ? (
+                listing.documents.map((document) => (
+                  <a
+                    key={document.id}
+                    href={document.downloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between rounded-[1.1rem] border border-[var(--ink-100)] px-4 py-3 text-sm transition hover:bg-[var(--ink-50)]"
+                  >
+                    <span className="inline-flex items-center gap-3 text-[var(--ink-900)]">
+                      <FileText className="h-4 w-4 text-[var(--amber-dark)]" />
+                      {labelizeEnum(document.documentType)}
+                    </span>
+                    <span className="text-[var(--ink-500)]">
+                      {document.reviewStatus}
+                    </span>
+                  </a>
+                ))
+              ) : (
                 <div className="rounded-[1.2rem] border border-dashed border-[var(--ink-200)] bg-[var(--ink-50)]/60 p-4 text-sm text-[var(--ink-500)]">
                   No ownership documents are attached yet.
                 </div>
@@ -212,7 +278,10 @@ export default async function AdminListingReviewPage({
               <CardTitle>Moderation actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <AdminListingActions listingId={listing.id} status={listing.status} />
+              <AdminListingActions
+                listingId={listing.id}
+                status={listing.status}
+              />
             </CardContent>
           </Card>
 
@@ -225,9 +294,16 @@ export default async function AdminListingReviewPage({
                 {completedItems} of {items.length} checklist items satisfied.
               </div>
               {items.map((item) => (
-                <div key={item.label} className="flex items-start gap-3 rounded-[1.1rem] border border-[var(--ink-100)] px-4 py-3">
-                  <CheckCircle2 className={`mt-0.5 h-4 w-4 ${item.complete ? "text-emerald-600" : "text-[var(--ink-300)]"}`} />
-                  <span className={`text-sm ${item.complete ? "text-[var(--ink-900)]" : "text-[var(--ink-500)]"}`}>
+                <div
+                  key={item.label}
+                  className="flex items-start gap-3 rounded-[1.1rem] border border-[var(--ink-100)] px-4 py-3"
+                >
+                  <CheckCircle2
+                    className={`mt-0.5 h-4 w-4 ${item.complete ? "text-emerald-600" : "text-[var(--ink-300)]"}`}
+                  />
+                  <span
+                    className={`text-sm ${item.complete ? "text-[var(--ink-900)]" : "text-[var(--ink-500)]"}`}
+                  >
                     {item.label}
                   </span>
                 </div>
@@ -250,12 +326,17 @@ export default async function AdminListingReviewPage({
                       ariaLabel={`${listing.specs.year} ${listing.specs.make} ${listing.specs.model} inspection score ${listing.inspectionReport.overallScore} out of 100`}
                     />
                     <div>
-                      <p className="text-xs uppercase tracking-[0.14em] text-white/45">Buyer summary</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-white/45">
+                        Buyer summary
+                      </p>
                       <p className="mt-2 text-lg font-semibold text-white">
                         {listing.inspectionReport.overallScore}/100
                       </p>
                       <p className="mt-1 text-sm text-white/70">
-                        Approved {listing.inspectionReport.buyerSummaryApproved ? "yes" : "no"}
+                        Approved{" "}
+                        {listing.inspectionReport.buyerSummaryApproved
+                          ? "yes"
+                          : "no"}
                       </p>
                     </div>
                   </div>
@@ -287,7 +368,9 @@ export default async function AdminListingReviewPage({
                 <div className="flex items-center justify-between">
                   <span>Submitted</span>
                   <span className="font-semibold text-[var(--ink-900)]">
-                    {listing.submittedAt ? formatDate(listing.submittedAt) : "Not submitted"}
+                    {listing.submittedAt
+                      ? formatDate(listing.submittedAt)
+                      : "Not submitted"}
                   </span>
                 </div>
               </div>

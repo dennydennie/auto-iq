@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
-import type { CatalogueMakeFacet } from "@auto-iq/contracts/catalogue";
-import { BODY_TYPES, FUEL_TYPES, TRANSMISSION_TYPES } from "@auto-iq/contracts/enums";
+import type {
+  CatalogueMakeFacet,
+  CatalogueModelFacet,
+} from "@auto-iq/contracts/catalogue";
+import {
+  BODY_TYPES,
+  FUEL_TYPES,
+  TRANSMISSION_TYPES,
+} from "@auto-iq/contracts/enums";
 import { Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +18,7 @@ import { labelizeEnum } from "@/lib/vehicle-ui";
 
 export type CatalogueFilterState = {
   make: string;
+  model: string;
   city: string;
   bodyType: string;
   fuelType: string;
@@ -57,6 +65,7 @@ export function FilterSidebar({
   className,
   clearHref,
   makes,
+  models,
   buildMakeHref,
 }: {
   filters: CatalogueFilterState;
@@ -64,6 +73,8 @@ export function FilterSidebar({
   clearHref: string;
   /** API-backed distinct makes with counts. Empty array hides the section. */
   makes?: CatalogueMakeFacet[];
+  /** API-backed models for the selected make. */
+  models?: CatalogueModelFacet[];
   /** Builds the Shop-by-make link for a given make value. */
   buildMakeHref?: (make: string) => string;
 }) {
@@ -78,7 +89,10 @@ export function FilterSidebar({
       <form className="space-y-1">
         <div className="flex items-center justify-between pb-2">
           <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink-900)]">
-            <Filter className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
+            <Filter
+              className="h-4 w-4 text-[var(--amber-dark)]"
+              aria-hidden="true"
+            />
             Filter
           </div>
           <a
@@ -92,7 +106,10 @@ export function FilterSidebar({
 
         <Section title="Make and model">
           <div className="space-y-2">
-            <Label htmlFor="filter-make" className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]">
+            <Label
+              htmlFor="filter-make"
+              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
+            >
               Make
             </Label>
             <Input
@@ -103,13 +120,36 @@ export function FilterSidebar({
               className="h-10"
             />
           </div>
+          <div className="space-y-2">
+            <Label
+              htmlFor="filter-model"
+              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
+            >
+              Model
+            </Label>
+            <Select
+              id="filter-model"
+              name="model"
+              defaultValue={filters.model}
+              className="h-10"
+              disabled={!filters.make}
+            >
+              <option value="">Any model</option>
+              {models?.map((facet) => (
+                <option key={facet.model} value={facet.model}>
+                  {facet.model} ({facet.count})
+                </option>
+              ))}
+            </Select>
+          </div>
         </Section>
 
         {makes && makes.length > 0 && buildMakeHref ? (
           <Section title="Shop by make">
             <ul className="grid gap-1 text-sm">
               {makes.slice(0, 12).map((facet) => {
-                const active = filters.make.toLowerCase() === facet.make.toLowerCase();
+                const active =
+                  filters.make.toLowerCase() === facet.make.toLowerCase();
                 return (
                   <li key={facet.make}>
                     <a
@@ -140,7 +180,8 @@ export function FilterSidebar({
             </ul>
             {makes.length > 12 ? (
               <p className="mt-2 text-[11px] text-[var(--ink-400)]">
-                Showing top 12 · use the Make input above to filter to a specific make.
+                Showing top 12 · use the Make input above to filter to a
+                specific make.
               </p>
             ) : null}
           </Section>
@@ -148,7 +189,10 @@ export function FilterSidebar({
 
         <Section title="Location">
           <div className="space-y-2">
-            <Label htmlFor="filter-city" className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]">
+            <Label
+              htmlFor="filter-city"
+              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
+            >
               City
             </Label>
             <Input
@@ -162,7 +206,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Body type">
-          <Select id="filter-body-type" name="bodyType" defaultValue={filters.bodyType} className="h-10">
+          <Select
+            id="filter-body-type"
+            name="bodyType"
+            defaultValue={filters.bodyType}
+            className="h-10"
+          >
             <option value="">Any body type</option>
             {BODY_TYPES.map((value) => (
               <option key={value} value={value}>
@@ -222,7 +271,10 @@ export function FilterSidebar({
 
         <Section title="Mileage" defaultOpen={false}>
           <div className="space-y-2">
-            <Label htmlFor="filter-mileage" className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]">
+            <Label
+              htmlFor="filter-mileage"
+              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
+            >
               Max km
             </Label>
             <Input
@@ -238,7 +290,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Transmission" defaultOpen={false}>
-          <Select id="filter-transmission" name="transmission" defaultValue={filters.transmission} className="h-10">
+          <Select
+            id="filter-transmission"
+            name="transmission"
+            defaultValue={filters.transmission}
+            className="h-10"
+          >
             <option value="">Any transmission</option>
             {TRANSMISSION_TYPES.map((value) => (
               <option key={value} value={value}>
@@ -249,7 +306,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Fuel" defaultOpen={false}>
-          <Select id="filter-fuel" name="fuelType" defaultValue={filters.fuelType} className="h-10">
+          <Select
+            id="filter-fuel"
+            name="fuelType"
+            defaultValue={filters.fuelType}
+            className="h-10"
+          >
             <option value="">Any fuel type</option>
             {FUEL_TYPES.map((value) => (
               <option key={value} value={value}>
@@ -260,7 +322,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Verification">
-          <Select id="filter-verified" name="verified" defaultValue={filters.verified} className="h-10">
+          <Select
+            id="filter-verified"
+            name="verified"
+            defaultValue={filters.verified}
+            className="h-10"
+          >
             <option value="">Any verification</option>
             <option value="true">BiSell verified only</option>
           </Select>
@@ -268,7 +335,12 @@ export function FilterSidebar({
 
         <input type="hidden" name="sortBy" value={filters.sortBy} />
 
-        <button className={buttonVariants({ variant: "amber", className: "mt-4 w-full justify-center" })}>
+        <button
+          className={buttonVariants({
+            variant: "amber",
+            className: "mt-4 w-full justify-center",
+          })}
+        >
           Apply filters
         </button>
       </form>

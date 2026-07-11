@@ -2,12 +2,18 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createHash, createHmac } from "node:crypto";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import type { ApiError } from "@auto-iq/contracts/error";
 import type { CsrfResponse } from "@auto-iq/contracts/identity";
 import { API_ORIGIN } from "@/lib/api-origin";
 
 const SESSION_COOKIE_NAME = "auto_iq_session";
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
+const CSRF_CACHE_TTL_MS = 105 * 60 * 1000;
+const MAX_CSRF_CACHE_ENTRIES = 1_000;
+const csrfCache = new Map<string, { token: string; expiresAt: number }>();
+const csrfRequests = new Map<string, Promise<string | null>>();
 
 type RemoteRequestOptions = {
   method?: string;
@@ -15,6 +21,7 @@ type RemoteRequestOptions = {
   body?: unknown;
   sessionCookie?: string | null;
   csrfToken?: string | null;
+  clientIp?: string | null;
 };
 
 function apiUrl(path: string) {
@@ -49,6 +56,7 @@ export async function sendRemoteRequest({
   body,
   sessionCookie,
   csrfToken,
+  clientIp,
 }: RemoteRequestOptions) {
   const headers = new Headers({ Accept: "application/json" });
 
@@ -65,6 +73,23 @@ export async function sendRemoteRequest({
     headers.set("X-CSRF-Token", csrfToken);
   }
 
+  attachClientIp(headers, clientIp);
+
+  const response = await fetch(apiUrl(path), {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  if (response.status !== 403 || !sessionCookie || !csrfToken) {
+    return response;
+  }
+
+  invalidateRemoteCsrfToken(sessionCookie);
+  const refreshedToken = await issueRemoteCsrfToken(sessionCookie);
+  if (!refreshedToken) return response;
+  headers.set("X-CSRF-Token", refreshedToken);
   return fetch(apiUrl(path), {
     method,
     headers,
@@ -73,7 +98,30 @@ export async function sendRemoteRequest({
   });
 }
 
+function attachClientIp(headers: Headers, clientIp: string | null | undefined) {
+  const secret = process.env.BFF_SHARED_SECRET;
+  if (!clientIp || !secret) return;
+  const signature = createHmac("sha256", secret).update(clientIp).digest("hex");
+  headers.set("X-Auto-IQ-Client-IP", clientIp);
+  headers.set("X-Auto-IQ-BFF-Signature", signature);
+}
+
 export async function issueRemoteCsrfToken(sessionCookie: string) {
+  const cached = cachedCsrfToken(sessionCookie);
+  if (cached) return cached;
+  const key = sessionCacheKey(sessionCookie);
+  const pending = csrfRequests.get(key);
+  if (pending) return pending;
+  const request = fetchRemoteCsrfToken(sessionCookie);
+  csrfRequests.set(key, request);
+  try {
+    return await request;
+  } finally {
+    if (csrfRequests.get(key) === request) csrfRequests.delete(key);
+  }
+}
+
+async function fetchRemoteCsrfToken(sessionCookie: string) {
   const response = await sendRemoteRequest({
     method: "GET",
     path: ROUTES.auth.csrf,
@@ -85,7 +133,36 @@ export async function issueRemoteCsrfToken(sessionCookie: string) {
   }
 
   const payload = (await response.json()) as CsrfResponse;
+  cacheCsrfToken(sessionCookie, payload.token);
   return payload.token;
+}
+
+function cachedCsrfToken(sessionCookie: string) {
+  const key = sessionCacheKey(sessionCookie);
+  const cached = csrfCache.get(key);
+  if (!cached || cached.expiresAt <= Date.now()) {
+    csrfCache.delete(key);
+    return null;
+  }
+  return cached.token;
+}
+
+function cacheCsrfToken(sessionCookie: string, token: string) {
+  if (csrfCache.size >= MAX_CSRF_CACHE_ENTRIES) {
+    csrfCache.delete(csrfCache.keys().next().value ?? "");
+  }
+  csrfCache.set(sessionCacheKey(sessionCookie), {
+    token,
+    expiresAt: Date.now() + CSRF_CACHE_TTL_MS,
+  });
+}
+
+function invalidateRemoteCsrfToken(sessionCookie: string) {
+  csrfCache.delete(sessionCacheKey(sessionCookie));
+}
+
+function sessionCacheKey(sessionCookie: string) {
+  return createHash("sha256").update(sessionCookie).digest("hex");
 }
 
 export async function proxyRemoteResponse(response: Response) {
@@ -115,7 +192,10 @@ export async function proxyRemoteResponse(response: Response) {
   });
 }
 
-export function storeSessionCookie(response: Response, nextResponse: NextResponse) {
+export function storeSessionCookie(
+  response: Response,
+  nextResponse: NextResponse,
+) {
   const setCookie = response.headers.get("set-cookie");
   const match = setCookie?.match(new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`));
 
@@ -130,6 +210,7 @@ export function storeSessionCookie(response: Response, nextResponse: NextRespons
     sameSite: "lax",
     secure: secureCookies(),
     path: "/",
+    maxAge: SESSION_TTL_SECONDS,
   });
 }
 

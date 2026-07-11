@@ -1,8 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { SellerListingDto } from "@auto-iq/contracts/listings";
+import type {
+  ListingTimelineResponse,
+  SellerListingDto,
+} from "@auto-iq/contracts/listings";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import { ArrowLeft, Calendar, Eye, FileText, MessageSquare, Pencil, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Eye,
+  FileText,
+  History,
+  MessageSquare,
+  Pencil,
+  type LucideIcon,
+} from "lucide-react";
 import { SubmitListingAction } from "@/components/seller/submit-listing-action";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -18,10 +30,14 @@ import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 import { labelizeEnum, mapBodyType, mapListingStatus } from "@/lib/vehicle-ui";
 
 function nextAction(listing: SellerListingDto) {
-  if (listing.status === "DRAFT") return "Complete photos, documents, and submission when ready.";
-  if (listing.status === "CHANGES_REQUESTED") return listing.changesNote || "Review the requested changes.";
-  if (listing.status === "PUBLISHED") return "Monitor buyer interest and respond to viewing requests.";
-  if (listing.status === "REJECTED") return "Review the decision before creating a revised listing.";
+  if (listing.status === "DRAFT")
+    return "Complete photos, documents, and submission when ready.";
+  if (listing.status === "CHANGES_REQUESTED")
+    return listing.changesNote || "Review the requested changes.";
+  if (listing.status === "PUBLISHED")
+    return "Monitor buyer interest and respond to viewing requests.";
+  if (listing.status === "REJECTED")
+    return "Review the decision before creating a revised listing.";
   return "Track review progress from this page.";
 }
 
@@ -42,7 +58,9 @@ function MetricCard({
           {label}
         </div>
         <p className="display mt-3 text-3xl text-[var(--ink-900)]">{value}</p>
-        <p className="mt-2 text-xs text-[var(--ink-400)]">Current listing total</p>
+        <p className="mt-2 text-xs text-[var(--ink-400)]">
+          Current listing total
+        </p>
       </CardContent>
     </Card>
   );
@@ -54,7 +72,10 @@ export default async function SellerListingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getSessionJson<SellerListingDto>(ROUTES.listings.detail(id));
+  const [result, timelineResult] = await Promise.all([
+    getSessionJson<SellerListingDto>(ROUTES.listings.detail(id)),
+    getSessionJson<ListingTimelineResponse>(ROUTES.listings.timeline(id)),
+  ]);
 
   if (isServerApiFailure(result)) {
     return (
@@ -67,7 +88,10 @@ export default async function SellerListingDetailPage({
             cta={{ label: "Go to login", href: "/auth/login" }}
           />
         ) : (
-          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+          <ErrorBanner
+            message={result.error.message}
+            correlationId={result.error.correlationId}
+          />
         )}
       </main>
     );
@@ -88,11 +112,15 @@ export default async function SellerListingDetailPage({
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Link href="/seller" className={buttonVariants({ variant: "ghost", className: "px-0" })}>
+        <Link
+          href="/seller"
+          className={buttonVariants({ variant: "ghost", className: "px-0" })}
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to seller dashboard
         </Link>
-        {listing.status === "DRAFT" || listing.status === "CHANGES_REQUESTED" ? (
+        {listing.status === "DRAFT" ||
+        listing.status === "CHANGES_REQUESTED" ? (
           <Link
             href={`/seller/listings/${listing.id}/edit`}
             className={buttonVariants({ variant: "amber" })}
@@ -110,14 +138,19 @@ export default async function SellerListingDetailPage({
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   <StatusBadge status={mapListingStatus(listing.status)} />
-                  <Badge variant="amber">{labelizeEnum(listing.specs.bodyType)}</Badge>
+                  <Badge variant="amber">
+                    {labelizeEnum(listing.specs.bodyType)}
+                  </Badge>
                 </div>
                 <div>
                   <h1 className="display text-4xl text-white">{title}</h1>
                   <p className="mt-3 text-sm text-white/70">{listing.slug}</p>
                 </div>
                 <p className="display text-4xl text-white">
-                  {formatPrice(listing.pricing.askPriceUsd, listing.pricing.currency)}
+                  {formatPrice(
+                    listing.pricing.askPriceUsd,
+                    listing.pricing.currency,
+                  )}
                 </p>
               </div>
 
@@ -130,12 +163,18 @@ export default async function SellerListingDetailPage({
                       fill
                       sizes="(min-width: 1024px) 40vw, 100vw"
                       className="object-cover"
-                      unoptimized={shouldBypassNextImageOptimization(coverImage)}
+                      unoptimized={shouldBypassNextImageOptimization(
+                        coverImage,
+                      )}
                     />
                   </div>
                 ) : (
                   <div className="flex h-[18rem] items-center justify-center">
-                    <CarSilhouette type={mapBodyType(listing.specs.bodyType)} width={320} shadow={false} />
+                    <CarSilhouette
+                      type={mapBodyType(listing.specs.bodyType)}
+                      width={320}
+                      shadow={false}
+                    />
                   </div>
                 )}
               </div>
@@ -147,14 +186,63 @@ export default async function SellerListingDetailPage({
               <CardTitle>Vehicle details</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2">
-              <DetailItem label="Mileage" value={formatKm(listing.specs.mileageKm)} />
+              <DetailItem
+                label="Mileage"
+                value={formatKm(listing.specs.mileageKm)}
+              />
               <DetailItem label="Colour" value={listing.specs.colour} />
-              <DetailItem label="Fuel" value={labelizeEnum(listing.specs.fuelType)} />
-              <DetailItem label="Transmission" value={labelizeEnum(listing.specs.transmission)} />
-              <DetailItem label="Drive type" value={labelizeEnum(listing.specs.driveType)} />
-              <DetailItem label="Condition" value={labelizeEnum(listing.specs.condition)} />
+              <DetailItem
+                label="Fuel"
+                value={labelizeEnum(listing.specs.fuelType)}
+              />
+              <DetailItem
+                label="Transmission"
+                value={labelizeEnum(listing.specs.transmission)}
+              />
+              <DetailItem
+                label="Drive type"
+                value={labelizeEnum(listing.specs.driveType)}
+              />
+              <DetailItem
+                label="Condition"
+                value={labelizeEnum(listing.specs.condition)}
+              />
             </CardContent>
           </Card>
+
+          {!isServerApiFailure(timelineResult) ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Listing history</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="space-y-4">
+                  {timelineResult.data.history.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="flex gap-3 border-l-2 border-[var(--amber)]/45 pl-4"
+                    >
+                      <History className="mt-0.5 h-4 w-4 shrink-0 text-[var(--amber-dark)]" />
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--ink-900)]">
+                          {labelizeEnum(entry.status)}
+                        </p>
+                        <p className="text-xs text-[var(--ink-400)]">
+                          {formatDate(entry.occurredAt)} ·{" "}
+                          {labelizeEnum(entry.actorRole)}
+                        </p>
+                        {entry.note ? (
+                          <p className="mt-1 text-sm text-[var(--ink-500)]">
+                            {entry.note}
+                          </p>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
@@ -166,12 +254,15 @@ export default async function SellerListingDetailPage({
               <p>{nextAction(listing)}</p>
               <p>
                 Updated {formatDate(listing.updatedAt)}
-                {listing.submittedAt ? ` · Submitted ${formatDate(listing.submittedAt)}` : ""}
+                {listing.submittedAt
+                  ? ` · Submitted ${formatDate(listing.submittedAt)}`
+                  : ""}
               </p>
             </CardContent>
           </Card>
 
-          {listing.status === "DRAFT" || listing.status === "CHANGES_REQUESTED" ? (
+          {listing.status === "DRAFT" ||
+          listing.status === "CHANGES_REQUESTED" ? (
             <Card>
               <CardHeader>
                 <CardTitle>Submit for review</CardTitle>
@@ -184,8 +275,16 @@ export default async function SellerListingDetailPage({
 
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
             <MetricCard icon={Eye} label="Views" value={listing.viewCount} />
-            <MetricCard icon={Calendar} label="Viewings" value={listing.viewingCount} />
-            <MetricCard icon={MessageSquare} label="Quotes" value={listing.quoteCount} />
+            <MetricCard
+              icon={Calendar}
+              label="Viewings"
+              value={listing.viewingCount}
+            />
+            <MetricCard
+              icon={MessageSquare}
+              label="Quotes"
+              value={listing.quoteCount}
+            />
           </div>
         </div>
       </div>
@@ -196,8 +295,12 @@ export default async function SellerListingDetailPage({
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{value}</p>
+      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+        {value}
+      </p>
     </div>
   );
 }

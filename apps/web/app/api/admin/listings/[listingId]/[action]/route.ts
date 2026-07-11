@@ -8,10 +8,26 @@ import {
   sessionRequiredResponse,
 } from "@/lib/remote-api";
 
-type ActionName = "approve" | "publish" | "reject" | "request-changes";
+type ActionName =
+  | "approve"
+  | "delist"
+  | "mark-reserved"
+  | "mark-sold"
+  | "inspection-summary-approve"
+  | "inspection-tasks"
+  | "ownership-verification"
+  | "publish"
+  | "reject"
+  | "request-changes";
 
 const ACTION_PATHS: Record<ActionName, (listingId: string) => string> = {
   approve: ROUTES.admin.listingApprove,
+  delist: ROUTES.admin.listingDelist,
+  "mark-reserved": ROUTES.admin.listingMarkReserved,
+  "mark-sold": ROUTES.admin.listingMarkSold,
+  "inspection-summary-approve": ROUTES.admin.listingApproveSummary,
+  "inspection-tasks": ROUTES.admin.listingCreateInspectionTask,
+  "ownership-verification": ROUTES.admin.listingOwnershipVerification,
   publish: ROUTES.admin.listingPublish,
   reject: ROUTES.admin.listingReject,
   "request-changes": ROUTES.admin.listingRequestChanges,

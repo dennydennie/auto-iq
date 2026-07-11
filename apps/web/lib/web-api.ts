@@ -27,7 +27,10 @@ async function parseError(response: Response): Promise<ApiError> {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<ApiResult<T>> {
   let response: Response;
 
   try {
@@ -42,7 +45,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<ApiResult<T
   } catch (error) {
     return {
       ok: false,
-      error: unknownError(error instanceof Error ? error.message : "Network error"),
+      error: unknownError(
+        error instanceof Error ? error.message : "Network error",
+      ),
     };
   }
 
@@ -80,6 +85,14 @@ export function postJson<T>(path: string, body?: unknown) {
 export function putJson<T>(path: string, body?: unknown) {
   return request<T>(path, {
     method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+export function patchJson<T>(path: string, body?: unknown) {
+  return request<T>(path, {
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

@@ -1,4 +1,7 @@
-import { ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
+import {
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
@@ -14,9 +17,12 @@ describe("AuthService", () => {
       save: jest.fn().mockResolvedValue(undefined),
     };
     const config = {
-      get: jest.fn().mockImplementation((key: string, defaultValue?: string) =>
-        overrides?.configGet?.(key, defaultValue) ?? defaultValue,
-      ),
+      get: jest
+        .fn()
+        .mockImplementation(
+          (key: string, defaultValue?: string) =>
+            overrides?.configGet?.(key, defaultValue) ?? defaultValue,
+        ),
     };
     const dataSource = { transaction: jest.fn() };
     const passwordService = {
@@ -31,13 +37,16 @@ describe("AuthService", () => {
     };
     const userRepository = {
       findByEmail: overrides?.findByEmail ?? jest.fn().mockResolvedValue(null),
-      findByIdentifier: overrides?.findByIdentifier ?? jest.fn().mockResolvedValue(null),
+      findByIdentifier:
+        overrides?.findByIdentifier ?? jest.fn().mockResolvedValue(null),
       findById: jest.fn(),
       findByPhone: jest.fn(),
       save: jest.fn(),
     };
     const notificationService = {
-      notifyUser: overrides?.notifyUser ?? jest.fn().mockResolvedValue([{ status: "SENT" }]),
+      notifyUser:
+        overrides?.notifyUser ??
+        jest.fn().mockResolvedValue([{ status: "SENT" }]),
     };
 
     return {
@@ -74,14 +83,58 @@ describe("AuthService", () => {
       findByIdentifier: jest.fn().mockResolvedValue(user),
     });
 
-    const error = await service.login({ identifier: user.email, password: "password-123" }).catch((value) => value);
+    const error = await service
+      .login(
+        { identifier: user.email, password: "password-123" },
+        "203.0.113.10",
+      )
+      .catch((value) => value);
 
     expect(error).toBeInstanceOf(UnauthorizedException);
     expect(error.getResponse()).toMatchObject({
       code: "OTP_REQUIRED",
       message: "Verify your phone number before signing in.",
-      details: [{ field: "phone", value: user.phone }],
+      details: [{ field: "phone", value: "+263••••1111" }],
     });
+  });
+
+  it("limits login by identifier and client IP without making identifier lockout trivial", async () => {
+    const user = {
+      id: "user-1",
+      email: "buyer@example.com",
+      phone: "+263771111111",
+      passwordHash: "hash",
+      status: "ACTIVE",
+      roles: [{ role: "BUYER" }],
+    };
+    const { service, rateLimitService } = createService({
+      findByIdentifier: jest.fn().mockResolvedValue(user),
+    });
+
+    await service.login(
+      { identifier: " Buyer@Example.com ", password: "password-123" },
+      "203.0.113.10",
+    );
+    await service.login(
+      { identifier: " Buyer@Example.com ", password: "password-123" },
+      "198.51.100.24",
+    );
+
+    expect(rateLimitService.consume).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/^login-client:[a-f0-9]{64}$/),
+      5,
+      900,
+    );
+    expect(rateLimitService.consume.mock.calls[0]?.[0]).not.toBe(
+      rateLimitService.consume.mock.calls[2]?.[0],
+    );
+    expect(rateLimitService.consume).toHaveBeenNthCalledWith(
+      2,
+      expect.stringMatching(/^login-account:[a-f0-9]{64}$/),
+      25,
+      900,
+    );
   });
 
   it("sends password reset notifications with a reset link", async () => {
@@ -115,7 +168,9 @@ describe("AuthService", () => {
     const notifyCall = notificationService.notifyUser.mock.calls[0]?.[0];
     const resetUrl = notifyCall?.payload?.resetUrl as string;
 
-    expect(resetUrl).toMatch(/^https:\/\/web\.example\.com\/auth\/reset-password#token=/);
+    expect(resetUrl).toMatch(
+      /^https:\/\/web\.example\.com\/auth\/reset-password#token=/,
+    );
     expect(resetUrl).not.toContain("?token=");
     expect(notificationService.notifyUser).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -178,8 +233,8 @@ describe("AuthService", () => {
       notifyUser: jest.fn().mockResolvedValue([{ status: "FAILED" }]),
     });
 
-    await expect(service.forgotPassword({ email: user.email })).rejects.toBeInstanceOf(
-      ServiceUnavailableException,
-    );
+    await expect(
+      service.forgotPassword({ email: user.email }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });

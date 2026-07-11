@@ -1,14 +1,24 @@
 import Link from "next/link";
 import type {
   CatalogueMakeFacetsResponse,
+  CatalogueModelFacetsResponse,
   CatalogueResponse,
   SavedVehicleDto,
 } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import { Lock, Search, ShieldCheck, SlidersHorizontal, Sparkles } from "lucide-react";
-import { FilterSidebar, type CatalogueFilterState } from "@/components/marketplace/filter-sidebar";
+import {
+  Lock,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
+import {
+  FilterSidebar,
+  type CatalogueFilterState,
+} from "@/components/marketplace/filter-sidebar";
 import { VehicleCard } from "@/components/marketplace/vehicle-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -18,7 +28,12 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { getOptionalSessionJson, getPublicJson, isServerApiFailure, withQuery } from "@/lib/server-api";
+import {
+  getOptionalSessionJson,
+  getPublicJson,
+  isServerApiFailure,
+  withQuery,
+} from "@/lib/server-api";
 import { extractSavedVehicles } from "@/lib/saved-vehicles";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
@@ -27,12 +42,13 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Filters = CatalogueFilterState & { cursor: string };
 
 function readValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function filtersToQuery(filters: Filters) {
   const params = new URLSearchParams();
   if (filters.make) params.set("make", filters.make);
+  if (filters.model) params.set("model", filters.model);
   if (filters.city) params.set("city", filters.city);
   if (filters.bodyType) params.set("bodyType", filters.bodyType);
   if (filters.fuelType) params.set("fuelType", filters.fuelType);
@@ -43,7 +59,8 @@ function filtersToQuery(filters: Filters) {
   if (filters.priceMin) params.set("priceMin", filters.priceMin);
   if (filters.priceMax) params.set("priceMax", filters.priceMax);
   if (filters.mileageMax) params.set("mileageMax", filters.mileageMax);
-  if (filters.sortBy && filters.sortBy !== "publishedAt") params.set("sortBy", filters.sortBy);
+  if (filters.sortBy && filters.sortBy !== "publishedAt")
+    params.set("sortBy", filters.sortBy);
   if (filters.cursor) params.set("cursor", filters.cursor);
   return params.toString();
 }
@@ -56,6 +73,7 @@ function vehiclesHref(overrides: Partial<Filters>, current: Filters) {
 function activeFilterCount(filters: Filters) {
   let count = 0;
   if (filters.make) count++;
+  if (filters.model) count++;
   if (filters.city) count++;
   if (filters.bodyType) count++;
   if (filters.fuelType) count++;
@@ -75,6 +93,7 @@ export default async function VehiclesPage({
   const params = await searchParams;
   const filters: Filters = {
     make: readValue(params.make),
+    model: readValue(params.model),
     city: readValue(params.city),
     bodyType: readValue(params.bodyType),
     fuelType: readValue(params.fuelType),
@@ -94,6 +113,7 @@ export default async function VehiclesPage({
     cursor: filters.cursor,
     city: filters.city,
     make: filters.make,
+    model: filters.model,
     bodyType: filters.bodyType,
     fuelType: filters.fuelType,
     transmission: filters.transmission,
@@ -107,42 +127,101 @@ export default async function VehiclesPage({
     bisellVerified: filters.verified === "true" ? true : undefined,
   });
 
-  const [catalogueResult, meResult, savedResult, makesResult] = await Promise.all([
-    getPublicJson<CatalogueResponse>(cataloguePath),
-    getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
-    getOptionalSessionJson<SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>>(
-      ROUTES.me.savedVehicles,
-    ),
-    getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
-  ]);
+  const modelFacets = filters.make
+    ? getPublicJson<CatalogueModelFacetsResponse>(
+        withQuery(ROUTES.catalogue.modelFacets, { make: filters.make }),
+      )
+    : Promise.resolve({
+        ok: true as const,
+        data: [] as CatalogueModelFacetsResponse,
+      });
+  const [catalogueResult, meResult, savedResult, makesResult, modelsResult] =
+    await Promise.all([
+      getPublicJson<CatalogueResponse>(cataloguePath),
+      getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
+      getOptionalSessionJson<
+        SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>
+      >(ROUTES.me.savedVehicles),
+      getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
+      modelFacets,
+    ]);
 
   const makes = !isServerApiFailure(makesResult) ? makesResult.data : [];
+  const models = !isServerApiFailure(modelsResult) ? modelsResult.data : [];
 
   const signedIn = meResult !== null && meResult.ok;
   const savedVehicles =
-    savedResult !== null && savedResult.ok ? extractSavedVehicles(savedResult.data) : [];
+    savedResult !== null && savedResult.ok
+      ? extractSavedVehicles(savedResult.data)
+      : [];
   const savedIds = new Set(savedVehicles.map((entry) => entry.listing.id));
 
   const chips: FilterChip[] = [];
-  if (filters.make) chips.push({ label: `Make: ${filters.make}`, removeHref: vehiclesHref({ make: "", cursor: "" }, filters) });
-  if (filters.city) chips.push({ label: `City: ${filters.city}`, removeHref: vehiclesHref({ city: "", cursor: "" }, filters) });
-  if (filters.bodyType) chips.push({ label: `Body: ${labelizeEnum(filters.bodyType)}`, removeHref: vehiclesHref({ bodyType: "", cursor: "" }, filters) });
-  if (filters.fuelType) chips.push({ label: `Fuel: ${labelizeEnum(filters.fuelType)}`, removeHref: vehiclesHref({ fuelType: "", cursor: "" }, filters) });
-  if (filters.transmission) chips.push({ label: `Transmission: ${labelizeEnum(filters.transmission)}`, removeHref: vehiclesHref({ transmission: "", cursor: "" }, filters) });
-  if (filters.verified === "true") chips.push({ label: "BiSell verified", removeHref: vehiclesHref({ verified: "", cursor: "" }, filters) });
+  if (filters.make)
+    chips.push({
+      label: `Make: ${filters.make}`,
+      removeHref: vehiclesHref({ make: "", model: "", cursor: "" }, filters),
+    });
+  if (filters.model)
+    chips.push({
+      label: `Model: ${filters.model}`,
+      removeHref: vehiclesHref({ model: "", cursor: "" }, filters),
+    });
+  if (filters.city)
+    chips.push({
+      label: `City: ${filters.city}`,
+      removeHref: vehiclesHref({ city: "", cursor: "" }, filters),
+    });
+  if (filters.bodyType)
+    chips.push({
+      label: `Body: ${labelizeEnum(filters.bodyType)}`,
+      removeHref: vehiclesHref({ bodyType: "", cursor: "" }, filters),
+    });
+  if (filters.fuelType)
+    chips.push({
+      label: `Fuel: ${labelizeEnum(filters.fuelType)}`,
+      removeHref: vehiclesHref({ fuelType: "", cursor: "" }, filters),
+    });
+  if (filters.transmission)
+    chips.push({
+      label: `Transmission: ${labelizeEnum(filters.transmission)}`,
+      removeHref: vehiclesHref({ transmission: "", cursor: "" }, filters),
+    });
+  if (filters.verified === "true")
+    chips.push({
+      label: "BiSell verified",
+      removeHref: vehiclesHref({ verified: "", cursor: "" }, filters),
+    });
   if (filters.yearMin || filters.yearMax) {
     const label = `Year ${filters.yearMin || "any"} – ${filters.yearMax || "any"}`;
-    chips.push({ label, removeHref: vehiclesHref({ yearMin: "", yearMax: "", cursor: "" }, filters) });
+    chips.push({
+      label,
+      removeHref: vehiclesHref(
+        { yearMin: "", yearMax: "", cursor: "" },
+        filters,
+      ),
+    });
   }
   if (filters.priceMin || filters.priceMax) {
     const label = `Price $${filters.priceMin || "0"} – $${filters.priceMax || "∞"}`;
-    chips.push({ label, removeHref: vehiclesHref({ priceMin: "", priceMax: "", cursor: "" }, filters) });
+    chips.push({
+      label,
+      removeHref: vehiclesHref(
+        { priceMin: "", priceMax: "", cursor: "" },
+        filters,
+      ),
+    });
   }
   if (filters.mileageMax) {
-    chips.push({ label: `≤ ${filters.mileageMax} km`, removeHref: vehiclesHref({ mileageMax: "", cursor: "" }, filters) });
+    chips.push({
+      label: `≤ ${filters.mileageMax} km`,
+      removeHref: vehiclesHref({ mileageMax: "", cursor: "" }, filters),
+    });
   }
 
-  const resultsCount = !isServerApiFailure(catalogueResult) ? catalogueResult.data.data.length : 0;
+  const resultsCount = !isServerApiFailure(catalogueResult)
+    ? catalogueResult.data.data.length
+    : 0;
   const filterCount = activeFilterCount(filters);
   const listQuery = filtersToQuery({ ...filters, cursor: "" });
   const returnHref = listQuery ? `/vehicles?${listQuery}` : "/vehicles";
@@ -167,7 +246,11 @@ export default async function VehiclesPage({
                   className="h-10 pl-9"
                 />
               </div>
-              <button className={buttonVariants({ variant: "amber", size: "sm" })}>Search</button>
+              <button
+                className={buttonVariants({ variant: "amber", size: "sm" })}
+              >
+                Search
+              </button>
             </form>
           }
         />
@@ -186,8 +269,8 @@ export default async function VehiclesPage({
                 Inspected vehicles. Verified sellers.
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/72">
-                Browse every available vehicle on BiSell AutoIQ. Seller contact details
-                and viewing bookings unlock when you sign in.
+                Browse every available vehicle on BiSell AutoIQ. Seller contact
+                details and viewing bookings unlock when you sign in.
               </p>
 
               <form className="mt-5 flex w-full max-w-2xl flex-col gap-2 sm:flex-row">
@@ -210,7 +293,12 @@ export default async function VehiclesPage({
                     className="h-11 border-none bg-white pl-9 text-[var(--ink-900)] placeholder:text-[var(--ink-400)]"
                   />
                 </div>
-                <button className={buttonVariants({ variant: "amber", className: "h-11 px-6" })}>
+                <button
+                  className={buttonVariants({
+                    variant: "amber",
+                    className: "h-11 px-6",
+                  })}
+                >
                   Search
                 </button>
               </form>
@@ -232,7 +320,8 @@ export default async function VehiclesPage({
                     className={buttonVariants({
                       variant: "outline",
                       size: "sm",
-                      className: "border-white/30 bg-white/5 text-white hover:bg-white/10",
+                      className:
+                        "border-white/30 bg-white/5 text-white hover:bg-white/10",
                     })}
                   >
                     Create buyer account
@@ -244,15 +333,24 @@ export default async function VehiclesPage({
             {/* Trust signals — three short rows */}
             <ul className="grid gap-2 text-sm">
               <li className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-[#FFC72C]" aria-hidden="true" />
+                <ShieldCheck
+                  className="h-4 w-4 shrink-0 text-[#FFC72C]"
+                  aria-hidden="true"
+                />
                 <span className="text-white/80">Every listing inspected</span>
               </li>
               <li className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <Sparkles className="h-4 w-4 shrink-0 text-[#FFC72C]" aria-hidden="true" />
+                <Sparkles
+                  className="h-4 w-4 shrink-0 text-[#FFC72C]"
+                  aria-hidden="true"
+                />
                 <span className="text-white/80">Verified sellers only</span>
               </li>
               <li className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <Lock className="h-4 w-4 shrink-0 text-[#FFC72C]" aria-hidden="true" />
+                <Lock
+                  className="h-4 w-4 shrink-0 text-[#FFC72C]"
+                  aria-hidden="true"
+                />
                 <span className="text-white/80">Spam-free contact</span>
               </li>
             </ul>
@@ -268,7 +366,10 @@ export default async function VehiclesPage({
               filters={filters}
               clearHref="/vehicles"
               makes={makes}
-              buildMakeHref={(make) => vehiclesHref({ make, cursor: "" }, filters)}
+              models={models}
+              buildMakeHref={(make) =>
+                vehiclesHref({ make, model: "", cursor: "" }, filters)
+              }
             />
           </div>
         </div>
@@ -278,7 +379,12 @@ export default async function VehiclesPage({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <details className="relative lg:hidden">
-                <summary className={buttonVariants({ variant: "outline", className: "cursor-pointer list-none" })}>
+                <summary
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "cursor-pointer list-none",
+                  })}
+                >
                   <SlidersHorizontal className="h-4 w-4" />
                   Filters{filterCount > 0 ? ` (${filterCount})` : ""}
                 </summary>
@@ -287,7 +393,10 @@ export default async function VehiclesPage({
                     filters={filters}
                     clearHref="/vehicles"
                     makes={makes}
-                    buildMakeHref={(make) => vehiclesHref({ make, cursor: "" }, filters)}
+                    models={models}
+                    buildMakeHref={(make) =>
+                      vehiclesHref({ make, model: "", cursor: "" }, filters)
+                    }
                   />
                 </div>
               </details>
@@ -296,7 +405,10 @@ export default async function VehiclesPage({
                   "Unable to load results"
                 ) : (
                   <>
-                    Showing <span className="font-semibold text-[var(--ink-900)]">{resultsCount}</span>{" "}
+                    Showing{" "}
+                    <span className="font-semibold text-[var(--ink-900)]">
+                      {resultsCount}
+                    </span>{" "}
                     {resultsCount === 1 ? "vehicle" : "vehicles"}
                     {filterCount > 0 ? " matching your filters" : ""}
                   </>
@@ -309,27 +421,49 @@ export default async function VehiclesPage({
               <input type="hidden" name="city" value={filters.city} />
               <input type="hidden" name="bodyType" value={filters.bodyType} />
               <input type="hidden" name="fuelType" value={filters.fuelType} />
-              <input type="hidden" name="transmission" value={filters.transmission} />
+              <input
+                type="hidden"
+                name="transmission"
+                value={filters.transmission}
+              />
               <input type="hidden" name="verified" value={filters.verified} />
               <input type="hidden" name="yearMin" value={filters.yearMin} />
               <input type="hidden" name="yearMax" value={filters.yearMax} />
               <input type="hidden" name="priceMin" value={filters.priceMin} />
               <input type="hidden" name="priceMax" value={filters.priceMax} />
-              <input type="hidden" name="mileageMax" value={filters.mileageMax} />
-              <label htmlFor="sort-by" className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+              <input
+                type="hidden"
+                name="mileageMax"
+                value={filters.mileageMax}
+              />
+              <label
+                htmlFor="sort-by"
+                className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]"
+              >
                 Sort by
               </label>
-              <Select id="sort-by" name="sortBy" defaultValue={filters.sortBy} className="h-10">
+              <Select
+                id="sort-by"
+                name="sortBy"
+                defaultValue={filters.sortBy}
+                className="h-10"
+              >
                 <option value="publishedAt">Newest</option>
                 <option value="askPriceUsd">Price</option>
                 <option value="year">Year</option>
                 <option value="inspectionScore">Inspection score</option>
               </Select>
-              <button className={buttonVariants({ variant: "outline", size: "sm" })}>Apply</button>
+              <button
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Apply
+              </button>
             </form>
           </div>
 
-          {chips.length > 0 ? <FilterChips chips={chips} clearAllHref="/vehicles" /> : null}
+          {chips.length > 0 ? (
+            <FilterChips chips={chips} clearAllHref="/vehicles" />
+          ) : null}
 
           {isServerApiFailure(catalogueResult) ? (
             <ErrorBanner
@@ -349,10 +483,14 @@ export default async function VehiclesPage({
                   />
                 ))}
               </div>
-              {catalogueResult.data.meta.hasMore && catalogueResult.data.meta.nextCursor ? (
+              {catalogueResult.data.meta.hasMore &&
+              catalogueResult.data.meta.nextCursor ? (
                 <div className="flex justify-center pt-2">
                   <Link
-                    href={vehiclesHref({ cursor: catalogueResult.data.meta.nextCursor }, filters)}
+                    href={vehiclesHref(
+                      { cursor: catalogueResult.data.meta.nextCursor },
+                      filters,
+                    )}
                     className={buttonVariants({ variant: "outline" })}
                   >
                     Load more vehicles
@@ -363,16 +501,23 @@ export default async function VehiclesPage({
           ) : (
             <EmptyState
               icon={Search}
-              headline={chips.length > 0 ? "No vehicles match these filters" : "No published vehicles yet"}
+              headline={
+                chips.length > 0
+                  ? "No vehicles match these filters"
+                  : "No published vehicles yet"
+              }
               body={
                 chips.length > 0
                   ? "Try removing one or more filters to widen the search."
                   : "The catalogue endpoint is live, but no vehicles are published yet."
               }
-              cta={chips.length > 0 ? { label: "Clear filters", href: "/vehicles" } : undefined}
+              cta={
+                chips.length > 0
+                  ? { label: "Clear filters", href: "/vehicles" }
+                  : undefined
+              }
             />
           )}
-
         </div>
       </div>
     </main>

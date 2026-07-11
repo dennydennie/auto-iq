@@ -71,3 +71,9 @@ jobs:
 
       - name: Run API tests
         run: pnpm --filter api test
+
+      - name: Export OpenAPI document
+        run: OPENAPI_OUTPUT_PATH=../../artifacts/openapi.json pnpm --filter api openapi:export
+
+      - name: Check shared contract routes against OpenAPI
+        run: OPENAPI_DOCUMENT=artifacts/openapi.json pnpm --filter @auto-iq/contracts test

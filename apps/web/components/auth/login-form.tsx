@@ -13,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const ADMIN_ROLES = new Set(["ADMIN", "PARTNER_ADMIN", "SYSTEM_ADMINISTRATOR"]);
+const ADMIN_ROLES = new Set<LoginResponse["role"]>(["ADMIN"]);
 
 function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
   if (mode === "admin") {
@@ -26,6 +26,10 @@ function destinationFor(role: LoginResponse["role"], mode: "user" | "admin") {
 
   if (role === "SELLER") {
     return "/seller";
+  }
+
+  if (role === "INSPECTOR") {
+    return "/inspector/tasks";
   }
 
   return "/";
@@ -60,7 +64,10 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  function setField<K extends keyof LoginRequest>(key: K, value: LoginRequest[K]) {
+  function setField<K extends keyof LoginRequest>(
+    key: K,
+    value: LoginRequest[K],
+  ) {
     setForm((current) => ({ ...current, [key]: value }));
     if (error) setError(null);
   }
@@ -73,14 +80,10 @@ export function LoginForm({
       const result = await postJson<LoginResponse>("/api/auth/login", form);
       if (isApiFailure(result)) {
         if (result.error.code === "OTP_REQUIRED") {
-          const phone = otpPhone(result.error, form.identifier);
           const params = new URLSearchParams({
             identifier: form.identifier.trim(),
             registered: "0",
           });
-          if (phone) {
-            params.set("phone", phone);
-          }
           router.push(`/auth/otp?${params.toString()}`);
           return;
         }
@@ -90,7 +93,10 @@ export function LoginForm({
       }
 
       if (mode === "admin" && !validateAdmin(result.data.role)) {
-        setError({ message: "This account does not have admin console access." });
+        await postJson<void>("/api/auth/logout");
+        setError({
+          message: "This account does not have admin console access.",
+        });
         return;
       }
 
@@ -105,7 +111,10 @@ export function LoginForm({
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       {error ? (
-        <ErrorBanner message={error.message} correlationId={error.correlationId} />
+        <ErrorBanner
+          message={error.message}
+          correlationId={error.correlationId}
+        />
       ) : null}
 
       <div className="space-y-3">
@@ -170,11 +179,16 @@ export function LoginForm({
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
         <p className="text-xs leading-5 text-[var(--ink-400)]">
-          Use the password you set during registration or the last secure reset flow.
+          Use the password you set during registration or the last secure reset
+          flow.
         </p>
       </div>
 
@@ -182,13 +196,25 @@ export function LoginForm({
           Admin operators may want the note; buyers should not care. */}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" variant="amber" className="flex-1" disabled={isPending}>
-          {isPending ? "Signing in..." : mode === "admin" ? "Enter admin console" : "Sign in"}
+        <Button
+          type="submit"
+          variant="amber"
+          className="flex-1"
+          disabled={isPending}
+        >
+          {isPending
+            ? "Signing in..."
+            : mode === "admin"
+              ? "Enter admin console"
+              : "Sign in"}
           <ArrowRight className="h-4 w-4" />
         </Button>
         <Link
           href="/auth/forgot-password"
-          className={buttonVariants({ variant: "outline", className: "flex-1 w-full" })}
+          className={buttonVariants({
+            variant: "outline",
+            className: "flex-1 w-full",
+          })}
         >
           Reset password
         </Link>
@@ -217,13 +243,4 @@ export function LoginForm({
       ) : null}
     </form>
   );
-}
-
-function otpPhone(error: ApiError, identifier: string) {
-  const fromDetails = error.details?.find((detail) => detail.field === "phone")?.value;
-  if (typeof fromDetails === "string" && fromDetails.trim().length > 0) {
-    return fromDetails;
-  }
-
-  return identifier.startsWith("+") ? identifier : null;
 }

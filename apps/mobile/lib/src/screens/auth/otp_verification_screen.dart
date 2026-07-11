@@ -17,13 +17,11 @@ class OtpVerificationScreen extends StatefulWidget {
     super.key,
     this.phone,
     required this.identifier,
-    required this.password,
     this.autoSend = true,
   });
 
   final String? phone;
   final String identifier;
-  final String password;
 
   /// When true (default), fires a code send request on mount. Callers that
   /// know the backend already fired one during the previous step can set this
@@ -41,6 +39,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   String? _message;
   Timer? _tick;
   int _resendIn = 0;
+  bool _verificationLocked = false;
 
   bool get _codeReady => _codeController.text.trim().length == _codeLength;
 
@@ -123,8 +122,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ],
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) {
-                  if (_codeReady) _verify();
+                  if (_codeReady && !_verificationLocked) _verify();
                 },
+                enabled: !_verificationLocked,
                 style: const TextStyle(
                   fontSize: 24,
                   letterSpacing: 12,
@@ -160,7 +160,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _busy || !_codeReady ? null : _verify,
+                      onPressed: _busy || !_codeReady || _verificationLocked
+                          ? null
+                          : _verify,
                       child: _busy
                           ? const SizedBox(
                               height: 18,
@@ -199,9 +201,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       await context.read<AuthRepository>().sendOtp(
             identifier: widget.identifier,
             phone: widget.phone,
-          );
+      );
       if (!mounted) return;
-      setState(() => _message = 'Code sent. Check your SMS.');
+      setState(() {
+        _message = 'Code sent. Check your SMS.';
+        _verificationLocked = false;
+      });
       _startResendCooldown();
     } on ApiException catch (error) {
       _showError(error.message);
@@ -224,14 +229,18 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         phone: widget.phone,
         code: _codeController.text,
       );
-      await sessionController.login(
-        identifier: widget.identifier,
-        password: widget.password,
-      );
+      await sessionController.refreshProfile();
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     } on ApiException catch (error) {
       _showError(error.message);
+      if (error.code == 'OTP_MAX_ATTEMPTS' && mounted) {
+        _tick?.cancel();
+        setState(() {
+          _verificationLocked = true;
+          _resendIn = 0;
+        });
+      }
       // Clear the code so the user can retype cleanly. Rate-limit copy from
       // the server carries the important detail.
       if (mounted) {

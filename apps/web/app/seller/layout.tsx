@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/seller", label: "Workspace" },
   { href: "/seller/listings", label: "All listings" },
   { href: "/seller/listings/new", label: "New listing" },
+  { href: "/seller/viewings", label: "Viewings" },
   { href: "/vehicles", label: "Browse buyers' view" },
 ];
 
@@ -14,11 +15,7 @@ const LINKS = [
 export default function SellerLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <SiteHeader
-        links={LINKS}
-        homeHref="/seller"
-        signedIn
-      />
+      <SiteHeader links={LINKS} homeHref="/seller" signedIn />
       {children}
     </>
   );

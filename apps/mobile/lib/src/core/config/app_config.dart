@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
@@ -14,11 +12,7 @@ class AppConfig {
       _assertProductionScheme(normalized);
       return normalized;
     }
-    if (Platform.isAndroid) {
-      // Android emulator loopback for local dev.
-      return 'http://10.0.2.2:4000';
-    }
-    return 'http://localhost:4000';
+    return 'https://api-staging-bdfe.up.railway.app';
   }
 
   static String get apiLabel => '$apiBaseUrl/api/v1';
@@ -29,7 +23,9 @@ class AppConfig {
     final url = apiBaseUrl;
     if (url.startsWith('https://')) return false;
     // Loopback and Android emulator loopback are fine for dev.
-    if (url.contains('localhost') || url.contains('127.0.0.1') || url.contains('10.0.2.2')) {
+    if (url.contains('localhost') ||
+        url.contains('127.0.0.1') ||
+        url.contains('10.0.2.2')) {
       return false;
     }
     return true;

@@ -333,7 +333,6 @@ class _AuthScreenState extends State<AuthScreen> {
             builder: (_) => OtpVerificationScreen(
               phone: identifier.startsWith('+') ? identifier : null,
               identifier: identifier,
-              password: _loginPasswordController.text,
             ),
           ),
         );
@@ -373,7 +372,6 @@ class _AuthScreenState extends State<AuthScreen> {
           builder: (_) => OtpVerificationScreen(
             phone: _phoneController.text,
             identifier: _emailController.text,
-            password: _registerPasswordController.text,
             autoSend: result.otpRequired,
           ),
         ),

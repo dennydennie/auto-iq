@@ -6,9 +6,11 @@ import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
 import {
   Calendar,
+  BellRing,
   FileText,
   Home,
   ListChecks,
+  MessageSquareQuote,
   type LucideIcon,
   Menu,
   Settings,
@@ -25,11 +27,13 @@ const PRIMARY_NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: Home },
   { href: "/admin/listings", label: "Listings", icon: ListChecks },
   { href: "/admin/viewings", label: "Viewings", icon: Calendar },
+  { href: "/admin/quotes", label: "Quotes", icon: MessageSquareQuote },
+  { href: "/admin/requests", label: "Buyer requests", icon: Sparkles },
+  { href: "/admin/notifications", label: "Notifications", icon: BellRing },
 ] as const;
 
 const UPCOMING_NAV_ITEMS = [
   { href: "/admin/inspections", label: "Inspections", icon: ShieldCheck },
-  { href: "/admin/requests", label: "Buyer requests", icon: Sparkles },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -67,7 +71,12 @@ function NavLink({
           : "text-[var(--ink-500)] hover:bg-white hover:text-[var(--ink-900)]",
       )}
     >
-      <Icon className={cn("h-4 w-4", active ? "text-[var(--amber)]" : "text-[var(--ink-400)]")} />
+      <Icon
+        className={cn(
+          "h-4 w-4",
+          active ? "text-[var(--amber)]" : "text-[var(--ink-400)]",
+        )}
+      />
       <span className="flex-1">{label}</span>
       {upcoming ? (
         <span className="rounded-full bg-[var(--ink-100)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-500)]">
@@ -98,7 +107,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
         <aside className="sticky top-0 hidden min-h-screen w-72 shrink-0 border-r border-white/60 bg-white/72 px-6 py-6 backdrop-blur lg:flex lg:flex-col">
-          <Link href="/admin" className="rounded-[1.5rem] bg-[var(--ink-900)] px-5 py-4 text-white">
+          <Link
+            href="/admin"
+            className="rounded-[1.5rem] bg-[var(--ink-900)] px-5 py-4 text-white"
+          >
             <BiSellLogo size={28} />
             <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
               Admin console
@@ -129,24 +141,38 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-40 border-b border-white/70 bg-[var(--paper)]/92 px-4 py-4 backdrop-blur sm:px-6 lg:hidden">
             <div className="flex items-center justify-between gap-4">
-              <Link href="/admin" className="rounded-[1.25rem] bg-white px-4 py-3 shadow-[0_16px_36px_-28px_rgba(22,31,58,0.4)]">
+              <Link
+                href="/admin"
+                className="rounded-[1.25rem] bg-white px-4 py-3 shadow-[0_16px_36px_-28px_rgba(22,31,58,0.4)]"
+              >
                 <BiSellLogo size={26} />
               </Link>
               <button
                 type="button"
                 aria-controls="admin-mobile-nav"
                 aria-expanded={isMenuOpen}
-                aria-label={isMenuOpen ? "Close admin navigation" : "Open admin navigation"}
+                aria-label={
+                  isMenuOpen
+                    ? "Close admin navigation"
+                    : "Open admin navigation"
+                }
                 onClick={() => setIsMenuOpen((current) => !current)}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-[var(--ink-200)] bg-white text-[var(--ink-900)] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)]"
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
               </button>
             </div>
           </header>
 
           {isMenuOpen ? (
-            <div className="fixed inset-0 z-30 bg-[rgba(10,30,77,0.28)] lg:hidden" onClick={() => setIsMenuOpen(false)}>
+            <div
+              className="fixed inset-0 z-30 bg-[rgba(10,30,77,0.28)] lg:hidden"
+              onClick={() => setIsMenuOpen(false)}
+            >
               <aside
                 id="admin-mobile-nav"
                 className="absolute inset-x-4 top-20 rounded-[1.75rem] border border-white/70 bg-white p-4 shadow-[0_32px_80px_-40px_rgba(22,31,58,0.45)]"

@@ -2,10 +2,18 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarClock, MessageSquareQuote, ShieldCheck, type LucideIcon } from "lucide-react";
+import {
+  CalendarClock,
+  MessageSquareQuote,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import type { QuoteDto, CreateQuoteRequest } from "@auto-iq/contracts/quotes";
 import type { ApprovedViewingLocationDto } from "@auto-iq/contracts/reference-data";
-import type { RequestViewingRequest, ViewingDto } from "@auto-iq/contracts/viewings";
+import type {
+  RequestViewingRequest,
+  ViewingDto,
+} from "@auto-iq/contracts/viewings";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -27,7 +35,23 @@ type FeedbackState =
   | null;
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return localIsoDate(new Date());
+}
+
+function defaultViewingDate() {
+  const date = new Date();
+  let remaining = 2;
+  while (remaining > 0) {
+    date.setDate(date.getDate() + 1);
+    if (date.getDay() !== 0 && date.getDay() !== 6) remaining -= 1;
+  }
+  return localIsoDate(date);
+}
+
+function localIsoDate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function defaultLocationId(locations: ApprovedViewingLocationDto[]) {
@@ -50,7 +74,7 @@ export function VehicleInterestPanel({
     message: "",
   });
   const [viewingForm, setViewingForm] = useState<RequestViewingRequest>({
-    preferredDate: todayIso(),
+    preferredDate: defaultViewingDate(),
     preferredTime: "11:00",
     locationId: defaultLocationId(viewingLocations),
     note: "",
@@ -60,11 +84,17 @@ export function VehicleInterestPanel({
   const [isPending, startTransition] = useTransition();
   const canBookViewing = viewingLocations.length > 0;
 
-  function setQuoteField<K extends keyof CreateQuoteRequest>(key: K, value: CreateQuoteRequest[K]) {
+  function setQuoteField<K extends keyof CreateQuoteRequest>(
+    key: K,
+    value: CreateQuoteRequest[K],
+  ) {
     setQuoteForm((current) => ({ ...current, [key]: value }));
   }
 
-  function setViewingField<K extends keyof RequestViewingRequest>(key: K, value: RequestViewingRequest[K]) {
+  function setViewingField<K extends keyof RequestViewingRequest>(
+    key: K,
+    value: RequestViewingRequest[K],
+  ) {
     setViewingForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -84,17 +114,20 @@ export function VehicleInterestPanel({
     setFeedback(null);
 
     startTransition(async () => {
-      const result = await postJson<QuoteDto>(`/api/buyer/quotes/${listingId}`, {
-        ...quoteForm,
-        offerPriceUsd: Number(quoteForm.offerPriceUsd),
-      });
+      const result = await postJson<QuoteDto>(
+        `/api/buyer/quotes/${listingId}`,
+        {
+          ...quoteForm,
+          offerPriceUsd: Number(quoteForm.offerPriceUsd),
+        },
+      );
 
       if (isApiFailure(result)) {
         showError(result.error.message, result.error.correlationId);
         return;
       }
 
-      showSuccess(`Quote ${result.data.id} saved and sent for review.`);
+      showSuccess("Your quote was sent for review.");
     });
   }
 
@@ -103,14 +136,17 @@ export function VehicleInterestPanel({
     setFeedback(null);
 
     startTransition(async () => {
-      const result = await postJson<ViewingDto>(`/api/buyer/viewings/${listingId}`, viewingForm);
+      const result = await postJson<ViewingDto>(
+        `/api/buyer/viewings/${listingId}`,
+        viewingForm,
+      );
 
       if (isApiFailure(result)) {
         showError(result.error.message, result.error.correlationId);
         return;
       }
 
-      showSuccess(`Viewing request ${result.data.id} saved with status ${result.data.status}.`);
+      showSuccess("Your viewing request was sent for confirmation.");
     });
   }
 
@@ -122,12 +158,17 @@ export function VehicleInterestPanel({
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="display text-2xl text-[var(--ink-900)]">Sign in to book or quote</h2>
+            <h2 className="display text-2xl text-[var(--ink-900)]">
+              Sign in to book or quote
+            </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--ink-500)]">
-              Buyer actions hit the live API. Use a buyer account first, then come back here to save a quote or viewing request.
+              Sign in with a buyer account to send a quote or request a viewing.
             </p>
           </div>
-          <Link href="/auth/login" className={buttonVariants({ variant: "amber" })}>
+          <Link
+            href="/auth/login"
+            className={buttonVariants({ variant: "amber" })}
+          >
             Go to buyer login
           </Link>
         </CardContent>
@@ -139,9 +180,11 @@ export function VehicleInterestPanel({
     return (
       <Card className="border-dashed">
         <CardContent className="space-y-3 p-6">
-          <h2 className="display text-2xl text-[var(--ink-900)]">Buyer-only actions</h2>
+          <h2 className="display text-2xl text-[var(--ink-900)]">
+            Buyer-only actions
+          </h2>
           <p className="text-sm leading-6 text-[var(--ink-500)]">
-            Quote and viewing flows are restricted to buyer accounts by the API contracts.
+            Quote and viewing requests are available from buyer accounts.
           </p>
         </CardContent>
       </Card>
@@ -168,10 +211,15 @@ export function VehicleInterestPanel({
         />
       </div>
 
-      {feedback ? feedback.kind === "error" ? (
-        <ErrorBanner message={feedback.message} correlationId={feedback.correlationId} />
-      ) : (
-        <NoticeBanner message={feedback.message} />
+      {feedback ? (
+        feedback.kind === "error" ? (
+          <ErrorBanner
+            message={feedback.message}
+            correlationId={feedback.correlationId}
+          />
+        ) : (
+          <NoticeBanner message={feedback.message} />
+        )
       ) : null}
 
       <ModalDialog
@@ -188,7 +236,9 @@ export function VehicleInterestPanel({
               type="number"
               min={1}
               value={quoteForm.offerPriceUsd || ""}
-              onChange={(event) => setQuoteField("offerPriceUsd", Number(event.target.value))}
+              onChange={(event) =>
+                setQuoteField("offerPriceUsd", Number(event.target.value))
+              }
               required
             />
           </div>
@@ -197,7 +247,12 @@ export function VehicleInterestPanel({
             <Select
               id="paymentPlan"
               value={quoteForm.paymentPlan}
-              onChange={(event) => setQuoteField("paymentPlan", event.target.value as CreateQuoteRequest["paymentPlan"])}
+              onChange={(event) =>
+                setQuoteField(
+                  "paymentPlan",
+                  event.target.value as CreateQuoteRequest["paymentPlan"],
+                )
+              }
             >
               <option value="FULL_CASH">Full cash</option>
               <option value="BANK_TRANSFER">Bank transfer</option>
@@ -213,7 +268,12 @@ export function VehicleInterestPanel({
               placeholder="Optional context for the seller or admin team"
             />
           </div>
-          <Button type="submit" variant="amber" className="w-full" disabled={isPending}>
+          <Button
+            type="submit"
+            variant="amber"
+            className="w-full"
+            disabled={isPending}
+          >
             {isPending ? "Saving quote..." : "Send quote"}
           </Button>
         </form>
@@ -235,7 +295,9 @@ export function VehicleInterestPanel({
                   type="date"
                   min={todayIso()}
                   value={viewingForm.preferredDate}
-                  onChange={(event) => setViewingField("preferredDate", event.target.value)}
+                  onChange={(event) =>
+                    setViewingField("preferredDate", event.target.value)
+                  }
                   required
                 />
               </div>
@@ -245,7 +307,9 @@ export function VehicleInterestPanel({
                   id="preferredTime"
                   type="time"
                   value={viewingForm.preferredTime}
-                  onChange={(event) => setViewingField("preferredTime", event.target.value)}
+                  onChange={(event) =>
+                    setViewingField("preferredTime", event.target.value)
+                  }
                   required
                 />
               </div>
@@ -255,7 +319,9 @@ export function VehicleInterestPanel({
               <Select
                 id="locationId"
                 value={viewingForm.locationId}
-                onChange={(event) => setViewingField("locationId", event.target.value)}
+                onChange={(event) =>
+                  setViewingField("locationId", event.target.value)
+                }
               >
                 {viewingLocations.map((location) => (
                   <option key={location.id} value={location.id}>
@@ -269,11 +335,18 @@ export function VehicleInterestPanel({
               <Textarea
                 id="viewingNote"
                 value={viewingForm.note}
-                onChange={(event) => setViewingField("note", event.target.value)}
+                onChange={(event) =>
+                  setViewingField("note", event.target.value)
+                }
                 placeholder="Anything the admin team should know before confirming the slot"
               />
             </div>
-            <Button type="submit" variant="amber" className="w-full" disabled={isPending}>
+            <Button
+              type="submit"
+              variant="amber"
+              className="w-full"
+              disabled={isPending}
+            >
               {isPending ? "Saving viewing..." : "Request viewing"}
             </Button>
           </form>

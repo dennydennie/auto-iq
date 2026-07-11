@@ -1,5 +1,14 @@
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min, MinLength } from "class-validator";
+import {
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  MinLength,
+} from "class-validator";
 import {
   PAYMENT_PLANS,
   QUOTE_STATUSES,
@@ -57,6 +66,18 @@ export class UpdateQuoteDto {
   @IsIn(["UNDER_REVIEW", "ACCEPTED", "COUNTERED", "DECLINED"])
   status!: "UNDER_REVIEW" | "ACCEPTED" | "COUNTERED" | "DECLINED";
 
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  counterPriceUsd?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  responseNote?: string;
+}
+
+export class QuoteActionDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)

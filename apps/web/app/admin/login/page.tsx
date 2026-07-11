@@ -51,8 +51,7 @@ export default async function AdminLoginPage({
               Console route
             </p>
             <p className="text-sm leading-7 text-white/72">
-              Only admin, partner admin, and system administrator roles can
-              continue past this screen.
+              Only authorised admin accounts can continue past this screen.
             </p>
           </div>
           <div className="rounded-[1.35rem] border border-white/10 bg-white/7 p-4">
@@ -75,8 +74,8 @@ export default async function AdminLoginPage({
               Platform operators
             </h2>
             <p className="max-w-xl text-sm leading-7 text-[var(--ink-500)]">
-              Use the same identity service, with an admin role check before
-              the console opens.
+              Use the same identity service, with an admin role check before the
+              console opens.
             </p>
           </div>
         </div>

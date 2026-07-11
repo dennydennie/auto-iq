@@ -14,9 +14,10 @@ describe("CsrfService", () => {
       } as never,
       {
         get: jest.fn((key: string) => Promise.resolve(store.get(key) ?? null)),
-        set: jest.fn((key: string, value: string) => {
+        setIfAbsent: jest.fn((key: string, value: string) => {
+          if (store.has(key)) return Promise.resolve(false);
           store.set(key, value);
-          return Promise.resolve();
+          return Promise.resolve(true);
         }),
       } as never,
       {
@@ -30,5 +31,32 @@ describe("CsrfService", () => {
 
     await expect(service.verify("session-1", issued.token)).resolves.toBe(true);
     await expect(service.verify("session-1", "bad")).resolves.toBe(false);
+  });
+
+  it("reuses one token across concurrent session requests", async () => {
+    const store = new Map<string, string>();
+    const redis = {
+      get: jest.fn((key: string) => Promise.resolve(store.get(key) ?? null)),
+      setIfAbsent: jest.fn(async (key: string, value: string) => {
+        if (store.has(key)) return false;
+        store.set(key, value);
+        return true;
+      }),
+    };
+    const service = new CsrfService(
+      { getOrThrow: jest.fn().mockReturnValue("auto_iq_csrf") } as never,
+      redis as never,
+      {
+        cookieOptions: () => ({ path: "/" }),
+        sign: (value: string) => `signed-${value}`,
+      } as never,
+    );
+
+    const [first, second] = await Promise.all([
+      service.issue("session-1", { cookie: jest.fn() } as never),
+      service.issue("session-1", { cookie: jest.fn() } as never),
+    ]);
+
+    expect(first.token).toBe(second.token);
   });
 });

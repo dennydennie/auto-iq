@@ -41,12 +41,6 @@ export class LoginDto {
   password!: string;
 }
 
-export class RefreshDto {
-  @IsOptional()
-  @IsString()
-  refreshToken?: string;
-}
-
 export class SendOtpDto {
   @IsOptional()
   @Matches(/^\+[1-9]\d{7,14}$/)

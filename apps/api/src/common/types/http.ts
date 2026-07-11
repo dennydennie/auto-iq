@@ -3,6 +3,7 @@ export interface CorrelatedRequest {
   cookies?: Record<string, string | undefined>;
   currentUser?: AuthenticatedUser;
   headers: Record<string, string | string[] | undefined>;
+  ip?: string;
   method?: string;
   url?: string;
   originalUrl?: string;
@@ -15,7 +16,10 @@ export interface HeaderResponse {
 
 export interface CookieResponse extends HeaderResponse {
   cookie(name: string, value: string, options: CookieOptions): void;
-  clearCookie(name: string, options: Pick<CookieOptions, "domain" | "path" | "sameSite" | "secure">): void;
+  clearCookie(
+    name: string,
+    options: Pick<CookieOptions, "domain" | "path" | "sameSite" | "secure">,
+  ): void;
   status(code: number): CookieResponse;
 }
 

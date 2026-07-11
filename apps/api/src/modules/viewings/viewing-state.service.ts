@@ -4,26 +4,46 @@ import type { ViewingStatus } from "../../common/constants/listing.constants";
 @Injectable()
 export class ViewingStateService {
   confirm(current: ViewingStatus) {
-    return this.transition(current, ["REQUESTED", "PENDING_SELLER_CONFIRMATION", "RESCHEDULED"], "CONFIRMED");
+    return this.transition(
+      current,
+      ["REQUESTED", "PENDING_SELLER_CONFIRMATION", "RESCHEDULED"],
+      "CONFIRMED",
+    );
   }
 
-  sellerConfirm(current: ViewingStatus) {
-    return this.transition(current, ["REQUESTED"], "PENDING_SELLER_CONFIRMATION");
+  sellerAcknowledge(current: ViewingStatus) {
+    return this.transition(
+      current,
+      ["REQUESTED"],
+      "PENDING_SELLER_CONFIRMATION",
+    );
   }
 
   reschedule(current: ViewingStatus) {
-    return this.transition(current, ["CONFIRMED", "RESCHEDULED"], "RESCHEDULED");
+    return this.transition(
+      current,
+      ["CONFIRMED", "RESCHEDULED"],
+      "RESCHEDULED",
+    );
   }
 
   cancel(current: ViewingStatus) {
-    return this.transition(current, ["REQUESTED", "PENDING_SELLER_CONFIRMATION", "CONFIRMED", "RESCHEDULED"], "CANCELLED");
+    return this.transition(
+      current,
+      ["REQUESTED", "PENDING_SELLER_CONFIRMATION", "CONFIRMED", "RESCHEDULED"],
+      "CANCELLED",
+    );
   }
 
   complete(current: ViewingStatus, outcome: "COMPLETED" | "NO_SHOW") {
     return this.transition(current, ["CONFIRMED", "RESCHEDULED"], outcome);
   }
 
-  private transition(current: ViewingStatus, allowed: ViewingStatus[], next: ViewingStatus) {
+  private transition(
+    current: ViewingStatus,
+    allowed: ViewingStatus[],
+    next: ViewingStatus,
+  ) {
     if (!allowed.includes(current)) {
       throw new ConflictException({
         code: "INVALID_STATE_TRANSITION",

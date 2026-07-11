@@ -1,9 +1,9 @@
-import type { UserRole, UserStatus, ConsentType } from './enums.js';
+import type { UserRole, UserStatus, ConsentType } from "./enums.js";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
 export interface TimestampFields {
-  createdAt: string;  // ISO 8601
+  createdAt: string; // ISO 8601
   updatedAt: string;
 }
 
@@ -17,7 +17,7 @@ export interface RegisterRequest {
   phone: string;
   /** Plaintext — hashed server-side */
   password: string;
-  role: Extract<UserRole, 'BUYER' | 'SELLER'>;
+  role: Extract<UserRole, "BUYER" | "SELLER">;
   city: string;
 }
 
@@ -34,7 +34,7 @@ export interface RegisterResponse {
 
 export interface CsrfResponse {
   token: string;
-  headerName: 'X-CSRF-Token';
+  headerName: "X-CSRF-Token";
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -53,18 +53,6 @@ export interface LoginResponse {
   /** Present if auth uses JWT; absent when HttpOnly cookies are used */
   accessToken?: string;
   /** Present if auth uses JWT; absent when HttpOnly cookies are used */
-  refreshToken?: string;
-}
-
-// ─── Refresh ──────────────────────────────────────────────────────────────────
-
-export interface RefreshRequest {
-  /** Only required if NOT using HttpOnly cookies */
-  refreshToken?: string;
-}
-
-export interface RefreshResponse {
-  accessToken?: string;
   refreshToken?: string;
 }
 
@@ -94,7 +82,6 @@ export interface VerifyOtpRequest {
 
 export interface VerifyOtpResponse {
   verified: boolean;
-  userId: string;
 }
 
 // ─── Password ─────────────────────────────────────────────────────────────────

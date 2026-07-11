@@ -21,9 +21,11 @@ describe("ViewingStateService", () => {
     );
   });
 
-  it("allows the seller to confirm only requested viewings", () => {
-    expect(service.sellerConfirm("REQUESTED")).toBe("PENDING_SELLER_CONFIRMATION");
-    expect(() => service.sellerConfirm("CANCELLED")).toThrow(
+  it("allows the seller to acknowledge only requested viewings", () => {
+    expect(service.sellerAcknowledge("REQUESTED")).toBe(
+      "PENDING_SELLER_CONFIRMATION",
+    );
+    expect(() => service.sellerAcknowledge("CANCELLED")).toThrow(
       "Cannot move viewing from CANCELLED to PENDING_SELLER_CONFIRMATION",
     );
   });

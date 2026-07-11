@@ -1,5 +1,11 @@
-import type { UrgencyLevel, VehicleRequestStatus } from './enums.js';
-import type { OffsetPaginationParams, SortDirection } from './pagination.js';
+import type {
+  BodyType,
+  FuelType,
+  TransmissionType,
+  UrgencyLevel,
+  VehicleRequestStatus,
+} from "./enums.js";
+import type { OffsetPaginationParams, SortDirection } from "./pagination.js";
 
 // ─── Request DTOs ─────────────────────────────────────────────────────────────
 
@@ -11,9 +17,9 @@ export interface CreateVehicleRequestRequest {
   /** e.g. 2018 */
   yearMin?: number;
   yearMax?: number;
-  bodyTypeId?: string;
-  fuelTypeId?: string;
-  transmissionTypeId?: string;
+  bodyTypeId?: BodyType;
+  fuelTypeId?: FuelType;
+  transmissionTypeId?: TransmissionType;
   /** Max odometer reading in kilometres */
   maxOdometerKm?: number;
   urgency: UrgencyLevel;
@@ -22,7 +28,7 @@ export interface CreateVehicleRequestRequest {
 }
 
 export interface UpdateVehicleRequestRequest {
-  status?: VehicleRequestStatus;
+  status?: Exclude<VehicleRequestStatus, "NEW">;
   /** Admin note / internal memo */
   adminNote?: string;
   /** ID of a listing that matches the request */
@@ -44,9 +50,9 @@ export interface VehicleRequestDto {
   model?: string;
   yearMin?: number;
   yearMax?: number;
-  bodyTypeId?: string;
-  fuelTypeId?: string;
-  transmissionTypeId?: string;
+  bodyTypeId?: BodyType;
+  fuelTypeId?: FuelType;
+  transmissionTypeId?: TransmissionType;
   maxOdometerKm?: number;
   urgency: UrgencyLevel;
   notes?: string;
@@ -64,6 +70,6 @@ export interface VehicleRequestDto {
 export interface VehicleRequestListParams extends OffsetPaginationParams {
   status?: VehicleRequestStatus;
   urgency?: UrgencyLevel;
-  sortBy?: 'createdAt' | 'updatedAt' | 'maxBudgetCents';
+  sortBy?: "createdAt" | "updatedAt" | "maxBudgetCents";
   sortDir?: SortDirection;
 }

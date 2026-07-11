@@ -7,13 +7,17 @@ import {
   IsOptional,
   IsPort,
   IsString,
+  MinLength,
   Min,
   Matches,
   validateSync,
 } from "class-validator";
 
 const ENVIRONMENTS = ["development", "test", "staging", "production"] as const;
-const PRODUCTION_ENVIRONMENTS = new Set<ValidatedEnvironment["NODE_ENV"]>(["staging", "production"]);
+const PRODUCTION_ENVIRONMENTS = new Set<ValidatedEnvironment["NODE_ENV"]>([
+  "staging",
+  "production",
+]);
 
 class DatabaseEnvironmentVariables {
   @IsIn(ENVIRONMENTS)
@@ -24,7 +28,9 @@ class DatabaseEnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   DATABASE_SSL = false;
 }
 
@@ -32,8 +38,9 @@ class EnvironmentVariables {
   @IsIn(ENVIRONMENTS)
   NODE_ENV = "development";
 
-  @Transform(({ obj, value }: { obj: Record<string, unknown>; value: unknown }) =>
-    value ?? obj.API_PORT ?? "4000",
+  @Transform(
+    ({ obj, value }: { obj: Record<string, unknown>; value: unknown }) =>
+      value ?? obj.API_PORT ?? "4000",
   )
   @IsPort()
   PORT = "4000";
@@ -52,6 +59,17 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   CORS_ORIGINS = "http://localhost:3000";
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 0))
+  @IsInt()
+  @Min(0)
+  TRUST_PROXY_HOPS = 0;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(32)
+  BFF_SHARED_SECRET?: string;
 
   @IsString()
   CSRF_COOKIE_NAME = "auto_iq_csrf";
@@ -72,7 +90,9 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   SESSION_COOKIE_SECURE?: boolean;
 
   @IsString()
@@ -109,7 +129,9 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   STORAGE_FORCE_PATH_STYLE = true;
 
   @Transform(({ value }: { value: unknown }) => Number(value ?? 900))
@@ -208,12 +230,16 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   GIKKO_SMS_ENABLED?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   SWAGGER_ENABLED = false;
 
   @IsOptional()
@@ -234,7 +260,9 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   ENABLE_TEST_ERROR_ROUTE = false;
 
   @IsOptional()
@@ -243,7 +271,9 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => value === "true" || value === true)
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
   DATABASE_SSL = false;
 }
 
@@ -272,7 +302,9 @@ function assertProductionEnv(env: ValidatedEnvironment) {
 
   const missing = requiredProductionVariables(env);
   if (missing.length > 0) {
-    throw new Error(`Missing required production environment variables: ${missing.join(", ")}`);
+    throw new Error(
+      `Missing required production environment variables: ${missing.join(", ")}`,
+    );
   }
 }
 
@@ -293,6 +325,9 @@ function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   }
   if (!isProductionWebOrigin(env.WEB_BASE_URL)) {
     missing.push("WEB_BASE_URL(non-localhost HTTPS origin)");
+  }
+  if (!env.BFF_SHARED_SECRET) {
+    missing.push("BFF_SHARED_SECRET");
   }
 
   return missing;
@@ -329,10 +364,16 @@ function assertValidEnv(env: object) {
 function withStorageAliases(config: Record<string, unknown>) {
   return {
     ...config,
-    STORAGE_ENDPOINT: config.STORAGE_ENDPOINT ?? config.AWS_ENDPOINT_URL_S3 ?? config.AWS_ENDPOINT_URL,
-    STORAGE_REGION: config.STORAGE_REGION ?? config.AWS_REGION ?? config.AWS_DEFAULT_REGION,
+    STORAGE_ENDPOINT:
+      config.STORAGE_ENDPOINT ??
+      config.AWS_ENDPOINT_URL_S3 ??
+      config.AWS_ENDPOINT_URL,
+    STORAGE_REGION:
+      config.STORAGE_REGION ?? config.AWS_REGION ?? config.AWS_DEFAULT_REGION,
     STORAGE_ACCESS_KEY: config.STORAGE_ACCESS_KEY ?? config.AWS_ACCESS_KEY_ID,
-    STORAGE_SECRET_KEY: config.STORAGE_SECRET_KEY ?? config.AWS_SECRET_ACCESS_KEY,
-    STORAGE_BUCKET: config.STORAGE_BUCKET ?? config.BUCKET_NAME ?? config.AWS_BUCKET_NAME,
+    STORAGE_SECRET_KEY:
+      config.STORAGE_SECRET_KEY ?? config.AWS_SECRET_ACCESS_KEY,
+    STORAGE_BUCKET:
+      config.STORAGE_BUCKET ?? config.BUCKET_NAME ?? config.AWS_BUCKET_NAME,
   };
 }

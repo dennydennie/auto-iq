@@ -41,6 +41,7 @@ describe("validateEnv", () => {
       validateEnv({
         ...baseEnv,
         NODE_ENV: "production",
+        BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
         STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
         STORAGE_REGION: "auto",
@@ -58,6 +59,7 @@ describe("validateEnv", () => {
       validateEnv({
         ...baseEnv,
         NODE_ENV: "production",
+        BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "http://localhost:3000",
         SESSION_COOKIE_SECURE: "true",
         SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
@@ -69,7 +71,30 @@ describe("validateEnv", () => {
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
       }),
-    ).toThrow("Missing required production environment variables: WEB_BASE_URL(non-localhost HTTPS origin)");
+    ).toThrow(
+      "Missing required production environment variables: WEB_BASE_URL(non-localhost HTTPS origin)",
+    );
+  });
+
+  it("requires a BFF shared secret in production-like environments", () => {
+    expect(() =>
+      validateEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        WEB_BASE_URL: "https://app.autoiq.example",
+        SESSION_COOKIE_SECURE: "true",
+        SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+        SENTRY_ENVIRONMENT: "production",
+        SENTRY_RELEASE: "api@1.0.0",
+        STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
+        STORAGE_REGION: "auto",
+        STORAGE_ACCESS_KEY: "tigris-access-key",
+        STORAGE_SECRET_KEY: "tigris-secret-key",
+        STORAGE_BUCKET: "auto-iq-production",
+      }),
+    ).toThrow(
+      "Missing required production environment variables: BFF_SHARED_SECRET",
+    );
   });
 
   it("validates an explicit Redis connection timeout", () => {
@@ -141,7 +166,9 @@ describe("validateEnv", () => {
       DATABASE_SSL: "false",
     });
 
-    expect(env.DATABASE_URL).toBe("postgresql://auto_iq:auto_iq_dev@localhost:5432/auto_iq");
+    expect(env.DATABASE_URL).toBe(
+      "postgresql://auto_iq:auto_iq_dev@localhost:5432/auto_iq",
+    );
     expect(env.DATABASE_SSL).toBe(false);
   });
 });

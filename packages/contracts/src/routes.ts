@@ -1,6 +1,6 @@
 /** All /api/v1 route paths as typed builder functions or constants. */
 
-const BASE = '/api/v1';
+const BASE = "/api/v1";
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 
@@ -16,7 +16,6 @@ export const ROUTES = {
     register: `${BASE}/auth/register`,
     csrf: `${BASE}/auth/csrf`,
     login: `${BASE}/auth/login`,
-    refresh: `${BASE}/auth/refresh`,
     logout: `${BASE}/auth/logout`,
     sendOtp: `${BASE}/auth/otp/send`,
     verifyOtp: `${BASE}/auth/otp/verify`,
@@ -55,14 +54,11 @@ export const ROUTES = {
     list: `${BASE}/me/listings`,
     create: `${BASE}/listings`,
     detail: (listingId: string) => `${BASE}/listings/${listingId}`,
-    upsertSpecs: (listingId: string) =>
-      `${BASE}/listings/${listingId}/specs`,
+    upsertSpecs: (listingId: string) => `${BASE}/listings/${listingId}/specs`,
     upsertPricing: (listingId: string) =>
       `${BASE}/listings/${listingId}/pricing`,
-    submit: (listingId: string) =>
-      `${BASE}/listings/${listingId}/submit`,
-    timeline: (listingId: string) =>
-      `${BASE}/listings/${listingId}/timeline`,
+    submit: (listingId: string) => `${BASE}/listings/${listingId}/submit`,
+    timeline: (listingId: string) => `${BASE}/listings/${listingId}/timeline`,
   },
 
   // ─── Public catalogue ──────────────────────────────────────────────────────
@@ -81,8 +77,7 @@ export const ROUTES = {
   // ─── Quotes ────────────────────────────────────────────────────────────────
 
   quotes: {
-    create: (listingId: string) =>
-      `${BASE}/listings/${listingId}/quotes`,
+    create: (listingId: string) => `${BASE}/listings/${listingId}/quotes`,
     buyerList: `${BASE}/me/quotes`,
   },
 
@@ -96,9 +91,9 @@ export const ROUTES = {
   // ─── Viewings ─────────────────────────────────────────────────────────────
 
   viewings: {
-    create: (listingId: string) =>
-      `${BASE}/listings/${listingId}/viewings`,
+    create: (listingId: string) => `${BASE}/listings/${listingId}/viewings`,
     buyerList: `${BASE}/me/viewings`,
+    sellerList: `${BASE}/me/seller-viewings`,
     sellerConfirm: (viewingId: string) =>
       `${BASE}/me/viewings/${viewingId}/seller-confirm`,
   },
@@ -120,8 +115,7 @@ export const ROUTES = {
 
     // Listings
     listings: `${BASE}/admin/listings`,
-    listing: (listingId: string) =>
-      `${BASE}/admin/listings/${listingId}`,
+    listing: (listingId: string) => `${BASE}/admin/listings/${listingId}`,
     listingRequestChanges: (listingId: string) =>
       `${BASE}/admin/listings/${listingId}/request-changes`,
     listingApprove: (listingId: string) =>
@@ -146,6 +140,12 @@ export const ROUTES = {
     // Quotes
     quotes: `${BASE}/admin/quotes`,
     quote: (quoteId: string) => `${BASE}/admin/quotes/${quoteId}`,
+    quoteReview: (quoteId: string) => `${BASE}/admin/quotes/${quoteId}/review`,
+    quoteAccept: (quoteId: string) => `${BASE}/admin/quotes/${quoteId}/accept`,
+    quoteCounter: (quoteId: string) =>
+      `${BASE}/admin/quotes/${quoteId}/counter`,
+    quoteDecline: (quoteId: string) =>
+      `${BASE}/admin/quotes/${quoteId}/decline`,
 
     // Vehicle requests
     vehicleRequests: `${BASE}/admin/vehicle-requests`,
@@ -154,8 +154,7 @@ export const ROUTES = {
 
     // Viewings
     viewings: `${BASE}/admin/viewings`,
-    viewing: (viewingId: string) =>
-      `${BASE}/admin/viewings/${viewingId}`,
+    viewing: (viewingId: string) => `${BASE}/admin/viewings/${viewingId}`,
     viewingConfirm: (viewingId: string) =>
       `${BASE}/admin/viewings/${viewingId}/confirm`,
     viewingReschedule: (viewingId: string) =>

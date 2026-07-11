@@ -13,31 +13,59 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
 import { isApiFailure, postJson } from "@/lib/web-api";
 
-type FeedbackState = {
-  kind: "success";
-  message: string;
-} | {
-  kind: "error";
-  message: string;
-  correlationId?: string;
-} | null;
+type FeedbackState =
+  | {
+      kind: "success";
+      message: string;
+    }
+  | {
+      kind: "error";
+      message: string;
+      correlationId?: string;
+    }
+  | null;
 
 function canApprove(status: ListingStatus) {
-  return status === "SUBMITTED" || status === "CHANGES_REQUESTED";
+  return [
+    "SUBMITTED",
+    "INSPECTION_PENDING",
+    "OWNERSHIP_VERIFICATION_PENDING",
+  ].includes(status);
 }
 
 function canPublish(status: ListingStatus) {
   return status === "APPROVED";
 }
 
-function canModerate(status: ListingStatus) {
-  return !["DELISTED", "PUBLISHED", "REJECTED", "SOLD"].includes(status);
+function canRequestChanges(status: ListingStatus) {
+  return [
+    "SUBMITTED",
+    "INSPECTION_PENDING",
+    "OWNERSHIP_VERIFICATION_PENDING",
+    "APPROVED",
+  ].includes(status);
+}
+
+function canReject(status: ListingStatus) {
+  return [
+    "SUBMITTED",
+    "INSPECTION_PENDING",
+    "OWNERSHIP_VERIFICATION_PENDING",
+    "CHANGES_REQUESTED",
+  ].includes(status);
+}
+
+function canCloseListing(status: ListingStatus) {
+  return status === "PUBLISHED" || status === "RESERVED";
 }
 
 export function AdminListingActions({
   listingId,
   status,
-}: { listingId: string; status: AdminListingDto["status"] }) {
+}: {
+  listingId: string;
+  status: AdminListingDto["status"];
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [note, setNote] = useState("");
@@ -49,7 +77,10 @@ export function AdminListingActions({
     setFeedback(null);
 
     startTransition(async () => {
-      const result = await postJson<AdminListingDto>(`/api/admin/listings/${listingId}/${action}`, body);
+      const result = await postJson<AdminListingDto>(
+        `/api/admin/listings/${listingId}/${action}`,
+        body,
+      );
 
       if (isApiFailure(result)) {
         setFeedback({
@@ -65,7 +96,7 @@ export function AdminListingActions({
         return;
       }
 
-      const successMessage = `${result.data.specs.year} ${result.data.specs.make} ${result.data.specs.model} updated to ${result.data.status}.`;
+      const successMessage = "Listing workflow updated successfully.";
       setFeedback({ kind: "success", message: successMessage });
       toast({
         title: "Listing updated",
@@ -83,10 +114,15 @@ export function AdminListingActions({
 
   return (
     <div className="space-y-4">
-      {feedback ? feedback.kind === "error" ? (
-        <ErrorBanner message={feedback.message} correlationId={feedback.correlationId} />
-      ) : (
-        <NoticeBanner message={feedback.message} />
+      {feedback ? (
+        feedback.kind === "error" ? (
+          <ErrorBanner
+            message={feedback.message}
+            correlationId={feedback.correlationId}
+          />
+        ) : (
+          <NoticeBanner message={feedback.message} />
+        )
       ) : null}
 
       <div className="space-y-2">
@@ -120,7 +156,37 @@ export function AdminListingActions({
           </Button>
         ) : null}
 
-        {canModerate(status) ? (
+        {status === "PUBLISHED" ? (
+          <Button
+            variant="outline"
+            disabled={isPending}
+            onClick={() => submit("mark-reserved")}
+          >
+            Mark reserved
+          </Button>
+        ) : null}
+
+        {canCloseListing(status) ? (
+          <Button
+            variant="amber"
+            disabled={isPending}
+            onClick={() => submit("mark-sold")}
+          >
+            Mark sold
+          </Button>
+        ) : null}
+
+        {canCloseListing(status) ? (
+          <Button
+            variant="destructive"
+            disabled={isPending || note.trim().length === 0}
+            onClick={() => submit("delist", { reason: note.trim() })}
+          >
+            Delist vehicle
+          </Button>
+        ) : null}
+
+        {canRequestChanges(status) ? (
           <Button
             variant="outline"
             disabled={isPending || note.trim().length === 0}
@@ -130,7 +196,7 @@ export function AdminListingActions({
           </Button>
         ) : null}
 
-        {canModerate(status) ? (
+        {canReject(status) ? (
           <Button
             variant="destructive"
             disabled={isPending || note.trim().length === 0}

@@ -25,38 +25,67 @@ async function bootstrap() {
 }
 
 function configureApp(app: INestApplication, config: ConfigService) {
+  const trustedProxyHops = config.get<number>("TRUST_PROXY_HOPS", 0);
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set("trust proxy", trustedProxyHops > 0 ? trustedProxyHops : false);
   registerCorrelationIds(app);
   registerRequestLogging(app);
   app.setGlobalPrefix("api/v1");
   app.use(cookieParser());
   app.enableCors({ credentials: true, origin: corsOrigin(config) });
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    exceptionFactory: validationException,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: validationException,
+    }),
+  );
   app.useGlobalFilters(new HttpExceptionFilter());
   configureSwagger(app, config);
 }
 
 function registerCorrelationIds(app: INestApplication) {
   const middleware = new CorrelationIdMiddleware();
-  app.use((request: CorrelatedRequest, response: HeaderResponse, next: () => void) => {
-    middleware.use(request, response, next);
-  });
+  app.use(
+    (
+      request: CorrelatedRequest,
+      response: HeaderResponse,
+      next: () => void,
+    ) => {
+      middleware.use(request, response, next);
+    },
+  );
 }
 
 function registerRequestLogging(app: INestApplication) {
   const middleware = new RequestLoggingMiddleware();
-  app.use((request: CorrelatedRequest, response: HeaderResponse & { on: (event: "finish", listener: () => void) => void; statusCode?: number; getHeader(name: string): number | string | string[] | undefined }, next: () => void) => {
-    middleware.use(request, response, next);
-  });
+  app.use(
+    (
+      request: CorrelatedRequest,
+      response: HeaderResponse & {
+        on: (event: "finish", listener: () => void) => void;
+        statusCode?: number;
+        getHeader(name: string): number | string | string[] | undefined;
+      },
+      next: () => void,
+    ) => {
+      middleware.use(request, response, next);
+    },
+  );
 }
 
 function corsOrigin(config: ConfigService) {
   const allowed = config.getOrThrow<string>("CORS_ORIGINS").split(",");
-  return (origin: string | undefined, callback: (error: Error | null, ok?: boolean) => void) => {
-    callback(null, !origin || allowed.map((value) => value.trim()).includes(origin));
+  return (
+    origin: string | undefined,
+    callback: (error: Error | null, ok?: boolean) => void,
+  ) => {
+    callback(
+      null,
+      !origin || allowed.map((value) => value.trim()).includes(origin),
+    );
   };
 }
 

@@ -16,16 +16,30 @@ export class CsrfService {
   ) {}
 
   async issue(sessionId: string | null, response: CookieResponse) {
-    const token = randomBytes(32).toString("base64url");
-    if (sessionId) {
-      await this.redisService.set(this.key(sessionId), token, CSRF_TTL_SECONDS);
-    }
+    const token = sessionId
+      ? await this.sessionToken(sessionId)
+      : randomBytes(32).toString("base64url");
     response.cookie(this.cookieName(), token, {
       ...this.sessionService.cookieOptions(),
       httpOnly: false,
       maxAge: CSRF_TTL_SECONDS * 1000,
     });
     return { token, headerName: this.headerName() };
+  }
+
+  private async sessionToken(sessionId: string) {
+    const key = this.key(sessionId);
+    const existing = await this.redisService.get(key);
+    if (existing) return existing;
+    const candidate = randomBytes(32).toString("base64url");
+    const stored = await this.redisService.setIfAbsent(
+      key,
+      candidate,
+      CSRF_TTL_SECONDS,
+    );
+    return stored
+      ? candidate
+      : ((await this.redisService.get(key)) ?? candidate);
   }
 
   async verify(sessionId: string, token: string): Promise<boolean> {

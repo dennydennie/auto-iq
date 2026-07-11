@@ -1,6 +1,6 @@
-import type { QuoteStatus, PaymentPlan } from './enums.js';
-import type { TimestampFields } from './identity.js';
-import type { OffsetPaginationParams, SortDirection } from './pagination.js';
+import type { QuoteStatus, PaymentPlan } from "./enums.js";
+import type { TimestampFields } from "./identity.js";
+import type { OffsetPaginationParams, SortDirection } from "./pagination.js";
 
 // ─── Buyer: create quote ──────────────────────────────────────────────────────
 
@@ -33,7 +33,10 @@ export interface QuoteDto extends TimestampFields {
 // ─── Admin: update quote ──────────────────────────────────────────────────────
 
 export interface UpdateQuoteRequest {
-  status: Extract<QuoteStatus, 'UNDER_REVIEW' | 'ACCEPTED' | 'COUNTERED' | 'DECLINED'>;
+  status: Extract<
+    QuoteStatus,
+    "UNDER_REVIEW" | "ACCEPTED" | "COUNTERED" | "DECLINED"
+  >;
   counterPriceUsd?: number;
   responseNote?: string;
 }
@@ -44,6 +47,6 @@ export interface QuoteListParams extends OffsetPaginationParams {
   listingId?: string;
   buyerId?: string;
   status?: QuoteStatus;
-  sortBy?: 'createdAt' | 'offerPriceUsd';
+  sortBy?: "createdAt" | "updatedAt" | "offerPriceUsd";
   sortDir?: SortDirection;
 }
