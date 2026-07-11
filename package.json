@@ -6,6 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:web-seo-and-vehicle-detail": "node scripts/check-web-seo-and-vehicle-detail.mjs",
+    "check:web-buy-sell-funnels": "node scripts/check-web-buy-sell-funnels.mjs",
     "check:web-saved-vehicles-contract": "node scripts/check-web-saved-vehicles-contract.mjs",
     "check:web-production-readiness": "node scripts/check-web-production-readiness.mjs",
     "dev": "turbo run dev --parallel",

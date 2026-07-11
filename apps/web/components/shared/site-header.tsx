@@ -20,6 +20,7 @@ export type SiteHeaderProps = {
   homeHref?: string;
   /** When true, show a Sign out button instead of the sign-in CTA. */
   signedIn?: boolean;
+  variant?: "pill" | "underline";
 };
 
 function isActive(pathname: string, href: string) {
@@ -29,7 +30,13 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SiteHeader({ links, primaryCta, homeHref = "/", signedIn }: SiteHeaderProps) {
+export function SiteHeader({
+  links,
+  primaryCta,
+  homeHref = "/",
+  signedIn,
+  variant = "pill",
+}: SiteHeaderProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,9 +60,14 @@ export function SiteHeader({ links, primaryCta, homeHref = "/", signedIn }: Site
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-xl px-3.5 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)]",
-                  active
-                    ? "bg-[var(--ink-900)] text-white"
-                    : "text-[var(--ink-500)] hover:bg-white hover:text-[var(--ink-900)]",
+                  variant === "underline" && "rounded-none border-b-2 px-3.5",
+                  active && variant === "underline"
+                    ? "border-[var(--amber)] text-[var(--ink-900)]"
+                    : active
+                      ? "bg-[var(--ink-900)] text-white"
+                      : variant === "underline"
+                        ? "border-transparent text-[var(--ink-500)] hover:border-[var(--ink-200)] hover:text-[var(--ink-900)]"
+                        : "text-[var(--ink-500)] hover:bg-white hover:text-[var(--ink-900)]",
                 )}
               >
                 {link.label}
@@ -74,7 +86,11 @@ export function SiteHeader({ links, primaryCta, homeHref = "/", signedIn }: Site
           ) : primaryCta ? (
             <Link
               href={primaryCta.href}
-              className={buttonVariants({ variant: "amber", size: "sm", className: "hidden sm:inline-flex" })}
+              className={buttonVariants({
+                variant: "amber",
+                size: "sm",
+                className: "hidden sm:inline-flex",
+              })}
             >
               {primaryCta.label}
             </Link>
@@ -132,7 +148,10 @@ export function SiteHeader({ links, primaryCta, homeHref = "/", signedIn }: Site
                 <Link
                   href={primaryCta.href}
                   onClick={() => setIsOpen(false)}
-                  className={buttonVariants({ variant: "amber", className: "mt-2 justify-center" })}
+                  className={buttonVariants({
+                    variant: "amber",
+                    className: "mt-2 justify-center",
+                  })}
                 >
                   {primaryCta.label}
                 </Link>
