@@ -12,6 +12,41 @@ on:
       - master
 
 jobs:
+  mobile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+
+      - name: Test release source guard
+        run: node --test scripts/mobile/assert-committed-source.test.mjs
+
+      - name: Install mobile dependencies
+        run: flutter pub get --enforce-lockfile
+        working-directory: apps/mobile
+
+      - name: Analyze mobile source
+        run: flutter analyze
+        working-directory: apps/mobile
+
+      - name: Run mobile tests
+        run: flutter test
+        working-directory: apps/mobile
+
+      - name: Compile Android debug APK
+        run: >-
+          flutter build apk --debug
+          --dart-define=AUTO_IQ_API_BASE_URL=https://api.example.invalid
+        working-directory: apps/mobile
+
   api:
     runs-on: ubuntu-latest
     services:
