@@ -74,6 +74,8 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 
 - [x] **Step 8: Install pnpm before setup-node requests a pnpm cache so the API job reaches its checks**
 
+- [x] **Step 9: Remove the stale API test import exposed by the newly active lint gate**
+
 ### Task 2: Add a server-owned native reset destination
 
 **Files:**
