@@ -1,14 +1,17 @@
-import type { SavedVehicleDto } from "@auto-iq/contracts/catalogue";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { Heart } from "lucide-react";
 import { VehicleCard } from "@/components/marketplace/vehicle-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
+import {
+  extractSavedVehicles,
+  type SavedVehiclesPayload,
+} from "@/lib/saved-vehicles";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 
 export default async function SavedPage() {
-  const result = await getSessionJson<SavedVehicleDto[]>(
+  const result = await getSessionJson<SavedVehiclesPayload>(
     ROUTES.me.savedVehicles,
   );
 
@@ -32,7 +35,7 @@ export default async function SavedPage() {
     );
   }
 
-  const saved = result.data;
+  const saved = extractSavedVehicles(result.data);
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">

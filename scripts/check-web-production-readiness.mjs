@@ -126,6 +126,10 @@ const requiredSourceFragments = [
     file: "apps/web/components/auth/record-consents-form.tsx",
     fragments: ['roles.includes("BUYER")', 'roles.includes("SELLER")'],
   },
+  {
+    file: "apps/web/app/(marketplace)/saved/page.tsx",
+    fragments: ["SavedVehiclesPayload", "extractSavedVehicles(result.data)"],
+  },
 ];
 
 const forbiddenSourceFragments = [
