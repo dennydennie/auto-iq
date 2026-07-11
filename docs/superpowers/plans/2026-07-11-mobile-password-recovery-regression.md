@@ -72,6 +72,8 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 
 - [x] **Step 7: Match slash-containing feature branches in the CI push trigger and lock that behavior with a static regression test**
 
+- [x] **Step 8: Install pnpm before setup-node requests a pnpm cache so the API job reaches its checks**
+
 ### Task 2: Add a server-owned native reset destination
 
 **Files:**
