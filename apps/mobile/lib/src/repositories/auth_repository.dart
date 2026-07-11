@@ -67,6 +67,25 @@ class AuthRepository {
         (_) {});
   }
 
+  Future<void> forgotPassword(String email) async {
+    await _apiClient.postJson<void>(
+      ApiRoutes.authForgotPassword,
+      {'email': email.trim().toLowerCase(), 'client': 'MOBILE'},
+      (_) {},
+    );
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    await _apiClient.postJson<void>(
+      ApiRoutes.authResetPassword,
+      {'token': token, 'newPassword': newPassword},
+      (_) {},
+    );
+  }
+
   Future<AppUser> me() {
     return _apiClient.getJson<AppUser>(
       ApiRoutes.meProfile,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../theme/app_theme.dart';
+import 'core/navigation/password_reset_link.dart';
 import 'core/network/api_client.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/buyer_repository.dart';
@@ -12,7 +13,7 @@ import 'screens/buyer/buyer_home_screen.dart';
 import 'screens/seller/seller_home_screen.dart';
 import 'state/session_controller.dart';
 
-class AutoIqApp extends StatelessWidget {
+class AutoIqApp extends StatefulWidget {
   const AutoIqApp({
     super.key,
     required this.apiClient,
@@ -21,21 +22,35 @@ class AutoIqApp extends StatelessWidget {
   final ApiClient apiClient;
 
   @override
+  State<AutoIqApp> createState() => _AutoIqAppState();
+}
+
+class _AutoIqAppState extends State<AutoIqApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final PasswordResetLinkSource _resetLinks;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetLinks = AppLinksPasswordResetLinkSource();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<ApiClient>.value(value: apiClient),
+        Provider<ApiClient>.value(value: widget.apiClient),
         Provider<AuthRepository>(
-          create: (_) => AuthRepository(apiClient),
+          create: (_) => AuthRepository(widget.apiClient),
         ),
         Provider<ReferenceRepository>(
-          create: (_) => ReferenceRepository(apiClient),
+          create: (_) => ReferenceRepository(widget.apiClient),
         ),
         Provider<BuyerRepository>(
-          create: (_) => BuyerRepository(apiClient),
+          create: (_) => BuyerRepository(widget.apiClient),
         ),
         Provider<SellerRepository>(
-          create: (_) => SellerRepository(apiClient),
+          create: (_) => SellerRepository(widget.apiClient),
         ),
         ChangeNotifierProvider<SessionController>(
           create: (context) => SessionController(
@@ -45,9 +60,15 @@ class AutoIqApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: 'BiSell AutoIQ',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
+        builder: (context, child) => PasswordResetLinkListener(
+          source: _resetLinks,
+          navigatorKey: _navigatorKey,
+          child: child ?? const SizedBox.shrink(),
+        ),
         home: const _SessionGate(),
       ),
     );

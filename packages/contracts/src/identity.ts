@@ -88,6 +88,7 @@ export interface VerifyOtpResponse {
 
 export interface ForgotPasswordRequest {
   email: string;
+  client?: "WEB" | "MOBILE";
 }
 
 export interface ResetPasswordRequest {

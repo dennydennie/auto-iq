@@ -69,6 +69,10 @@ export class VerifyOtpDto {
 export class ForgotPasswordDto {
   @IsEmail()
   email!: string;
+
+  @IsOptional()
+  @IsIn(["WEB", "MOBILE"])
+  client?: "WEB" | "MOBILE";
 }
 
 export class ResetPasswordDto {

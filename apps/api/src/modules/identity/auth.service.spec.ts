@@ -186,6 +186,38 @@ describe("AuthService", () => {
     );
   });
 
+  it("sends mobile password reset requests to the native app", async () => {
+    const user = {
+      id: "user-1",
+      email: "buyer@example.com",
+      phone: "+263771111111",
+    };
+    const { service, notificationService } = createService({
+      configGet: (key, defaultValue) => {
+        if (key === "MOBILE_RESET_URL") {
+          return "autoiq://reset-password";
+        }
+        if (key === "WEB_BASE_URL") {
+          return "https://web.example.com";
+        }
+        if (key === "NODE_ENV") {
+          return "staging";
+        }
+        return defaultValue;
+      },
+      findByEmail: jest.fn().mockResolvedValue(user),
+    });
+
+    await service.forgotPassword({ email: user.email, client: "MOBILE" });
+
+    const notifyCall = notificationService.notifyUser.mock.calls[0]?.[0];
+    const resetUrl = notifyCall?.payload?.resetUrl as string;
+
+    expect(resetUrl).toMatch(/^autoiq:\/\/reset-password#token=/);
+    expect(resetUrl).not.toContain("web.example.com");
+    expect(resetUrl).not.toContain("?token=");
+  });
+
   it("falls back to the hosted web origin for password reset links", async () => {
     const user = {
       id: "user-1",

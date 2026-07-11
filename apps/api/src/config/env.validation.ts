@@ -123,6 +123,9 @@ class EnvironmentVariables {
   @IsString()
   STORAGE_PUBLIC_BASE_URL?: string;
 
+  @Matches(/^autoiq:\/\/reset-password$/)
+  MOBILE_RESET_URL = "autoiq://reset-password";
+
   @IsOptional()
   @IsString()
   WEB_BASE_URL?: string;

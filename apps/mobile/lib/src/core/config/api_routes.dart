@@ -5,6 +5,8 @@ class ApiRoutes {
   static const authCsrf = '$_base/auth/csrf';
   static const authLogin = '$_base/auth/login';
   static const authLogout = '$_base/auth/logout';
+  static const authForgotPassword = '$_base/auth/forgot-password';
+  static const authResetPassword = '$_base/auth/reset-password';
   static const authSendOtp = '$_base/auth/otp/send';
   static const authVerifyOtp = '$_base/auth/otp/verify';
 

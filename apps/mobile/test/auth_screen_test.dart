@@ -9,6 +9,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('opens the native forgot password screen', (tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionController>.value(
+            value: _PendingVerificationSession(),
+          ),
+          Provider<AuthRepository>.value(value: _UnusedAuthRepository()),
+        ],
+        child: const MaterialApp(home: AuthScreen()),
+      ),
+    );
+
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recover your account'), findsOneWidget);
+    expect(find.textContaining('browser'), findsNothing);
+  });
+
   testWidgets('shows OTP entry when login requires verification',
       (tester) async {
     await tester.pumpWidget(
@@ -94,6 +114,11 @@ class _PendingVerificationSession extends ChangeNotifier
 
 class _UnusedAuthRepository implements AuthRepository {
   @override
+  Future<void> forgotPassword(String email) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> login({required String identifier, required String password}) {
     throw UnimplementedError();
   }
@@ -115,6 +140,14 @@ class _UnusedAuthRepository implements AuthRepository {
 
   @override
   Future<RegisterResult> register(RegisterInput input) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) {
     throw UnimplementedError();
   }
 

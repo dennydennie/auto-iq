@@ -63,7 +63,7 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 - run: flutter build apk --debug --dart-define=AUTO_IQ_API_BASE_URL=https://api.example.invalid
 ```
 
-- [ ] **Step 5: Run the focused tests and YAML/static checks, commit, and push the guardrail change before starting Task 2**
+- [x] **Step 5: Run the focused tests and YAML/static checks, commit, and push the guardrail change before starting Task 2**
 
 ### Task 2: Add a server-owned native reset destination
 
@@ -78,10 +78,10 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 - Consumes: `ForgotPasswordRequest.client?: "WEB" | "MOBILE"`.
 - Produces: web reset URL by default and `MOBILE_RESET_URL#token=...` only for `MOBILE`.
 
-- [ ] **Step 1: Add a failing AuthService test asserting `client: "MOBILE"` sends `autoiq://reset-password#token=...`**
-- [ ] **Step 2: Run the focused Jest test and verify it fails with the current web URL**
-- [ ] **Step 3: Add the enum validation and server-owned URL selection without accepting arbitrary redirects**
-- [ ] **Step 4: Run the focused Jest test and the complete API typecheck/test suite**
+- [x] **Step 1: Add a failing AuthService test asserting `client: "MOBILE"` sends `autoiq://reset-password#token=...`**
+- [x] **Step 2: Run the focused Jest test and verify it fails with the current web URL**
+- [x] **Step 3: Add the enum validation and server-owned URL selection without accepting arbitrary redirects**
+- [x] **Step 4: Run the focused Jest test and the complete API typecheck/test suite**
 
 ### Task 3: Implement native forgot/reset screens and deep-link routing
 
@@ -104,10 +104,10 @@ node "$ROOT_DIR/scripts/mobile/assert-committed-source.mjs"
 - Produces: `passwordResetToken(Uri uri) -> String?`, `AuthRepository.forgotPassword(email)`, and `AuthRepository.resetPassword(token, newPassword)`.
 - Consumes: custom URI `autoiq://reset-password#token=<base64url>` and existing `/api/v1/auth/forgot-password` and `/api/v1/auth/reset-password` endpoints.
 
-- [ ] **Step 1: Write failing tests for native navigation, mobile request payload, URI parsing, and reset submission**
-- [ ] **Step 2: Run Flutter tests and verify each fails for the missing native behavior**
-- [ ] **Step 3: Add the repository methods and focused screens**
-- [ ] **Step 4: Add app_links cold-start/runtime routing plus the Android VIEW intent filter**
+- [x] **Step 1: Write failing tests for native navigation, mobile request payload, URI parsing, and reset submission**
+- [x] **Step 2: Run Flutter tests and verify each fails for the missing native behavior**
+- [x] **Step 3: Add the repository methods and focused screens**
+- [x] **Step 4: Add app_links cold-start/runtime routing plus the Android VIEW intent filter**
 - [ ] **Step 5: Run formatter, analyzer, focused tests, full Flutter tests, and Android debug build**
 
 ### Task 4: Commit, push, and build only from committed source
