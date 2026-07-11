@@ -19,6 +19,10 @@ catalogue_count() {
   node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); if (!Array.isArray(data.data)) { console.error("catalogue response did not include a data array"); process.exit(2); } console.log(data.data.length);'
 }
 
+catalogue_first_slug() {
+  node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(0,"utf8")); console.log(data.data?.[0]?.slug ?? "");'
+}
+
 login() {
   local email=$1
   local password=$2
@@ -38,10 +42,18 @@ printf 'LIVE=%s\n' "$(printf '%s' "$LIVE" | json_field status)"
 printf 'READY=%s\n' "$(printf '%s' "$READY" | json_field status)"
 printf 'CATALOGUE_COUNT=%s\n' "$(printf '%s' "$CATALOGUE" | catalogue_count)"
 
+FIRST_SLUG=$(printf '%s' "$CATALOGUE" | catalogue_first_slug)
+if [ -n "$FIRST_SLUG" ]; then
+  DETAIL=$(curl -fsS "$API_BASE/listings/$FIRST_SLUG")
+  printf 'CATALOGUE_DETAIL_ID=%s\n' "$(printf '%s' "$DETAIL" | json_field id)"
+fi
+
 if [ -n "$SMOKE_EMAIL" ] && [ -n "$SMOKE_PASSWORD" ]; then
   login "$SMOKE_EMAIL" "$SMOKE_PASSWORD" "$COOKIE_USER"
   ME=$(curl -fsS -b "$COOKIE_USER" "$API_BASE/me")
+  SELLER_LISTINGS=$(curl -fsS -b "$COOKIE_USER" "$API_BASE/me/listings")
   printf 'ME_ID=%s\n' "$(printf '%s' "$ME" | json_field id)"
+  printf 'SELLER_LISTING_TOTAL=%s\n' "$(printf '%s' "$SELLER_LISTINGS" | json_field meta.total)"
 fi
 
 if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then

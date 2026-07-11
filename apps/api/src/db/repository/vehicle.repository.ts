@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { isUUID } from "class-validator";
 import { Brackets, Repository, SelectQueryBuilder } from "typeorm";
 import { VehicleEntity } from "../entity/vehicle.entity";
 import { AbstractRepository } from "./abstract.repository";
@@ -25,18 +26,26 @@ export interface AdminListingPageParams {
 
 @Injectable()
 export class VehicleRepository extends AbstractRepository<VehicleEntity> {
-  constructor(@InjectRepository(VehicleEntity) repository: Repository<VehicleEntity>) {
+  constructor(
+    @InjectRepository(VehicleEntity) repository: Repository<VehicleEntity>,
+  ) {
     super(repository);
   }
 
-  findOwnedById(id: string, sellerUserId: string): Promise<VehicleEntity | null> {
+  findOwnedById(
+    id: string,
+    sellerUserId: string,
+  ): Promise<VehicleEntity | null> {
     return this.repository.findOne({
       where: { id, sellerUserId },
       relations: ["specs", "pricing", "images", "documents"],
     });
   }
 
-  findOwnedTimeline(id: string, sellerUserId: string): Promise<VehicleEntity | null> {
+  findOwnedTimeline(
+    id: string,
+    sellerUserId: string,
+  ): Promise<VehicleEntity | null> {
     return this.repository.findOne({
       where: { id, sellerUserId },
       relations: ["history"],
@@ -46,24 +55,37 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
   findAdminById(id: string): Promise<VehicleEntity | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ["seller", "specs", "pricing", "images", "documents", "history"],
+      relations: [
+        "seller",
+        "specs",
+        "pricing",
+        "images",
+        "documents",
+        "history",
+      ],
     });
   }
 
   findPublicBySlugOrId(slugOrId: string): Promise<VehicleEntity | null> {
     return this.repository.findOne({
-      where: [{ id: slugOrId }, { slug: slugOrId }],
+      where: isUUID(slugOrId)
+        ? [{ id: slugOrId }, { slug: slugOrId }]
+        : { slug: slugOrId },
       relations: ["seller", "specs", "pricing", "images"],
     });
   }
 
-  async findSellerPage(params: SellerListingPageParams): Promise<[VehicleEntity[], number]> {
+  async findSellerPage(
+    params: SellerListingPageParams,
+  ): Promise<[VehicleEntity[], number]> {
     const query = this.repository
       .createQueryBuilder("vehicle")
       .leftJoinAndSelect("vehicle.specs", "specs")
       .leftJoinAndSelect("vehicle.pricing", "pricing")
       .leftJoinAndSelect("vehicle.images", "cover", "cover.is_cover = true")
-      .where("vehicle.seller_user_id = :sellerUserId", { sellerUserId: params.sellerUserId });
+      .where("vehicle.seller_user_id = :sellerUserId", {
+        sellerUserId: params.sellerUserId,
+      });
 
     if (params.status) {
       query.andWhere("vehicle.status = :status", { status: params.status });
@@ -77,7 +99,9 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
       .getManyAndCount();
   }
 
-  async findAdminPage(params: AdminListingPageParams): Promise<[VehicleEntity[], number]> {
+  async findAdminPage(
+    params: AdminListingPageParams,
+  ): Promise<[VehicleEntity[], number]> {
     const query = this.repository
       .createQueryBuilder("vehicle")
       .leftJoin("vehicle.seller", "seller")
@@ -88,16 +112,22 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
       query.andWhere("vehicle.status = :status", { status: params.status });
     }
     if (params.sellerId) {
-      query.andWhere("vehicle.seller_user_id = :sellerId", { sellerId: params.sellerId });
+      query.andWhere("vehicle.seller_user_id = :sellerId", {
+        sellerId: params.sellerId,
+      });
     }
     if (params.search) {
-      query.andWhere(new Brackets((search) => {
-        search
-          .where("vehicle.slug ILIKE :term", { term: `%${params.search}%` })
-          .orWhere("specs.make ILIKE :term", { term: `%${params.search}%` })
-          .orWhere("specs.model ILIKE :term", { term: `%${params.search}%` })
-          .orWhere("seller.full_name ILIKE :term", { term: `%${params.search}%` });
-      }));
+      query.andWhere(
+        new Brackets((search) => {
+          search
+            .where("vehicle.slug ILIKE :term", { term: `%${params.search}%` })
+            .orWhere("specs.make ILIKE :term", { term: `%${params.search}%` })
+            .orWhere("specs.model ILIKE :term", { term: `%${params.search}%` })
+            .orWhere("seller.full_name ILIKE :term", {
+              term: `%${params.search}%`,
+            });
+        }),
+      );
     }
 
     this.applyAdminSort(query, params.sortBy, params.sortDir);
@@ -123,10 +153,11 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
     sortDir: SellerListingPageParams["sortDir"],
   ): void {
     if (sortBy === "askPriceUsd") {
-      query.orderBy("pricing.ask_price_usd", sortDir, "NULLS LAST");
+      query.orderBy("pricing.askPriceUsd", sortDir, "NULLS LAST");
       return;
     }
-    const column = sortBy === "createdAt" ? "vehicle.created_at" : "vehicle.updated_at";
+    const column =
+      sortBy === "createdAt" ? "vehicle.createdAt" : "vehicle.updatedAt";
     query.orderBy(column, sortDir);
   }
 
@@ -136,14 +167,15 @@ export class VehicleRepository extends AbstractRepository<VehicleEntity> {
     sortDir: AdminListingPageParams["sortDir"],
   ): void {
     if (sortBy === "price") {
-      query.orderBy("pricing.ask_price_usd", sortDir, "NULLS LAST");
+      query.orderBy("pricing.askPriceUsd", sortDir, "NULLS LAST");
       return;
     }
     if (sortBy === "submittedAt") {
-      query.orderBy("vehicle.submitted_at", sortDir, "NULLS LAST");
+      query.orderBy("vehicle.submittedAt", sortDir, "NULLS LAST");
       return;
     }
-    const column = sortBy === "createdAt" ? "vehicle.created_at" : "vehicle.updated_at";
+    const column =
+      sortBy === "createdAt" ? "vehicle.createdAt" : "vehicle.updatedAt";
     query.orderBy(column, sortDir);
   }
 }
