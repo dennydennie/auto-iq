@@ -102,6 +102,8 @@ async function createSubmittedListing(session) {
     {
       storageKey: documentPresign.storageKey,
       documentType: 'REGISTRATION_BOOK',
+      contentType: 'application/pdf',
+      contentLength: pdfBytes.length,
     },
     { csrf: true },
   );
@@ -122,7 +124,13 @@ async function uploadListingImage(session, listingId, imageBytes, slot, isCover)
   await rawUpload(presign.uploadUrl, imageBytes, 'image/jpeg');
   await session.post(
     `/listings/${listingId}/images`,
-    { storageKey: presign.storageKey, slot, isCover },
+    {
+      storageKey: presign.storageKey,
+      slot,
+      isCover,
+      contentType: 'image/jpeg',
+      contentLength: imageBytes.length,
+    },
     { csrf: true },
   );
 }

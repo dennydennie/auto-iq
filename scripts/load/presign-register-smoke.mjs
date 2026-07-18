@@ -108,6 +108,8 @@ async function uploadAndRegister(slot, isCover, csrfToken) {
       storageKey: presign.storageKey,
       slot,
       isCover,
+      contentType: "image/jpeg",
+      contentLength: imageBytes.length,
     }),
   });
   if (!response.ok) {
