@@ -131,10 +131,6 @@ export class StorageService {
   }
 
   async getDisplayUrl(storageKey: string): Promise<string> {
-    const baseUrl = this.config.get<string>("STORAGE_PUBLIC_BASE_URL");
-    if (baseUrl) {
-      return `${baseUrl.replace(/\/$/, "")}/${this.bucket()}/${storageKey}`;
-    }
     const expiresIn = 60 * 60;
     return getSignedUrl(
       this.client,

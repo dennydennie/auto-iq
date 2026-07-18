@@ -46,6 +46,26 @@ describe("validateEnv", () => {
     expect(env.STORAGE_BUCKET).toBe("auto-iq-production");
   });
 
+  it("maps Railway native bucket variables to virtual-hosted storage", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      AWS_ENDPOINT_URL: "https://storage.railway.app",
+      AWS_DEFAULT_REGION: "auto",
+      AWS_ACCESS_KEY_ID: "railway-access-key",
+      AWS_SECRET_ACCESS_KEY: "railway-secret-key",
+      AWS_S3_BUCKET_NAME: "auto-iq-production",
+      AWS_S3_URL_STYLE: "virtual",
+      STORAGE_FORCE_PATH_STYLE: undefined,
+    });
+
+    expect(env.STORAGE_ENDPOINT).toBe("https://storage.railway.app");
+    expect(env.STORAGE_REGION).toBe("auto");
+    expect(env.STORAGE_ACCESS_KEY).toBe("railway-access-key");
+    expect(env.STORAGE_SECRET_KEY).toBe("railway-secret-key");
+    expect(env.STORAGE_BUCKET).toBe("auto-iq-production");
+    expect(env.STORAGE_FORCE_PATH_STYLE).toBe(false);
+  });
+
   it("requires Sentry and secure cookies in production-like environments", () => {
     expect(() =>
       validateEnv({
@@ -62,7 +82,6 @@ describe("validateEnv", () => {
         STORAGE_ACCESS_KEY: "tigris-access-key",
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
-        STORAGE_PUBLIC_BASE_URL: "https://assets.autoiq.example",
       }),
     ).toThrow(
       "Missing required production environment variables: SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_RELEASE, SESSION_COOKIE_SECURE=true",
@@ -89,7 +108,6 @@ describe("validateEnv", () => {
         STORAGE_ACCESS_KEY: "tigris-access-key",
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
-        STORAGE_PUBLIC_BASE_URL: "https://assets.autoiq.example",
       }),
     ).toThrow(
       "Missing required production environment variables: WEB_BASE_URL(non-localhost HTTPS origin)",
@@ -113,7 +131,6 @@ describe("validateEnv", () => {
         STORAGE_ACCESS_KEY: "tigris-access-key",
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
-        STORAGE_PUBLIC_BASE_URL: "https://assets.autoiq.example",
       }),
     ).toThrow(
       "Missing required production environment variables: BFF_SHARED_SECRET",
@@ -139,29 +156,32 @@ describe("validateEnv", () => {
     ).toThrow(/SESSION_SECRET|STORAGE_ENDPOINT|STORAGE_ACCESS_KEY|STORAGE_BUCKET/);
   });
 
-  it("requires a production storage public URL", () => {
-    expect(() =>
-      validateEnv({
-        ...baseEnv,
-        NODE_ENV: "production",
-        TRUST_PROXY_HOPS: "1",
-        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
-        DATABASE_SSL: "true",
-        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
-        BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
-        WEB_BASE_URL: "https://app.autoiq.example",
-        SESSION_COOKIE_SECURE: "true",
-        SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
-        SENTRY_ENVIRONMENT: "production",
-        SENTRY_RELEASE: "api@1.0.0",
-        SESSION_SECRET: "production-session-secret-1234567890",
-        STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
-        STORAGE_REGION: "auto",
-        STORAGE_ACCESS_KEY: "tigris-access-key",
-        STORAGE_SECRET_KEY: "tigris-secret-key",
-        STORAGE_BUCKET: "auto-iq-production",
-      }),
-    ).toThrow(/STORAGE_PUBLIC_BASE_URL/);
+  it("accepts private Railway storage without a public bucket URL", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      NODE_ENV: "production",
+      TRUST_PROXY_HOPS: "1",
+      DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
+      DATABASE_SSL: "true",
+      DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+      BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
+      WEB_BASE_URL: "https://app.autoiq.example",
+      SESSION_COOKIE_SECURE: "true",
+      SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+      SENTRY_ENVIRONMENT: "production",
+      SENTRY_RELEASE: "api@1.0.0",
+      SESSION_SECRET: "production-session-secret-1234567890",
+      AWS_ENDPOINT_URL: "https://storage.railway.app",
+      AWS_DEFAULT_REGION: "auto",
+      AWS_ACCESS_KEY_ID: "railway-access-key",
+      AWS_SECRET_ACCESS_KEY: "railway-secret-key",
+      AWS_S3_BUCKET_NAME: "auto-iq-production",
+      AWS_S3_URL_STYLE: "virtual",
+      STORAGE_FORCE_PATH_STYLE: undefined,
+    });
+
+    expect(Object.hasOwn(env, "STORAGE_PUBLIC_BASE_URL")).toBe(false);
+    expect(env.STORAGE_FORCE_PATH_STYLE).toBe(false);
   });
 
   it("validates an explicit Redis connection timeout", () => {

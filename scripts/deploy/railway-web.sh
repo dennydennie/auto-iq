@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENVIRONMENT_NAME="${RAILWAY_ENVIRONMENT_NAME:-staging}"
 WEB_SERVICE="${RAILWAY_WEB_SERVICE:-web}"
+BUCKET_SERVICE="${RAILWAY_BUCKET_NAME:-assets}"
 DEPLOY_MESSAGE="${RAILWAY_DEPLOY_MESSAGE:-Deploy ${WEB_SERVICE} from CLI}"
 PROJECT_ID="${RAILWAY_PROJECT_ID:-}"
 TMP_DIR=""
@@ -100,6 +101,17 @@ deploy_bundle() {
   railway up "${args[@]}"
 }
 
+configure_storage_variables() {
+  railway variable set "STORAGE_ENDPOINT=\${{${BUCKET_SERVICE}.ENDPOINT}}" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+  railway variable set "STORAGE_FORCE_PATH_STYLE=false" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+}
+
 main() {
   require_command railway
   require_command tar
@@ -109,6 +121,9 @@ main() {
 
   log_step "Preparing web deploy bundle"
   create_bundle
+
+  log_step "Configuring private storage image host"
+  configure_storage_variables
 
   log_step "Deploying web service"
   deploy_bundle

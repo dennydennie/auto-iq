@@ -2,28 +2,42 @@ import type { NextConfig } from "next";
 
 type RemotePattern = NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number];
 
-function parseStorageHost(): RemotePattern | null {
-  const raw = process.env.STORAGE_PUBLIC_BASE_URL;
-  if (!raw) return null;
-
+function parseStorageUrl(): URL | null {
   try {
-    const url = new URL(raw);
-    const protocol = url.protocol.replace(":", "");
-    if (protocol !== "http" && protocol !== "https") return null;
-    return {
-      protocol,
-      hostname: url.hostname,
-      port: url.port || undefined,
-      pathname: "/**",
-    };
+    return new URL(storageEndpoint());
   } catch {
-    // Malformed URL — ignore and fall through to the looser default below.
     return null;
   }
 }
 
-const storagePattern = parseStorageHost();
+function storageEndpoint() {
+  return (
+    process.env.STORAGE_ENDPOINT ??
+    process.env.AWS_ENDPOINT_URL_S3 ??
+    process.env.AWS_ENDPOINT_URL ??
+    ""
+  );
+}
+
+function parseStoragePatterns(): RemotePattern[] {
+  const url = parseStorageUrl();
+  if (!url || !["http:", "https:"].includes(url.protocol)) return [];
+  const protocol = url.protocol.replace(":", "") as "http" | "https";
+  const exactPattern = {
+    protocol,
+    hostname: url.hostname,
+    port: url.port || undefined,
+    pathname: "/**",
+  };
+  if (process.env.STORAGE_FORCE_PATH_STYLE === "true") {
+    return [exactPattern];
+  }
+  return [{ ...exactPattern, hostname: `**.${url.hostname}` }, exactPattern];
+}
+
+const storagePatterns = parseStoragePatterns();
 validateProductionObservability();
+validateProductionStorage();
 
 function validateProductionObservability() {
   if (process.env.NODE_ENV !== "production") return;
@@ -38,37 +52,53 @@ function validateProductionObservability() {
   }
 }
 
+function validateProductionStorage() {
+  if (process.env.NODE_ENV !== "production") return;
+  const url = parseStorageUrl();
+  if (!url || url.protocol !== "https:" || isLocalhost(url.hostname)) {
+    throw new Error("STORAGE_ENDPOINT is required in production");
+  }
+}
+
+function isLocalhost(hostname: string) {
+  return new Set(["localhost", "127.0.0.1", "::1"]).has(hostname.toLowerCase());
+}
+
 // Image host policy:
-// 1. When STORAGE_PUBLIC_BASE_URL is configured, pin the listing images to that
-//    exact host (Tigris/MinIO/S3 endpoint). This is the production posture.
-// 2. Always allow localhost / 127.0.0.1 for the dev MinIO setup on :9000.
-// 3. As a deliberate dev fallback (env var unset) we keep `https://**` open so
-//    seeded staging URLs render — but emit a build-time warning so production
-//    deploys notice if STORAGE_PUBLIC_BASE_URL was forgotten.
+// 1. Pin signed listing image URLs to the private S3-compatible endpoint.
+// 2. Include the virtual-hosted bucket hostname used by Railway/Tigris.
+// 3. Always allow localhost / 127.0.0.1 for the dev MinIO setup on :9000.
 const remotePatterns: RemotePattern[] = [
   { protocol: "http", hostname: "localhost", pathname: "/**" },
   { protocol: "http", hostname: "127.0.0.1", pathname: "/**" },
 ];
 
-if (storagePattern) {
-  remotePatterns.unshift(storagePattern);
+if (storagePatterns.length > 0) {
+  remotePatterns.unshift(...storagePatterns);
 } else {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("STORAGE_PUBLIC_BASE_URL is required in production");
+    throw new Error("STORAGE_ENDPOINT is required in production");
   }
   remotePatterns.push({ protocol: "https", hostname: "**" });
 }
 
 // Build a Content-Security-Policy that stays compatible with Next.js RSC hydration
-// and the same-origin API proxy under /api. When STORAGE_PUBLIC_BASE_URL is set we
-// also allow it for images and (rarely) fetch. Broader hosts stay off by default.
+// and the same-origin API proxy under /api. Signed storage URLs are allowed only
+// for the configured endpoint and its virtual-hosted bucket subdomains.
 function buildContentSecurityPolicy() {
   const storageOrigin = (() => {
     try {
-      const raw = process.env.STORAGE_PUBLIC_BASE_URL;
+      const raw =
+        process.env.STORAGE_ENDPOINT ??
+        process.env.AWS_ENDPOINT_URL_S3 ??
+        process.env.AWS_ENDPOINT_URL;
       if (!raw) return null;
       const url = new URL(raw);
-      return `${url.protocol}//${url.host}`;
+      const exact = `${url.protocol}//${url.host}`;
+      const virtual = process.env.STORAGE_FORCE_PATH_STYLE === "true"
+        ? []
+        : [`${url.protocol}//*.${url.host}`];
+      return [exact, ...virtual];
     } catch {
       return null;
     }
@@ -77,8 +107,8 @@ function buildContentSecurityPolicy() {
   const imgSources = ["'self'", "data:", "blob:"];
   const connectSources = ["'self'"];
   if (storageOrigin) {
-    imgSources.push(storageOrigin);
-    connectSources.push(storageOrigin);
+    imgSources.push(...storageOrigin);
+    connectSources.push(...storageOrigin);
   } else if (process.env.NODE_ENV !== "production") {
     // Dev: allow the MinIO port and any https origin.
     imgSources.push("http://localhost:9000", "https:");

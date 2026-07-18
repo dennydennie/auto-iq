@@ -140,10 +140,6 @@ class EnvironmentVariables {
   @IsNotEmpty()
   STORAGE_BUCKET = "auto-iq-local";
 
-  @IsOptional()
-  @IsString()
-  STORAGE_PUBLIC_BASE_URL?: string;
-
   @Matches(/^autoiq:\/\/reset-password$/)
   MOBILE_RESET_URL = "autoiq://reset-password";
 
@@ -436,10 +432,6 @@ function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   if (DEFAULT_STORAGE_VALUES.has(env.STORAGE_BUCKET)) {
     missing.push("STORAGE_BUCKET(non-default)");
   }
-  if (!isProductionStoragePublicUrl(env.STORAGE_PUBLIC_BASE_URL)) {
-    missing.push("STORAGE_PUBLIC_BASE_URL(non-localhost HTTPS origin)");
-  }
-
   return missing;
 }
 
@@ -449,10 +441,6 @@ function isProductionSessionSecret(value: string) {
 
 function isProductionStorageEndpoint(value: string) {
   return isHttpsNonLocalhost(value);
-}
-
-function isProductionStoragePublicUrl(value: string | undefined) {
-  return value ? isHttpsNonLocalhost(value) : false;
 }
 
 function isHttpsNonLocalhost(value: string) {
@@ -509,9 +497,21 @@ function withStorageAliases(config: Record<string, unknown>) {
     STORAGE_SECRET_KEY:
       config.STORAGE_SECRET_KEY ?? config.AWS_SECRET_ACCESS_KEY,
     STORAGE_BUCKET:
-      config.STORAGE_BUCKET ?? config.BUCKET_NAME ?? config.AWS_BUCKET_NAME,
+      config.STORAGE_BUCKET ??
+      config.BUCKET_NAME ??
+      config.AWS_S3_BUCKET_NAME ??
+      config.AWS_BUCKET_NAME,
+    STORAGE_FORCE_PATH_STYLE:
+      config.STORAGE_FORCE_PATH_STYLE ??
+      storageUrlStyleToForcePathStyle(config.AWS_S3_URL_STYLE),
   };
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== undefined),
   );
+}
+
+function storageUrlStyleToForcePathStyle(value: unknown): boolean | undefined {
+  if (value === "path") return true;
+  if (value === "virtual") return false;
+  return undefined;
 }

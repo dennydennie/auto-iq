@@ -135,7 +135,7 @@ const requiredSourceFragments = [
   {
     file: "apps/web/next.config.ts",
     fragments: [
-      "STORAGE_PUBLIC_BASE_URL is required in production",
+      "STORAGE_ENDPOINT is required in production",
       "Missing production web observability configuration",
     ],
   },

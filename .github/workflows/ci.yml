@@ -131,7 +131,8 @@ jobs:
     env:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://api-ci.example.invalid
-      STORAGE_PUBLIC_BASE_URL: https://assets-ci.example.invalid
+      STORAGE_ENDPOINT: https://storage-ci.example.invalid
+      STORAGE_FORCE_PATH_STYLE: "false"
       NEXT_PUBLIC_SITE_URL: https://web-ci.example.invalid
       SENTRY_DSN: https://public@example.ingest.sentry.io/1
       NEXT_PUBLIC_SENTRY_DSN: https://public@example.ingest.sentry.io/1

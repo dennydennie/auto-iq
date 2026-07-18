@@ -49,17 +49,17 @@ Optional inputs:
 - `SESSION_COOKIE_DOMAIN` when cross-subdomain cookies are required
 - `SESSION_COOKIE_SAME_SITE`
 - `SESSION_COOKIE_SECURE`
-- `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL_S3`
-- `STORAGE_REGION` or `AWS_REGION`
+- `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL` / `AWS_ENDPOINT_URL_S3`
+- `STORAGE_REGION` or `AWS_REGION` / `AWS_DEFAULT_REGION`
 - `STORAGE_ACCESS_KEY` or `AWS_ACCESS_KEY_ID`
 - `STORAGE_SECRET_KEY` or `AWS_SECRET_ACCESS_KEY`
-- `STORAGE_BUCKET` or `BUCKET_NAME`
-- `STORAGE_FORCE_PATH_STYLE`
+- `STORAGE_BUCKET` or `BUCKET_NAME` / `AWS_S3_BUCKET_NAME`
+- `STORAGE_FORCE_PATH_STYLE` or `AWS_S3_URL_STYLE=path|virtual`
 - `SENTRY_DSN`
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
 
-`apps/api` validates these at startup. In `staging` and `production`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, and `SESSION_COOKIE_SECURE=true` are mandatory. The storage layer accepts either the internal `STORAGE_*` names or the Railway/Tigris-native `AWS_*` aliases shown above.
+`apps/api` validates these at startup. In `staging` and `production`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, and `SESSION_COOKIE_SECURE=true` are mandatory. Railway/Tigris buckets remain private: upload requests receive presigned PUT URLs and listing responses receive presigned GET URLs. The storage layer accepts either the internal `STORAGE_*` names or the Railway/Tigris-native `AWS_*` aliases shown above.
 
 The deploy script provisions these for the API service with Railway reference variables:
 
@@ -71,10 +71,23 @@ The deploy script provisions these for the API service with Railway reference va
 - `STORAGE_SECRET_KEY=${{assets.SECRET_ACCESS_KEY}}`
 - `STORAGE_BUCKET=${{assets.BUCKET}}`
 - `AWS_ENDPOINT_URL_S3=${{assets.ENDPOINT}}`
+- `AWS_ENDPOINT_URL=${{assets.ENDPOINT}}`
 - `AWS_REGION=${{assets.REGION}}`
+- `AWS_DEFAULT_REGION=${{assets.REGION}}`
 - `AWS_ACCESS_KEY_ID=${{assets.ACCESS_KEY_ID}}`
 - `AWS_SECRET_ACCESS_KEY=${{assets.SECRET_ACCESS_KEY}}`
+- `AWS_S3_BUCKET_NAME=${{assets.BUCKET}}`
 - `BUCKET_NAME=${{assets.BUCKET}}`
+- `AWS_S3_URL_STYLE=virtual`
+
+The web deployment must also receive the private bucket endpoint so Next.js can
+pin signed image URLs without permitting arbitrary HTTPS hosts:
+
+- `STORAGE_ENDPOINT=${{assets.ENDPOINT}}`
+- `STORAGE_FORCE_PATH_STYLE=false`
+
+`scripts/deploy/railway-web.sh` applies these references to the web service before
+deploying.
 
 Recommended secret handling on Railway:
 

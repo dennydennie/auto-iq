@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run test:api-origin && pnpm run test:saved-vehicles",
+    "test": "pnpm run test:api-origin && pnpm run test:saved-vehicles && pnpm run test:storage-config",
     "test:api-origin": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/api-origin.test.mjs",
     "test:saved-vehicles": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/saved-vehicles.test.mjs",
+    "test:storage-config": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/next-config-storage.test.mjs",
     "clean": "rm -rf .next"
   },
   "dependencies": {

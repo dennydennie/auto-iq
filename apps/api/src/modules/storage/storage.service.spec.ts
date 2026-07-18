@@ -6,6 +6,10 @@ import { StorageService } from "./storage.service";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 describe("StorageService", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   function createConfig(overrides: Record<string, unknown> = {}) {
     const values: Record<string, unknown> = {
       STORAGE_ENDPOINT: "http://localhost:9000",
@@ -131,5 +135,16 @@ describe("StorageService", () => {
       response: expect.objectContaining({ code: "UPLOAD_OWNERSHIP_MISMATCH" }),
     });
     expect(redis.setIfAbsent).not.toHaveBeenCalled();
+  });
+
+  it("always returns a presigned GET URL for private storage", async () => {
+    const service = new StorageService(
+      createConfig({ STORAGE_PUBLIC_BASE_URL: "https://public-assets.example" }),
+      createRedis(),
+    );
+
+    await expect(service.getDisplayUrl("listing-images/2026/07/image.jpg"))
+      .resolves.toBe("https://storage.example/upload");
+    expect(getSignedUrl).toHaveBeenCalledTimes(1);
   });
 });

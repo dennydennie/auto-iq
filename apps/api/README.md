@@ -29,12 +29,12 @@ See the repository `.env.example` for the full template. Production deployment r
 - `SESSION_COOKIE_DOMAIN` when cross-subdomain cookies are required
 - `SESSION_COOKIE_SAME_SITE`
 - `SESSION_COOKIE_SECURE`
-- `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL_S3`
-- `STORAGE_REGION` or `AWS_REGION`
+- `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL` / `AWS_ENDPOINT_URL_S3`
+- `STORAGE_REGION` or `AWS_REGION` / `AWS_DEFAULT_REGION`
 - `STORAGE_ACCESS_KEY` or `AWS_ACCESS_KEY_ID`
 - `STORAGE_SECRET_KEY` or `AWS_SECRET_ACCESS_KEY`
-- `STORAGE_BUCKET` or `BUCKET_NAME`
-- `STORAGE_FORCE_PATH_STYLE`
+- `STORAGE_BUCKET` or `BUCKET_NAME` / `AWS_S3_BUCKET_NAME`
+- `STORAGE_FORCE_PATH_STYLE` or `AWS_S3_URL_STYLE=path|virtual`
 - `SENTRY_DSN`
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
@@ -76,5 +76,5 @@ pnpm --filter api typecheck
 - Container build: `apps/api/Dockerfile`
 - Runtime user: non-root `nestjs`
 - Railway deployment procedure: `docs/operations/deployment-railway.md`
-- Railway/Tigris storage values can be supplied through either the API `STORAGE_*` names or the native `AWS_*` aliases documented in `.env.example`.
+- Railway/Tigris storage values can be supplied through either the API `STORAGE_*` names or the native `AWS_*` aliases documented in `.env.example`. Buckets remain private: uploads use presigned PUT URLs and API responses use presigned GET URLs.
 - Configure the platform readiness probe to `GET /api/v1/health/ready`; it verifies PostgreSQL and Redis connectivity before the instance should receive traffic.
