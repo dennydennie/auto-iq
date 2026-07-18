@@ -140,6 +140,14 @@ const requiredSourceFragments = [
     ],
   },
   {
+    file: "Dockerfile",
+    fragments: [
+      "ARG STORAGE_ENDPOINT",
+      "ARG NEXT_PUBLIC_SENTRY_DSN",
+      "ARG SENTRY_RELEASE",
+    ],
+  },
+  {
     file: "apps/web/lib/site-url.ts",
     fragments: ["NEXT_PUBLIC_SITE_URL is required in production"],
   },
