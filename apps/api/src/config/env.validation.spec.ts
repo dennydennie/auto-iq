@@ -75,6 +75,7 @@ describe("validateEnv", () => {
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
         DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_SERVER_NAME: "localhost",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
         STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
@@ -97,6 +98,7 @@ describe("validateEnv", () => {
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
         DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_SERVER_NAME: "localhost",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "http://localhost:3000",
         SESSION_COOKIE_SECURE: "true",
@@ -146,6 +148,7 @@ describe("validateEnv", () => {
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
         DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_SERVER_NAME: "localhost",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
         SESSION_COOKIE_SECURE: "true",
@@ -164,6 +167,7 @@ describe("validateEnv", () => {
       DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
       DATABASE_SSL: "true",
       DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+      DATABASE_SSL_SERVER_NAME: "localhost",
       BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
       WEB_BASE_URL: "https://app.autoiq.example",
       SESSION_COOKIE_SECURE: "true",
@@ -182,6 +186,33 @@ describe("validateEnv", () => {
 
     expect(Object.hasOwn(env, "STORAGE_PUBLIC_BASE_URL")).toBe(false);
     expect(env.STORAGE_FORCE_PATH_STYLE).toBe(false);
+  });
+
+  it("requires an explicit Railway database certificate server name", () => {
+    expect(() =>
+      validateEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        TRUST_PROXY_HOPS: "1",
+        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
+        DATABASE_SSL: "true",
+        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
+        WEB_BASE_URL: "https://app.autoiq.example",
+        SESSION_COOKIE_SECURE: "true",
+        SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+        SENTRY_ENVIRONMENT: "production",
+        SENTRY_RELEASE: "api@1.0.0",
+        SESSION_SECRET: "production-session-secret-1234567890",
+        AWS_ENDPOINT_URL: "https://storage.railway.app",
+        AWS_DEFAULT_REGION: "auto",
+        AWS_ACCESS_KEY_ID: "railway-access-key",
+        AWS_SECRET_ACCESS_KEY: "railway-secret-key",
+        AWS_S3_BUCKET_NAME: "auto-iq-production",
+        AWS_S3_URL_STYLE: "virtual",
+        STORAGE_FORCE_PATH_STYLE: undefined,
+      }),
+    ).toThrow(/DATABASE_SSL_SERVER_NAME/);
   });
 
   it("validates an explicit Redis connection timeout", () => {

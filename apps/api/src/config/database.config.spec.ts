@@ -64,10 +64,11 @@ describe("database.config", () => {
       NODE_ENV: "production",
       DATABASE_SSL: "true",
       DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+      DATABASE_SSL_SERVER_NAME: "localhost",
       DATABASE_CONNECT_TIMEOUT_MS: "12000",
       DATABASE_STATEMENT_TIMEOUT_MS: "6000",
     }) as DataSourceOptions & {
-      ssl: false | { rejectUnauthorized: boolean; ca?: string };
+      ssl: false | { rejectUnauthorized: boolean; ca?: string; servername?: string };
       extra?: { connectionTimeoutMillis?: number; statement_timeout?: number };
     };
 
@@ -75,6 +76,7 @@ describe("database.config", () => {
     expect(options.ssl).toEqual({
       rejectUnauthorized: true,
       ca: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+      servername: "localhost",
     });
     expect(options.extra).toMatchObject({
       connectionTimeoutMillis: 12000,

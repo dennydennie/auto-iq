@@ -173,6 +173,7 @@ configure_api_variables() {
   set_variable "$API_SERVICE" "NODE_ENV" "production"
   set_variable "$API_SERVICE" "DATABASE_URL" "\${{${POSTGRES_SERVICE}.DATABASE_URL}}"
   set_variable "$API_SERVICE" "DATABASE_SSL" "true"
+  set_variable "$API_SERVICE" "DATABASE_SSL_SERVER_NAME" "localhost"
   set_variable "$API_SERVICE" "REDIS_URL" "\${{${REDIS_SERVICE}.REDIS_URL}}"
   set_variable "$API_SERVICE" "CORS_ORIGINS" "$CORS_ORIGINS"
   set_variable "$API_SERVICE" "WEB_BASE_URL" "$WEB_BASE_URL"

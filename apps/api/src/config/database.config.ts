@@ -30,7 +30,13 @@ export function buildDataSourceOptions(
     migrationsRun: false,
     logging: validatedEnv.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
     ssl: validatedEnv.DATABASE_SSL
-      ? { rejectUnauthorized: true, ca: validatedEnv.DATABASE_SSL_CA }
+      ? {
+          rejectUnauthorized: true,
+          ca: validatedEnv.DATABASE_SSL_CA,
+          ...(validatedEnv.DATABASE_SSL_SERVER_NAME
+            ? { servername: validatedEnv.DATABASE_SSL_SERVER_NAME }
+            : {}),
+        }
       : false,
     extra: {
       connectionTimeoutMillis: validatedEnv.DATABASE_CONNECT_TIMEOUT_MS,

@@ -49,6 +49,7 @@ Optional inputs:
 - `SESSION_COOKIE_DOMAIN` when cross-subdomain cookies are required
 - `SESSION_COOKIE_SAME_SITE`
 - `SESSION_COOKIE_SECURE`
+- `DATABASE_SSL_SERVER_NAME=localhost` (Railway Postgres certificate identity)
 - `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL` / `AWS_ENDPOINT_URL_S3`
 - `STORAGE_REGION` or `AWS_REGION` / `AWS_DEFAULT_REGION`
 - `STORAGE_ACCESS_KEY` or `AWS_ACCESS_KEY_ID`

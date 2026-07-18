@@ -41,6 +41,10 @@ class DatabaseEnvironmentVariables {
   @IsString()
   DATABASE_SSL_CA?: string;
 
+  @IsOptional()
+  @IsString()
+  DATABASE_SSL_SERVER_NAME?: string;
+
   @Transform(({ value }: { value: unknown }) => Number(value ?? 10_000))
   @IsInt()
   @Min(250)
@@ -342,6 +346,10 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   DATABASE_SSL_CA?: string;
+
+  @IsOptional()
+  @IsString()
+  DATABASE_SSL_SERVER_NAME?: string;
 }
 
 export type ValidatedEnvironment = EnvironmentVariables;
@@ -359,8 +367,13 @@ export function validateEnv(config: Record<string, unknown>) {
 export function validateDatabaseEnv(config: Record<string, unknown>) {
   const env = plainToInstance(DatabaseEnvironmentVariables, config);
   assertValidEnv(env);
-  if (PRODUCTION_ENVIRONMENTS.has(env.NODE_ENV) && (!env.DATABASE_SSL || !env.DATABASE_SSL_CA)) {
-    throw new Error("Production database configuration requires DATABASE_SSL=true and DATABASE_SSL_CA");
+  if (
+    PRODUCTION_ENVIRONMENTS.has(env.NODE_ENV) &&
+    (!env.DATABASE_SSL || !env.DATABASE_SSL_CA || !env.DATABASE_SSL_SERVER_NAME)
+  ) {
+    throw new Error(
+      "Production database configuration requires DATABASE_SSL=true and DATABASE_SSL_CA and DATABASE_SSL_SERVER_NAME",
+    );
   }
   return env;
 }
@@ -410,6 +423,9 @@ function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   }
   if (!env.DATABASE_SSL_CA) {
     missing.push("DATABASE_SSL_CA");
+  }
+  if (!env.DATABASE_SSL_SERVER_NAME) {
+    missing.push("DATABASE_SSL_SERVER_NAME");
   }
   if (env.SWAGGER_ENABLED === true) {
     missing.push("SWAGGER_ENABLED=false");
