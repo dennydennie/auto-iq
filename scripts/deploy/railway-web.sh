@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENVIRONMENT_NAME="${RAILWAY_ENVIRONMENT_NAME:-staging}"
 WEB_SERVICE="${RAILWAY_WEB_SERVICE:-web}"
 BUCKET_SERVICE="${RAILWAY_BUCKET_NAME:-assets}"
+API_SERVICE="${RAILWAY_API_SERVICE:-api}"
 DEPLOY_MESSAGE="${RAILWAY_DEPLOY_MESSAGE:-Deploy ${WEB_SERVICE} from CLI}"
 PROJECT_ID="${RAILWAY_PROJECT_ID:-}"
 TMP_DIR=""
@@ -112,6 +113,29 @@ configure_storage_variables() {
     --skip-deploys >/dev/null
 }
 
+configure_observability_variables() {
+  railway variable set "NODE_ENV=production" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+  railway variable set "SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+  railway variable set "NEXT_PUBLIC_SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+  railway variable set "SENTRY_ENVIRONMENT=$ENVIRONMENT_NAME" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+  railway variable set "SENTRY_RELEASE=\${{RAILWAY_GIT_COMMIT_SHA}}" \
+    --service "$WEB_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --skip-deploys >/dev/null
+}
+
 main() {
   require_command railway
   require_command tar
@@ -124,6 +148,9 @@ main() {
 
   log_step "Configuring private storage image host"
   configure_storage_variables
+
+  log_step "Configuring web observability"
+  configure_observability_variables
 
   log_step "Deploying web service"
   deploy_bundle
