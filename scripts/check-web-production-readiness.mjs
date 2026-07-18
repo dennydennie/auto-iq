@@ -88,6 +88,8 @@ const requiredSourceFragments = [
       "response.status !== 403",
       "SESSION_TTL_SECONDS",
       "X-Auto-IQ-BFF-Signature",
+      "WEB_API_TIMEOUT_MS",
+      "fetchWithTimeout",
     ],
   },
   {
@@ -130,6 +132,17 @@ const requiredSourceFragments = [
     file: "apps/web/app/(marketplace)/saved/page.tsx",
     fragments: ["SavedVehiclesPayload", "extractSavedVehicles(result.data)"],
   },
+  {
+    file: "apps/web/next.config.ts",
+    fragments: [
+      "STORAGE_PUBLIC_BASE_URL is required in production",
+      "Missing production web observability configuration",
+    ],
+  },
+  {
+    file: "apps/web/lib/site-url.ts",
+    fragments: ["NEXT_PUBLIC_SITE_URL is required in production"],
+  },
 ];
 
 const forbiddenSourceFragments = [
@@ -148,6 +161,12 @@ const forbiddenSourceFragments = [
 ];
 
 const failures = [];
+
+for (const file of [".dockerignore"]) {
+  if (!existsSync(join(ROOT, file)) || readFileSync(join(ROOT, file), "utf8").trim() === "") {
+    failures.push(`${file}: release source ignore file must be present and non-empty`);
+  }
+}
 
 for (const [route, files] of collectPageRoutes(join(ROOT, "apps/web/app"))) {
   if (files.length > 1) {

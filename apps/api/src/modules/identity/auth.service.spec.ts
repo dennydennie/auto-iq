@@ -229,6 +229,9 @@ describe("AuthService", () => {
         if (key === "NODE_ENV") {
           return "staging";
         }
+        if (key === "WEB_BASE_URL") {
+          return "https://web-staging-1017.up.railway.app";
+        }
         return defaultValue;
       },
       findByEmail: jest.fn().mockResolvedValue(user),

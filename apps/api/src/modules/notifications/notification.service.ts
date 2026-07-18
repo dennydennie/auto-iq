@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { NotificationChannel, NotificationStatus } from "../../common/constants/listing.constants";
 import { NotificationAttemptRepository } from "../../db/repository/notification-attempt.repository";
@@ -77,7 +77,7 @@ export class NotificationService {
       return this.toDto(existing);
     }
 
-    const notification = await this.notificationRepository.save(this.notificationRepository.create({
+    const draft = this.notificationRepository.create({
       recipientUserId: input.recipientUserId,
       channel: input.channel,
       template: input.template,
@@ -89,7 +89,22 @@ export class NotificationService {
       lastAttemptAt: null,
       retryAfter: null,
       providerRef: null,
-    }));
+      claimToken: null,
+      claimExpiresAt: null,
+    });
+    let notification;
+    try {
+      notification = await this.notificationRepository.save(draft);
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      const raced = await this.notificationRepository.findByIdempotency(
+        input.recipientUserId,
+        input.channel,
+        input.idempotencyKey,
+      );
+      if (!raced) throw error;
+      return this.toDto(raced);
+    }
     return this.deliver(notification.id);
   }
 
@@ -142,7 +157,15 @@ export class NotificationService {
     if (!notification) {
       throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Notification not found" });
     }
-    const result = await this.deliver(notificationId, true);
+    const claimToken = await this.notificationRepository.claimById(
+      notificationId,
+      new Date(),
+      this.claimLeaseSeconds(),
+    );
+    if (!claimToken) {
+      throw new ConflictException({ code: "NOTIFICATION_IN_PROGRESS", message: "Notification delivery is already in progress" });
+    }
+    const result = await this.deliver(notificationId, true, claimToken);
     await this.auditService.record({
       action: "notification.retry",
       actorUserId,
@@ -161,9 +184,9 @@ export class NotificationService {
   }
 
   async processPendingRetries(now = new Date()) {
-    const retryable = await this.notificationRepository.findRetryable(now, 25);
-    for (const notification of retryable) {
-      await this.deliver(notification.id, true);
+    const retryable = await this.notificationRepository.claimRetryable(now, 25, this.claimLeaseSeconds());
+    for (const claim of retryable) {
+      await this.deliver(claim.notification.id, true, claim.token);
     }
     return retryable.length;
   }
@@ -205,13 +228,16 @@ export class NotificationService {
     return sent;
   }
 
-  private async deliver(notificationId: string, force = false) {
+  private async deliver(notificationId: string, force = false, claimToken?: string) {
     const notification = await this.notificationRepository.findByIdWithRelations(notificationId);
     if (!notification) {
       throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Notification not found" });
     }
     if (!force && notification.status === "SENT") {
       return this.toDto(notification);
+    }
+    if (claimToken && notification.claimToken !== claimToken) {
+      throw new ConflictException({ code: "NOTIFICATION_IN_PROGRESS", message: "Notification delivery claim is no longer valid" });
     }
 
     const attemptNumber = notification.attemptCount + 1;
@@ -242,6 +268,8 @@ export class NotificationService {
         lastAttemptAt: attempt.sentAt,
         retryAfter: null,
         providerRef: result.providerRef,
+        claimToken: null,
+        claimExpiresAt: null,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown notification failure";
@@ -258,6 +286,8 @@ export class NotificationService {
           ? null
           : new Date(Date.now() + this.retryDelaySeconds() * 1000 * attemptNumber),
         providerRef: notification.providerRef,
+        claimToken: null,
+        claimExpiresAt: null,
       });
       this.logger.error(`Notification ${notification.id} failed`, message);
     }
@@ -337,7 +367,17 @@ export class NotificationService {
     return Number(this.configService.get<string>("NOTIFICATION_RETRY_DELAY_SECONDS") ?? RETRY_DELAY_SECONDS);
   }
 
+  private claimLeaseSeconds() {
+    return Number(this.configService.get<string>("NOTIFICATION_CLAIM_LEASE_SECONDS") ?? 120);
+  }
+
   private pollIntervalMs() {
     return Number(this.configService.get<string>("NOTIFICATION_REMINDER_INTERVAL_MS") ?? 300000);
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const driverError = (error as { driverError?: { code?: string } }).driverError;
+  return driverError?.code === "23505";
 }

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
 import { RedisService } from "../redis/redis.service";
 import { StorageService } from "../storage/storage.service";
@@ -25,6 +26,7 @@ export class HealthService {
     private readonly dataSource: DataSource,
     private readonly redisService: RedisService,
     private readonly storageService: StorageService,
+    private readonly config?: ConfigService,
   ) {}
 
   getLive(): LiveResponse {
@@ -34,8 +36,8 @@ export class HealthService {
   async getReady(): Promise<ReadinessResponse> {
     const [db, redis, storage] = await Promise.all([
       this.checkDatabase(),
-      this.redisService.ping(),
-      this.storageService.ping(),
+      this.withTimeout(this.redisService.ping()).catch(() => "down" as const),
+      this.withTimeout(this.storageService.ping()).catch(() => "down" as const),
     ]);
 
     return {
@@ -46,11 +48,19 @@ export class HealthService {
 
   private async checkDatabase(): Promise<CheckStatus> {
     try {
-      await this.dataSource.query("SELECT 1");
+      await this.withTimeout(this.dataSource.query("SELECT 1"));
       return "up";
     } catch {
       return "down";
     }
+  }
+
+  private async withTimeout<T>(promise: Promise<T>): Promise<T> {
+    const timeoutMs = this.config?.get<number>("REQUEST_TIMEOUT_MS") ?? 10_000;
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("health check timeout")), timeoutMs);
+      promise.then(resolve, reject).finally(() => clearTimeout(timer));
+    });
   }
 
   private toHealthStatus(...checks: CheckStatus[]): HealthStatus {

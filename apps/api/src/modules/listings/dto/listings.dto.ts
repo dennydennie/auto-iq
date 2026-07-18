@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from "class-validator";
@@ -22,10 +23,12 @@ import {
 export class UpsertListingSpecsDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(80)
   make!: string;
 
   @IsString()
   @MinLength(1)
+  @MaxLength(120)
   model!: string;
 
   @IsInt()
@@ -38,6 +41,7 @@ export class UpsertListingSpecsDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(80)
   colour!: string;
 
   @IsIn(FUEL_TYPES)
@@ -51,6 +55,7 @@ export class UpsertListingSpecsDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(40)
   engineCapacity?: string;
 
   @IsInt()
@@ -65,6 +70,7 @@ export class UpsertListingSpecsDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   accidentNote?: string;
 }
 
@@ -91,12 +97,14 @@ export class CreateListingDto extends UpsertListingSpecsDto {
 export class SubmitListingDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(4000)
   sellerDisclosure!: string;
 }
 
 export class UpsertListingDisclosureDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(4000)
   sellerDisclosure!: string;
 }
 

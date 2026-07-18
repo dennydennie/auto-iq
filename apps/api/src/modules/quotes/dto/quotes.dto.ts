@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from "class-validator";
@@ -24,6 +25,7 @@ export class CreateQuoteDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   message?: string;
 }
 
@@ -43,10 +45,12 @@ export class QuoteListQueryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   listingId?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   buyerId?: string;
 
   @IsOptional()
@@ -74,6 +78,7 @@ export class UpdateQuoteDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   responseNote?: string;
 }
 
@@ -86,5 +91,6 @@ export class QuoteActionDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   responseNote?: string;
 }

@@ -23,6 +23,20 @@ function parseStorageHost(): RemotePattern | null {
 }
 
 const storagePattern = parseStorageHost();
+validateProductionObservability();
+
+function validateProductionObservability() {
+  if (process.env.NODE_ENV !== "production") return;
+  const missing = [
+    ["NEXT_PUBLIC_SENTRY_DSN", process.env.NEXT_PUBLIC_SENTRY_DSN],
+    ["SENTRY_DSN", process.env.SENTRY_DSN],
+    ["SENTRY_ENVIRONMENT", process.env.SENTRY_ENVIRONMENT],
+    ["SENTRY_RELEASE", process.env.SENTRY_RELEASE],
+  ].filter(([, value]) => !value).map(([name]) => name);
+  if (missing.length > 0) {
+    throw new Error(`Missing production web observability configuration: ${missing.join(", ")}`);
+  }
+}
 
 // Image host policy:
 // 1. When STORAGE_PUBLIC_BASE_URL is configured, pin the listing images to that
@@ -40,10 +54,7 @@ if (storagePattern) {
   remotePatterns.unshift(storagePattern);
 } else {
   if (process.env.NODE_ENV === "production") {
-    console.warn(
-      "[next.config] STORAGE_PUBLIC_BASE_URL is unset in production — falling back to `https://**`. " +
-        "Pin this to your storage host to lock down the next/image proxy.",
-    );
+    throw new Error("STORAGE_PUBLIC_BASE_URL is required in production");
   }
   remotePatterns.push({ protocol: "https", hostname: "**" });
 }

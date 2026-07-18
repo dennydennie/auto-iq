@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { TenantService } from "../tenancy/tenant.service";
 import { NotificationService } from "./notification.service";
 
 @Injectable()
@@ -10,6 +11,7 @@ export class NotificationSchedulerService implements OnModuleInit, OnModuleDestr
   constructor(
     private readonly configService: ConfigService,
     private readonly notificationService: NotificationService,
+    private readonly tenantService: TenantService,
   ) {}
 
   onModuleInit() {
@@ -36,8 +38,10 @@ export class NotificationSchedulerService implements OnModuleInit, OnModuleDestr
 
     this.running = true;
     try {
-      await this.notificationService.processPendingRetries();
-      await this.notificationService.processViewingReminders();
+      await this.tenantService.forEachTenant(async () => {
+        await this.notificationService.processPendingRetries();
+        await this.notificationService.processViewingReminders();
+      });
     } finally {
       this.running = false;
     }

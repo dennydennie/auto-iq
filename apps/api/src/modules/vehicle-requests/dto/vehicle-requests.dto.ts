@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 import {
   BODY_TYPES,
   FUEL_TYPES,
@@ -16,10 +16,12 @@ export class CreateVehicleRequestDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(80)
   makeId?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   model?: string;
 
   @Type(() => Number)
@@ -57,6 +59,7 @@ export class CreateVehicleRequestDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(4000)
   notes?: string;
 }
 
@@ -98,9 +101,11 @@ export class UpdateVehicleRequestDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   adminNote?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   matchedListingId?: string;
 }

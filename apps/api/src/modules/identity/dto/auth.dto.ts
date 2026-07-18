@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   Matches,
   MinLength,
 } from "class-validator";
@@ -11,6 +12,7 @@ import {
 export class RegisterDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(120)
   fullName!: string;
 
   @IsEmail()
@@ -20,6 +22,7 @@ export class RegisterDto {
   phone!: string;
 
   @IsString()
+  @MaxLength(128)
   @MinLength(8)
   password!: string;
 
@@ -28,16 +31,19 @@ export class RegisterDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(100)
   city!: string;
 }
 
 export class LoginDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(254)
   identifier!: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(128)
   password!: string;
 }
 
@@ -49,6 +55,7 @@ export class SendOtpDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(254)
   identifier?: string;
 }
 
@@ -60,6 +67,7 @@ export class VerifyOtpDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(254)
   identifier?: string;
 
   @Matches(/^\d{6}$/)
@@ -78,9 +86,11 @@ export class ForgotPasswordDto {
 export class ResetPasswordDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(512)
   token!: string;
 
   @IsString()
+  @MaxLength(128)
   @MinLength(8)
   newPassword!: string;
 }

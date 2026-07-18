@@ -75,6 +75,7 @@ export function PhotoUploader({
     }
 
     const presignBody: ImagePresignRequest = {
+      listingId,
       slot,
       contentType: file.type as ImagePresignRequest["contentType"],
       contentLength: file.size,
@@ -114,6 +115,8 @@ export function PhotoUploader({
       const registerBody: RegisterImageRequest = {
         storageKey: presignResult.data.storageKey,
         slot,
+        contentType: file.type as RegisterImageRequest["contentType"],
+        contentLength: file.size,
         isCover: !bySlot.has("FRONT_THREE_QUARTER") && slot === "FRONT_THREE_QUARTER",
       };
       const registerResult = await postJson<VehicleImageDto>(

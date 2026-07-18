@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsOptional, Max, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, Max, MaxLength, Min } from "class-validator";
 import { NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES } from "../../../common/constants/listing.constants";
 
 const NOTIFICATION_TEMPLATE_KEYS = [
@@ -39,6 +39,7 @@ export class NotificationListQueryDto {
   limit?: number;
 
   @IsOptional()
+  @MaxLength(100)
   recipientId?: string;
 
   @IsOptional()

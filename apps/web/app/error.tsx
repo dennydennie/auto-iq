@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 
@@ -13,7 +14,7 @@ export default function GlobalRouteError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Sentry.captureException(error) — wired once @sentry/nextjs is installed.
+    Sentry.captureException(error);
     console.error("[route error]", error);
   }, [error]);
 

@@ -5,26 +5,31 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
   Matches,
 } from "class-validator";
 
 export class UpdateMeDto {
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   fullName?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   city?: string;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @MaxLength(80, { each: true })
   preferredBodyTypes?: string[];
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @MaxLength(80, { each: true })
   preferredMakes?: string[];
 
   @IsOptional()
@@ -37,6 +42,7 @@ export class UpdateMeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(160)
   businessName?: string;
 }
 

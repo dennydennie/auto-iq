@@ -5,10 +5,12 @@ import {
   IsIn,
   IsNotEmpty,
   IsOptional,
+  IsUUID,
   IsPort,
   IsString,
   MinLength,
   Min,
+  Max,
   Matches,
   validateSync,
 } from "class-validator";
@@ -18,6 +20,8 @@ const PRODUCTION_ENVIRONMENTS = new Set<ValidatedEnvironment["NODE_ENV"]>([
   "staging",
   "production",
 ]);
+const DEFAULT_SESSION_SECRET = "dev-auto-iq-session-secret-change-me";
+const DEFAULT_STORAGE_VALUES = new Set(["minioadmin", "auto-iq-local"]);
 
 class DatabaseEnvironmentVariables {
   @IsIn(ENVIRONMENTS)
@@ -32,6 +36,20 @@ class DatabaseEnvironmentVariables {
     ({ value }: { value: unknown }) => value === "true" || value === true,
   )
   DATABASE_SSL = false;
+
+  @IsOptional()
+  @IsString()
+  DATABASE_SSL_CA?: string;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 10_000))
+  @IsInt()
+  @Min(250)
+  DATABASE_CONNECT_TIMEOUT_MS = 10_000;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 5_000))
+  @IsInt()
+  @Min(250)
+  DATABASE_STATEMENT_TIMEOUT_MS = 5_000;
 }
 
 class EnvironmentVariables {
@@ -65,6 +83,9 @@ class EnvironmentVariables {
   @Min(0)
   TRUST_PROXY_HOPS = 0;
 
+  @IsUUID()
+  DEFAULT_TENANT_ID = "11111111-1111-4111-8111-111111111111";
+
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -97,7 +118,7 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  SESSION_SECRET = "dev-auto-iq-session-secret-change-me";
+  SESSION_SECRET = DEFAULT_SESSION_SECRET;
 
   @IsString()
   @IsNotEmpty()
@@ -140,6 +161,49 @@ class EnvironmentVariables {
   @Transform(({ value }: { value: unknown }) => Number(value ?? 900))
   @IsInt()
   STORAGE_PRESIGN_TTL_SECONDS = 900;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 10_000))
+  @IsInt()
+  @Min(250)
+  STORAGE_CONNECT_TIMEOUT_MS = 10_000;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 30_000))
+  @IsInt()
+  @Min(250)
+  STORAGE_SOCKET_TIMEOUT_MS = 30_000;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 10_000))
+  @IsInt()
+  @Min(250)
+  REQUEST_TIMEOUT_MS = 10_000;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 60))
+  @IsInt()
+  @Min(1)
+  GLOBAL_RATE_LIMIT_WINDOW_SECONDS = 60;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 120))
+  @IsInt()
+  @Min(1)
+  GLOBAL_RATE_LIMIT_MAX = 120;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 10 * 1024 * 1024))
+  @IsInt()
+  @Min(1)
+  @Max(10 * 1024 * 1024)
+  MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 15 * 1024 * 1024))
+  @IsInt()
+  @Min(1)
+  @Max(15 * 1024 * 1024)
+  MAX_DOCUMENT_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+  @Transform(({ value }: { value: unknown }) => Number(value ?? 120))
+  @IsInt()
+  @Min(10)
+  @Max(3_600)
+  NOTIFICATION_CLAIM_LEASE_SECONDS = 120;
 
   @IsOptional()
   @IsIn(["sandbox", "resend", "sendgrid"])
@@ -278,6 +342,10 @@ class EnvironmentVariables {
     ({ value }: { value: unknown }) => value === "true" || value === true,
   )
   DATABASE_SSL = false;
+
+  @IsOptional()
+  @IsString()
+  DATABASE_SSL_CA?: string;
 }
 
 export type ValidatedEnvironment = EnvironmentVariables;
@@ -295,6 +363,9 @@ export function validateEnv(config: Record<string, unknown>) {
 export function validateDatabaseEnv(config: Record<string, unknown>) {
   const env = plainToInstance(DatabaseEnvironmentVariables, config);
   assertValidEnv(env);
+  if (PRODUCTION_ENVIRONMENTS.has(env.NODE_ENV) && (!env.DATABASE_SSL || !env.DATABASE_SSL_CA)) {
+    throw new Error("Production database configuration requires DATABASE_SSL=true and DATABASE_SSL_CA");
+  }
   return env;
 }
 
@@ -326,14 +397,75 @@ function requiredProductionVariables(env: ValidatedEnvironment): string[] {
   if (env.SESSION_COOKIE_SECURE !== true) {
     missing.push("SESSION_COOKIE_SECURE=true");
   }
+  if (env.TRUST_PROXY_HOPS !== 1) {
+    missing.push("TRUST_PROXY_HOPS=1");
+  }
+  if (!env.DEFAULT_TENANT_ID) {
+    missing.push("DEFAULT_TENANT_ID");
+  }
   if (!isProductionWebOrigin(env.WEB_BASE_URL)) {
     missing.push("WEB_BASE_URL(non-localhost HTTPS origin)");
   }
   if (!env.BFF_SHARED_SECRET) {
     missing.push("BFF_SHARED_SECRET");
   }
+  if (env.DATABASE_SSL !== true) {
+    missing.push("DATABASE_SSL=true");
+  }
+  if (!env.DATABASE_SSL_CA) {
+    missing.push("DATABASE_SSL_CA");
+  }
+  if (env.SWAGGER_ENABLED === true) {
+    missing.push("SWAGGER_ENABLED=false");
+  }
+  if (env.ENABLE_TEST_ERROR_ROUTE === true) {
+    missing.push("ENABLE_TEST_ERROR_ROUTE=false");
+  }
+  if (!isProductionSessionSecret(env.SESSION_SECRET)) {
+    missing.push("SESSION_SECRET(non-default, 32+ characters)");
+  }
+  if (!isProductionStorageEndpoint(env.STORAGE_ENDPOINT)) {
+    missing.push("STORAGE_ENDPOINT(non-localhost HTTPS endpoint)");
+  }
+  if (DEFAULT_STORAGE_VALUES.has(env.STORAGE_ACCESS_KEY)) {
+    missing.push("STORAGE_ACCESS_KEY(non-default)");
+  }
+  if (DEFAULT_STORAGE_VALUES.has(env.STORAGE_SECRET_KEY)) {
+    missing.push("STORAGE_SECRET_KEY(non-default)");
+  }
+  if (DEFAULT_STORAGE_VALUES.has(env.STORAGE_BUCKET)) {
+    missing.push("STORAGE_BUCKET(non-default)");
+  }
+  if (!isProductionStoragePublicUrl(env.STORAGE_PUBLIC_BASE_URL)) {
+    missing.push("STORAGE_PUBLIC_BASE_URL(non-localhost HTTPS origin)");
+  }
 
   return missing;
+}
+
+function isProductionSessionSecret(value: string) {
+  return value.length >= 32 && value !== DEFAULT_SESSION_SECRET;
+}
+
+function isProductionStorageEndpoint(value: string) {
+  return isHttpsNonLocalhost(value);
+}
+
+function isProductionStoragePublicUrl(value: string | undefined) {
+  return value ? isHttpsNonLocalhost(value) : false;
+}
+
+function isHttpsNonLocalhost(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !isLocalhost(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isLocalhost(hostname: string) {
+  return new Set(["localhost", "127.0.0.1", "::1"]).has(hostname.toLowerCase());
 }
 
 function isProductionWebOrigin(value: string | undefined) {

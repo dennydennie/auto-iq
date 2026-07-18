@@ -1,4 +1,5 @@
 import { Body, Controller, Param, Post, UseGuards } from "@nestjs/common";
+import { ApiBody } from "@nestjs/swagger";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { AuthGuard } from "../../common/guards/auth.guard";
@@ -15,6 +16,7 @@ export class ListingDocumentsController {
   constructor(private readonly listingDocumentsService: ListingDocumentsService) {}
 
   @Post()
+  @ApiBody({ type: RegisterDocumentDto })
   register(
     @CurrentUser() user: AuthenticatedUser,
     @Param("listingId") listingId: string,

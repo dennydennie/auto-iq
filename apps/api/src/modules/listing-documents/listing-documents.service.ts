@@ -14,7 +14,13 @@ export class ListingDocumentsService {
 
   async register(userId: string, listingId: string, body: RegisterDocumentDto) {
     const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
-    const metadata = await this.storageService.inspectPendingUpload(body.storageKey, "document");
+    const metadata = await this.storageService.inspectPendingUpload(body.storageKey, "document", {
+      userId,
+      listingId,
+      documentType: body.documentType,
+      contentType: body.contentType,
+      contentLength: body.contentLength,
+    });
     const existing = await this.vehicleDocumentRepository.findByVehicleIdAndType(listing.id, body.documentType);
     const document = existing ?? this.vehicleDocumentRepository.create({
       vehicleId: listing.id,

@@ -8,17 +8,19 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'No web tests configured yet'",
+    "test": "pnpm run test:api-origin && pnpm run test:saved-vehicles",
+    "test:api-origin": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/api-origin.test.mjs",
     "test:saved-vehicles": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/saved-vehicles.test.mjs",
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@auto-iq/contracts": "workspace:*",
+    "@sentry/nextjs": "^10.66.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@auto-iq/contracts": "workspace:*",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.468.0",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {

@@ -51,6 +51,10 @@ describe("validateEnv", () => {
       validateEnv({
         ...baseEnv,
         NODE_ENV: "production",
+        TRUST_PROXY_HOPS: "1",
+        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
+        DATABASE_SSL: "true",
+        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
         STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
@@ -58,6 +62,7 @@ describe("validateEnv", () => {
         STORAGE_ACCESS_KEY: "tigris-access-key",
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
+        STORAGE_PUBLIC_BASE_URL: "https://assets.autoiq.example",
       }),
     ).toThrow(
       "Missing required production environment variables: SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_RELEASE, SESSION_COOKIE_SECURE=true",
@@ -69,6 +74,10 @@ describe("validateEnv", () => {
       validateEnv({
         ...baseEnv,
         NODE_ENV: "production",
+        TRUST_PROXY_HOPS: "1",
+        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
+        DATABASE_SSL: "true",
+        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "http://localhost:3000",
         SESSION_COOKIE_SECURE: "true",
@@ -80,6 +89,7 @@ describe("validateEnv", () => {
         STORAGE_ACCESS_KEY: "tigris-access-key",
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
+        STORAGE_PUBLIC_BASE_URL: "https://assets.autoiq.example",
       }),
     ).toThrow(
       "Missing required production environment variables: WEB_BASE_URL(non-localhost HTTPS origin)",
@@ -91,6 +101,8 @@ describe("validateEnv", () => {
       validateEnv({
         ...baseEnv,
         NODE_ENV: "production",
+        TRUST_PROXY_HOPS: "1",
+        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         WEB_BASE_URL: "https://app.autoiq.example",
         SESSION_COOKIE_SECURE: "true",
         SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
@@ -101,10 +113,55 @@ describe("validateEnv", () => {
         STORAGE_ACCESS_KEY: "tigris-access-key",
         STORAGE_SECRET_KEY: "tigris-secret-key",
         STORAGE_BUCKET: "auto-iq-production",
+        STORAGE_PUBLIC_BASE_URL: "https://assets.autoiq.example",
       }),
     ).toThrow(
       "Missing required production environment variables: BFF_SHARED_SECRET",
     );
+  });
+
+  it("rejects committed development secrets and storage defaults in production", () => {
+    expect(() =>
+      validateEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        TRUST_PROXY_HOPS: "1",
+        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
+        DATABASE_SSL: "true",
+        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
+        WEB_BASE_URL: "https://app.autoiq.example",
+        SESSION_COOKIE_SECURE: "true",
+        SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+        SENTRY_ENVIRONMENT: "production",
+        SENTRY_RELEASE: "api@1.0.0",
+      }),
+    ).toThrow(/SESSION_SECRET|STORAGE_ENDPOINT|STORAGE_ACCESS_KEY|STORAGE_BUCKET/);
+  });
+
+  it("requires a production storage public URL", () => {
+    expect(() =>
+      validateEnv({
+        ...baseEnv,
+        NODE_ENV: "production",
+        TRUST_PROXY_HOPS: "1",
+        DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
+        DATABASE_SSL: "true",
+        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
+        WEB_BASE_URL: "https://app.autoiq.example",
+        SESSION_COOKIE_SECURE: "true",
+        SENTRY_DSN: "https://public@example.ingest.sentry.io/1",
+        SENTRY_ENVIRONMENT: "production",
+        SENTRY_RELEASE: "api@1.0.0",
+        SESSION_SECRET: "production-session-secret-1234567890",
+        STORAGE_ENDPOINT: "https://fly.storage.tigris.dev",
+        STORAGE_REGION: "auto",
+        STORAGE_ACCESS_KEY: "tigris-access-key",
+        STORAGE_SECRET_KEY: "tigris-secret-key",
+        STORAGE_BUCKET: "auto-iq-production",
+      }),
+    ).toThrow(/STORAGE_PUBLIC_BASE_URL/);
   });
 
   it("validates an explicit Redis connection timeout", () => {
@@ -180,5 +237,13 @@ describe("validateEnv", () => {
       "postgresql://auto_iq:auto_iq_dev@localhost:5432/auto_iq",
     );
     expect(env.DATABASE_SSL).toBe(false);
+  });
+
+  it("requires verified TLS for production CLI database configuration", () => {
+    expect(() => validateDatabaseEnv({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgresql://auto_iq:auto_iq_dev@db.example/auto_iq",
+      DATABASE_SSL: "true",
+    })).toThrow("DATABASE_SSL=true and DATABASE_SSL_CA");
   });
 });

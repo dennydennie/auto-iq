@@ -1,4 +1,5 @@
 import { Body, Controller, Param, Post, UseGuards } from "@nestjs/common";
+import { ApiBody } from "@nestjs/swagger";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { AuthGuard } from "../../common/guards/auth.guard";
@@ -15,6 +16,7 @@ export class ListingMediaController {
   constructor(private readonly listingMediaService: ListingMediaService) {}
 
   @Post()
+  @ApiBody({ type: RegisterImageDto })
   register(
     @CurrentUser() user: AuthenticatedUser,
     @Param("listingId") listingId: string,

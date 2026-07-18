@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from "class-validator";
@@ -32,10 +33,12 @@ export class AdminListingListQueryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   sellerId?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @IsOptional()
@@ -50,18 +53,21 @@ export class AdminListingListQueryDto {
 export class RequestChangesDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   message!: string;
 }
 
 export class RejectListingDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   reason!: string;
 }
 
 export class DelistListingDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   reason!: string;
 }
 
@@ -74,11 +80,13 @@ export class UpdateOwnershipVerificationDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   note?: string;
 }
 
 export class AssignInspectionDto {
   @IsString()
+  @MaxLength(100)
   inspectorId!: string;
 
   @IsISO8601()
@@ -86,16 +94,19 @@ export class AssignInspectionDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   locationNote?: string;
 }
 
 export class ApproveBuyerSummaryDto {
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   buyerNote?: string;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @MaxLength(100, { each: true })
   includedFindingIds?: string[];
 }

@@ -6,6 +6,7 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
+import { JsonLogger } from "../logging/json.logger";
 import type { CorrelatedRequest } from "../types/http";
 
 interface ApiErrorEnvelope {
@@ -24,6 +25,8 @@ interface FieldError {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new JsonLogger();
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<CorrelatedRequest>();
@@ -32,6 +35,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const route = request.originalUrl ?? request.url ?? request.route?.path ?? "";
 
     if (shouldReportException(exception, statusCode, route)) {
+      this.logger.error({
+        message: "request.failed",
+        correlationId: request.correlationId ?? "",
+        route,
+        statusCode,
+        error: exceptionDetails(exception),
+      }, "HttpExceptionFilter");
       Sentry.withScope((scope) => {
         scope.setTag("correlationId", request.correlationId ?? "");
         scope.setTag("route", route);
@@ -42,14 +52,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
       });
     }
 
+    const safe = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR;
     response.status(statusCode).json({
-      code: getErrorCode(exception, statusCode),
-      message: getErrorMessage(exception),
+      code: safe ? "INTERNAL_ERROR" : getErrorCode(exception, statusCode),
+      message: safe ? "Internal server error" : getErrorMessage(exception),
       correlationId: request.correlationId ?? "",
-      details: getDetails(exception),
+      details: safe ? undefined : getDetails(exception),
       statusCode,
     } satisfies ApiErrorEnvelope);
   }
+}
+
+function exceptionDetails(exception: unknown) {
+  if (exception instanceof Error) {
+    return { name: exception.name, message: exception.message, stack: exception.stack };
+  }
+  return { message: getErrorMessage(exception) };
 }
 
 function shouldReportException(exception: unknown, statusCode: number, route: string): boolean {

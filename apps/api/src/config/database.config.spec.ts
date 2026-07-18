@@ -63,12 +63,23 @@ describe("database.config", () => {
       ...cliEnv,
       NODE_ENV: "production",
       DATABASE_SSL: "true",
+      DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+      DATABASE_CONNECT_TIMEOUT_MS: "12000",
+      DATABASE_STATEMENT_TIMEOUT_MS: "6000",
     }) as DataSourceOptions & {
-      ssl: false | { rejectUnauthorized: false };
+      ssl: false | { rejectUnauthorized: boolean; ca?: string };
+      extra?: { connectionTimeoutMillis?: number; statement_timeout?: number };
     };
 
     expect(options.logging).toEqual(["error"]);
-    expect(options.ssl).toEqual({ rejectUnauthorized: false });
+    expect(options.ssl).toEqual({
+      rejectUnauthorized: true,
+      ca: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+    });
+    expect(options.extra).toMatchObject({
+      connectionTimeoutMillis: 12000,
+      statement_timeout: 6000,
+    });
   });
 
   it("builds nest runtime options without bootstrapping the app", () => {

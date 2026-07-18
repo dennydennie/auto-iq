@@ -40,6 +40,12 @@ describe("NotificationService", () => {
           recipient: { fullName: "Recipient" },
         };
       }),
+      claimById: jest.fn().mockImplementation(async (id, _now, token) => {
+        const notification = notifications.get(id);
+        if (!notification) return null;
+        notifications.set(id, { ...notification, claimToken: token });
+        return token;
+      }),
       findAdminPage: jest.fn(),
       findRetryable: jest.fn().mockImplementation(async () =>
         [...notifications.values()].filter((notification) => notification.status === "FAILED"),

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, SelectQueryBuilder } from "typeorm";
+import { randomUUID } from "node:crypto";
 import type { NotificationStatus } from "../../common/constants/listing.constants";
 import { NotificationEntity } from "../entity/notification.entity";
 import { AbstractRepository } from "./abstract.repository";
@@ -22,6 +23,13 @@ interface NotificationDeliveryState {
   lastAttemptAt: Date | null;
   retryAfter: Date | null;
   providerRef: string | null;
+  claimToken: string | null;
+  claimExpiresAt: Date | null;
+}
+
+export interface NotificationClaim {
+  notification: NotificationEntity;
+  token: string;
 }
 
 @Injectable()
@@ -64,16 +72,41 @@ export class NotificationRepository extends AbstractRepository<NotificationEntit
     return [rows, total];
   }
 
-  findRetryable(now: Date, limit: number): Promise<NotificationEntity[]> {
-    return this.repository.createQueryBuilder("notification")
-      .leftJoinAndSelect("notification.recipient", "recipient")
-      .leftJoinAndSelect("notification.attempts", "attempts")
-      .where("notification.status = 'FAILED'")
-      .andWhere("notification.retry_after IS NOT NULL")
-      .andWhere("notification.retry_after <= :now", { now: now.toISOString() })
-      .orderBy("notification.retry_after", "ASC")
-      .limit(limit)
-      .getMany();
+  async claimRetryable(now: Date, limit: number, leaseSeconds: number): Promise<NotificationClaim[]> {
+    return this.repository.manager.transaction(async (manager) => {
+      const rows = await manager.createQueryBuilder(NotificationEntity, "notification")
+        .leftJoinAndSelect("notification.recipient", "recipient")
+        .leftJoinAndSelect("notification.attempts", "attempts")
+        .where("notification.status = 'FAILED'")
+        .andWhere("notification.retry_after IS NOT NULL")
+        .andWhere("notification.retry_after <= :now", { now: now.toISOString() })
+        .andWhere("(notification.claim_expires_at IS NULL OR notification.claim_expires_at <= :now)", { now: now.toISOString() })
+        .orderBy("notification.retry_after", "ASC")
+        .take(limit)
+        .setLock("pessimistic_write")
+        .setOnLocked("skip_locked")
+        .getMany();
+      const claims = rows.map((notification) => ({ notification, token: randomUUID() }));
+      for (const claim of claims) {
+        await manager.update(NotificationEntity, { id: claim.notification.id }, {
+          claimToken: claim.token,
+          claimExpiresAt: new Date(now.getTime() + leaseSeconds * 1_000),
+        });
+      }
+      return claims;
+    });
+  }
+
+  async claimById(id: string, now: Date, leaseSeconds: number): Promise<string | null> {
+    const token = randomUUID();
+    const result = await this.repository.createQueryBuilder()
+      .update(NotificationEntity)
+      .set({ claimToken: token, claimExpiresAt: new Date(now.getTime() + leaseSeconds * 1_000) })
+      .where("id = :id", { id })
+      .andWhere("(claim_expires_at IS NULL OR claim_expires_at <= :now)", { now: now.toISOString() })
+      .andWhere("status IN ('FAILED', 'QUEUED')")
+      .execute();
+    return result.affected === 1 ? token : null;
   }
 
   async updateDeliveryState(id: string, state: NotificationDeliveryState): Promise<void> {

@@ -14,7 +14,13 @@ export class ListingMediaService {
 
   async register(userId: string, listingId: string, body: RegisterImageDto) {
     const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
-    const metadata = await this.storageService.inspectPendingUpload(body.storageKey, "image");
+    const metadata = await this.storageService.inspectPendingUpload(body.storageKey, "image", {
+      userId,
+      listingId,
+      slot: body.slot,
+      contentType: body.contentType,
+      contentLength: body.contentLength,
+    });
     const images = await this.vehicleImageRepository.findByVehicleId(listing.id);
     const existing = await this.vehicleImageRepository.findByVehicleIdAndSlot(listing.id, body.slot);
     const shouldBeCover = body.isCover === true || existing?.isCover === true || images.every((image) => !image.isCover);

@@ -10,8 +10,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { isIP } from "node:net";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { CsrfGuard } from "../../common/guards/csrf.guard";
 import type {
@@ -30,6 +28,7 @@ import {
 } from "./dto/auth.dto";
 import { OtpService } from "./otp.service";
 import { SessionService } from "./session.service";
+import { resolveClientIp } from "../../common/security/client-ip";
 
 @Controller("auth")
 export class AuthController {
@@ -110,33 +109,6 @@ export class AuthController {
   async resetPassword(@Body() body: ResetPasswordDto) {
     await this.authService.resetPassword(body);
   }
-}
-
-function resolveClientIp(request: CorrelatedRequest, config: ConfigService) {
-  const clientIp = header(request, "x-auto-iq-client-ip");
-  const signature = header(request, "x-auto-iq-bff-signature");
-  const secret = config.get<string>("BFF_SHARED_SECRET");
-  if (!clientIp || !isIP(clientIp) || !signature || !secret) {
-    return request.ip ?? "unknown";
-  }
-  const expected = createHmac("sha256", secret).update(clientIp).digest("hex");
-  return signaturesMatch(signature, expected)
-    ? clientIp
-    : (request.ip ?? "unknown");
-}
-
-function header(request: CorrelatedRequest, name: string) {
-  const value = request.headers[name];
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function signaturesMatch(actual: string, expected: string) {
-  const actualBytes = Buffer.from(actual, "utf8");
-  const expectedBytes = Buffer.from(expected, "utf8");
-  return (
-    actualBytes.length === expectedBytes.length &&
-    timingSafeEqual(actualBytes, expectedBytes)
-  );
 }
 
 function otpIdentifier(body: SendOtpDto | VerifyOtpDto) {

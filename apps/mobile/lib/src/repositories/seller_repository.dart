@@ -226,6 +226,7 @@ class SellerRepository {
     final presign = await _apiClient.postJson<Map<String, dynamic>>(
       ApiRoutes.storageImagePresign,
       {
+        'listingId': listingId,
         'slot': slot,
         'contentType': file.fileType.contentType,
         'contentLength': file.bytes.length,
@@ -243,6 +244,8 @@ class SellerRepository {
       {
         'storageKey': presign['storageKey']?.toString(),
         'slot': slot,
+        'contentType': file.fileType.contentType,
+        'contentLength': file.bytes.length,
         'isCover': isCover,
       },
       (_) {},
@@ -258,6 +261,7 @@ class SellerRepository {
     final presign = await _apiClient.postJson<Map<String, dynamic>>(
       ApiRoutes.storageDocumentPresign,
       {
+        'listingId': listingId,
         'documentType': documentType,
         'contentType': file.fileType.contentType,
         'contentLength': file.bytes.length,
@@ -275,6 +279,8 @@ class SellerRepository {
       {
         'storageKey': presign['storageKey']?.toString(),
         'documentType': documentType,
+        'contentType': file.fileType.contentType,
+        'contentLength': file.bytes.length,
       },
       (_) {},
       includeCsrf: true,

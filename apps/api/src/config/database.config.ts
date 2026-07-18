@@ -29,9 +29,16 @@ export function buildDataSourceOptions(
     synchronize: false,
     migrationsRun: false,
     logging: validatedEnv.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-    ssl: validatedEnv.DATABASE_SSL ? { rejectUnauthorized: false } : false,
+    ssl: validatedEnv.DATABASE_SSL
+      ? { rejectUnauthorized: true, ca: validatedEnv.DATABASE_SSL_CA }
+      : false,
+    extra: {
+      connectionTimeoutMillis: validatedEnv.DATABASE_CONNECT_TIMEOUT_MS,
+      statement_timeout: validatedEnv.DATABASE_STATEMENT_TIMEOUT_MS,
+    },
     entities: [join(__dirname, "../db/entity/**/*.entity.{ts,js}")],
     migrations: [join(__dirname, "../db/migrations/*{.ts,.js}")],
+    subscribers: [join(__dirname, "../common/tenancy/*.subscriber.{ts,js}")],
   };
 }
 

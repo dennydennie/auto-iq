@@ -1,5 +1,5 @@
 import { Transform, Type } from "class-transformer";
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 import {
   BODY_TYPES,
   FUEL_TYPES,
@@ -34,6 +34,7 @@ function toBoolean(value: unknown): boolean | undefined {
 export class CatalogueQueryDto {
   @IsOptional()
   @IsString()
+  @MaxLength(256)
   cursor?: string;
 
   @Type(() => Number)
@@ -51,10 +52,12 @@ export class CatalogueQueryDto {
   @Transform(({ value }) => toArray(value))
   @IsOptional()
   @IsString({ each: true })
+  @MaxLength(80, { each: true })
   make?: string[];
 
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   model?: string;
 
   @Type(() => Number)
@@ -97,6 +100,7 @@ export class CatalogueQueryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   city?: string;
 
   @Transform(({ value }) => toBoolean(value))

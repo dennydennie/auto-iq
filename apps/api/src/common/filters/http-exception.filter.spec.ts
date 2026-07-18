@@ -39,6 +39,25 @@ describe("HttpExceptionFilter", () => {
       code: "INTERNAL_ERROR",
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       correlationId: "corr-1",
+      message: "Internal server error",
+    }));
+    expect(json).not.toHaveBeenCalledWith(expect.objectContaining({ details: expect.anything() }));
+  });
+
+  it("does not expose provider details in 5xx responses", () => {
+    const filter = new HttpExceptionFilter();
+    const { host, json } = createHost();
+
+    filter.catch(new HttpException({
+      code: "PRESIGN_FAILED",
+      message: "bucket=private-secret provider=credential-value",
+      details: ["access-key=secret"],
+    }, HttpStatus.BAD_GATEWAY), host);
+
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({
+      code: "INTERNAL_ERROR",
+      message: "Internal server error",
+      statusCode: HttpStatus.BAD_GATEWAY,
     }));
   });
 

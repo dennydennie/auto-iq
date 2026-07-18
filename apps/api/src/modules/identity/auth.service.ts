@@ -8,11 +8,13 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
+import { TenantContext } from "../../common/tenancy/tenant-context";
 import { AuditLogEntity } from "../../db/entity/audit-log.entity";
 import { BuyerProfileEntity } from "../../db/entity/buyer-profile.entity";
 import { SellerProfileEntity } from "../../db/entity/seller-profile.entity";
 import { UserRoleEntity } from "../../db/entity/user-role.entity";
 import { UserEntity } from "../../db/entity/user.entity";
+import { TenantMembershipEntity } from "../../db/entity/tenant-membership.entity";
 import { AuditLogRepository } from "../../db/repository/audit-log.repository";
 import { UserRepository } from "../../db/repository/user.repository";
 import { RedisService } from "../redis/redis.service";
@@ -28,9 +30,10 @@ import { RateLimitService } from "./rate-limit.service";
 import { createHash, randomBytes } from "node:crypto";
 
 const RESET_TTL_SECONDS = 60 * 30;
-const DEFAULT_WEB_BASE_URL = "https://web-staging-1017.up.railway.app";
+const DEFAULT_WEB_BASE_URL = "http://localhost:3000";
 const DEFAULT_MOBILE_RESET_URL = "autoiq://reset-password";
 const LOGIN_RATE_WINDOW_SECONDS = 60 * 15;
+const DEFAULT_TENANT_ID = "11111111-1111-4111-8111-111111111111";
 
 @Injectable()
 export class AuthService {
@@ -52,6 +55,7 @@ export class AuthService {
     const passwordHash = await this.passwordService.hash(body.password);
 
     const user = await this.dataSource.transaction(async (manager) => {
+      const tenantId = this.config.get<string>("DEFAULT_TENANT_ID", DEFAULT_TENANT_ID);
       const savedUser = await manager.save(UserEntity, {
         fullName: body.fullName,
         email,
@@ -64,6 +68,14 @@ export class AuthService {
         userId: savedUser.id,
         role: body.role,
       });
+      await TenantContext.run({ tenantId, userId: savedUser.id }, () =>
+        manager.save(TenantMembershipEntity, {
+          tenantId,
+          userId: savedUser.id,
+          role: body.role,
+          active: true,
+        }),
+      );
       if (body.role === "BUYER") {
         await manager.save(BuyerProfileEntity, {
           userId: savedUser.id,

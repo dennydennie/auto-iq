@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule, type TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { AppController } from "./app.controller";
@@ -22,8 +23,10 @@ import { QuotesModule } from "./modules/quotes/quotes.module";
 import { ReferenceDataModule } from "./modules/reference-data/reference-data.module";
 import { SellerProfilesModule } from "./modules/seller-profiles/seller-profiles.module";
 import { StorageModule } from "./modules/storage/storage.module";
+import { TenancyModule } from "./modules/tenancy/tenancy.module";
 import { VehicleRequestsModule } from "./modules/vehicle-requests/vehicle-requests.module";
 import { ViewingsModule } from "./modules/viewings/viewings.module";
+import { GlobalRateLimitGuard } from "./common/guards/global-rate-limit.guard";
 
 @Module({
   imports: [
@@ -44,6 +47,7 @@ import { ViewingsModule } from "./modules/viewings/viewings.module";
     ListingMediaModule,
     ListingDocumentsModule,
     StorageModule,
+    TenancyModule,
     ReferenceDataModule,
     AdminOpsModule,
     OwnershipVerificationModule,
@@ -55,6 +59,6 @@ import { ViewingsModule } from "./modules/viewings/viewings.module";
     AuditModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: GlobalRateLimitGuard }],
 })
 export class AppModule {}

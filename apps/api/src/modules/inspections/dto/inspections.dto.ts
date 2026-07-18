@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from "class-validator";
@@ -42,6 +43,7 @@ export class InspectionFindingInputDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(120)
   label!: string;
 
   @IsIn(INSPECTION_FINDING_RATINGS)
@@ -49,10 +51,12 @@ export class InspectionFindingInputDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   note?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   photoStorageKey?: string;
 }
 
@@ -64,6 +68,7 @@ export class SubmitInspectionReportDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(4000)
   inspectorNote!: string;
 
   @IsBoolean()

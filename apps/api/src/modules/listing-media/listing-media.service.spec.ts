@@ -35,6 +35,8 @@ describe("ListingMediaService", () => {
     const result = await service.register("seller-1", "listing-1", {
       storageKey: "listing-images/2026/06/new.jpg",
       slot: "REAR_THREE_QUARTER",
+      contentType: "image/jpeg",
+      contentLength: 1024,
       isCover: true,
     });
 

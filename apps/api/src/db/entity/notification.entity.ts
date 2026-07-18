@@ -14,10 +14,13 @@ import { NotificationAttemptEntity } from "./notification-attempt.entity";
 import { UserEntity } from "./user.entity";
 
 @Entity({ name: "notifications" })
-@Unique("uq_notifications_idempotency", ["recipientUserId", "channel", "idempotencyKey"])
+@Unique("uq_notifications_tenant_idempotency", ["tenantId", "recipientUserId", "channel", "idempotencyKey"])
 export class NotificationEntity {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
+
+  @Column({ name: "tenant_id", type: "uuid", insert: false, update: false })
+  tenantId!: string;
 
   @Column({ name: "recipient_user_id", type: "uuid" })
   recipientUserId!: string;
@@ -51,6 +54,12 @@ export class NotificationEntity {
 
   @Column({ name: "provider_ref", type: "text", nullable: true })
   providerRef!: string | null;
+
+  @Column({ name: "claim_token", type: "text", nullable: true })
+  claimToken!: string | null;
+
+  @Column({ name: "claim_expires_at", type: "timestamptz", nullable: true })
+  claimExpiresAt!: Date | null;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;

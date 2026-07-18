@@ -52,4 +52,18 @@ describe("HealthService", () => {
       checks: { db: "up", redis: "up", storage: "down" },
     });
   });
+
+  it("does not wait indefinitely for a dependency", async () => {
+    const service = new HealthService(
+      { query: jest.fn().mockResolvedValue([{ result: 1 }]) } as never,
+      { ping: jest.fn().mockReturnValue(new Promise(() => {})) } as never,
+      { ping: jest.fn().mockResolvedValue("up") } as never,
+      { get: jest.fn().mockReturnValue(5) } as never,
+    );
+
+    await expect(service.getReady()).resolves.toMatchObject({
+      status: "error",
+      checks: { db: "up", redis: "down", storage: "up" },
+    });
+  });
 });

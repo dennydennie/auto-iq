@@ -66,6 +66,7 @@ export function DocumentUploader({
     }
 
     const presignBody: DocumentPresignRequest = {
+      listingId,
       documentType,
       contentType: file.type as DocumentPresignRequest["contentType"],
       contentLength: file.size,
@@ -105,6 +106,8 @@ export function DocumentUploader({
       const registerBody: RegisterDocumentRequest = {
         storageKey: presignResult.data.storageKey,
         documentType,
+        contentType: file.type as RegisterDocumentRequest["contentType"],
+        contentLength: file.size,
       };
       const registerResult = await postJson<VehicleDocumentDto>(
         `/api/seller/listings/${listingId}/documents`,

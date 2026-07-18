@@ -9,6 +9,8 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser = require("cookie-parser");
+import helmet from "helmet";
+import { json } from "express";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { JsonLogger } from "./common/logging/json.logger";
@@ -30,6 +32,8 @@ function configureApp(app: INestApplication, config: ConfigService) {
     .getHttpAdapter()
     .getInstance()
     .set("trust proxy", trustedProxyHops > 0 ? trustedProxyHops : false);
+  app.getHttpAdapter().getInstance().use(helmet());
+  app.getHttpAdapter().getInstance().use(json({ limit: "1mb" }));
   registerCorrelationIds(app);
   registerRequestLogging(app);
   app.setGlobalPrefix("api/v1");
@@ -90,7 +94,7 @@ function corsOrigin(config: ConfigService) {
 }
 
 function configureSwagger(app: INestApplication, config: ConfigService) {
-  if (config.get<string>("SWAGGER_ENABLED") !== "true") {
+  if (config.get<boolean>("SWAGGER_ENABLED", false) !== true) {
     return;
   }
   const document = SwaggerModule.createDocument(app, swaggerConfig());

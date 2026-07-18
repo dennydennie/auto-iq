@@ -12,6 +12,7 @@ const SESSION_COOKIE_NAME = "auto_iq_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const CSRF_CACHE_TTL_MS = 105 * 60 * 1000;
 const MAX_CSRF_CACHE_ENTRIES = 1_000;
+const DEFAULT_API_TIMEOUT_MS = 10_000;
 const csrfCache = new Map<string, { token: string; expiresAt: number }>();
 const csrfRequests = new Map<string, Promise<string | null>>();
 
@@ -75,7 +76,7 @@ export async function sendRemoteRequest({
 
   attachClientIp(headers, clientIp);
 
-  const response = await fetch(apiUrl(path), {
+  const response = await fetchWithTimeout(apiUrl(path), {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -90,12 +91,28 @@ export async function sendRemoteRequest({
   const refreshedToken = await issueRemoteCsrfToken(sessionCookie);
   if (!refreshedToken) return response;
   headers.set("X-CSRF-Token", refreshedToken);
-  return fetch(apiUrl(path), {
+  return fetchWithTimeout(apiUrl(path), {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit) {
+  const controller = new AbortController();
+  const timeoutMs = configuredApiTimeoutMs();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function configuredApiTimeoutMs() {
+  const value = Number(process.env.WEB_API_TIMEOUT_MS ?? DEFAULT_API_TIMEOUT_MS);
+  return Number.isFinite(value) && value >= 250 ? value : DEFAULT_API_TIMEOUT_MS;
 }
 
 function attachClientIp(headers: Headers, clientIp: string | null | undefined) {

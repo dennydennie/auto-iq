@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsDateString, IsIn, IsInt, IsISO8601, IsOptional, IsString, Matches, Max, Min, MinLength } from "class-validator";
+import { IsDateString, IsIn, IsInt, IsISO8601, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
 import { VIEWING_STATUSES } from "../../../common/constants/listing.constants";
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -13,10 +13,12 @@ export class RequestViewingDto {
   preferredTime!: string;
 
   @IsString()
+  @MaxLength(100)
   locationId!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   note?: string;
 }
 
@@ -40,6 +42,7 @@ export class ViewingListQueryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   listingId?: string;
 
   @IsOptional()
@@ -70,10 +73,12 @@ export class ConfirmViewingDto {
   confirmedAt!: string;
 
   @IsString()
+  @MaxLength(100)
   locationId!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   noteToParticipants?: string;
 }
 
@@ -83,12 +88,14 @@ export class RescheduleViewingDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   reason!: string;
 }
 
 export class CancelViewingDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(2000)
   reason!: string;
 }
 
@@ -98,5 +105,6 @@ export class CompleteViewingDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   note?: string;
 }

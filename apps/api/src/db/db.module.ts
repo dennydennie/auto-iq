@@ -9,6 +9,8 @@ import { InspectionReportEntity } from "./entity/inspection-report.entity";
 import { InspectionTaskEntity } from "./entity/inspection-task.entity";
 import { NotificationAttemptEntity } from "./entity/notification-attempt.entity";
 import { NotificationEntity } from "./entity/notification.entity";
+import { TenantEntity } from "./entity/tenant.entity";
+import { TenantMembershipEntity } from "./entity/tenant-membership.entity";
 import { OwnershipVerificationEntity } from "./entity/ownership-verification.entity";
 import { QuoteRequestEntity } from "./entity/quote-request.entity";
 import { SavedVehicleEntity } from "./entity/saved-vehicle.entity";
@@ -65,6 +67,8 @@ const ENTITIES = [
   VehicleRequestEntity,
   NotificationEntity,
   NotificationAttemptEntity,
+  TenantEntity,
+  TenantMembershipEntity,
   VehicleEntity,
   VehicleSpecsEntity,
   VehiclePricingEntity,
