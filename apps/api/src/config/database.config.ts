@@ -8,8 +8,15 @@ import "reflect-metadata";
 import { registerAs } from "@nestjs/config";
 import type { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { join } from "node:path";
+import {
+  checkServerIdentity as verifyServerIdentity,
+  type PeerCertificate,
+} from "node:tls";
 import { DataSource, type DataSourceOptions } from "typeorm";
-import { validateDatabaseEnv } from "./env.validation";
+import {
+  validateDatabaseEnv,
+  type ValidatedDatabaseEnvironment,
+} from "./env.validation";
 
 /**
  * Builds the Nest TypeORM options from validated environment variables.
@@ -29,15 +36,7 @@ export function buildDataSourceOptions(
     synchronize: false,
     migrationsRun: false,
     logging: validatedEnv.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-    ssl: validatedEnv.DATABASE_SSL
-      ? {
-          rejectUnauthorized: true,
-          ca: validatedEnv.DATABASE_SSL_CA,
-          ...(validatedEnv.DATABASE_SSL_SERVER_NAME
-            ? { servername: validatedEnv.DATABASE_SSL_SERVER_NAME }
-            : {}),
-        }
-      : false,
+    ssl: buildSslOptions(validatedEnv),
     extra: {
       connectionTimeoutMillis: validatedEnv.DATABASE_CONNECT_TIMEOUT_MS,
       statement_timeout: validatedEnv.DATABASE_STATEMENT_TIMEOUT_MS,
@@ -45,6 +44,16 @@ export function buildDataSourceOptions(
     entities: [join(__dirname, "../db/entity/**/*.entity.{ts,js}")],
     migrations: [join(__dirname, "../db/migrations/*{.ts,.js}")],
     subscribers: [join(__dirname, "../common/tenancy/*.subscriber.{ts,js}")],
+  };
+}
+
+function buildSslOptions(env: ValidatedDatabaseEnvironment) {
+  if (!env.DATABASE_SSL) return false;
+  return {
+    rejectUnauthorized: true,
+    ca: env.DATABASE_SSL_CA,
+    checkServerIdentity: (hostname: string, certificate: PeerCertificate) =>
+      verifyServerIdentity(env.DATABASE_SSL_SERVER_NAME ?? hostname, certificate),
   };
 }
 

@@ -73,10 +73,10 @@ describe("database.config", () => {
     };
 
     expect(options.logging).toEqual(["error"]);
-    expect(options.ssl).toEqual({
+    expect(options.ssl).toMatchObject({
       rejectUnauthorized: true,
       ca: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
-      servername: "localhost",
+      checkServerIdentity: expect.any(Function),
     });
     expect(options.extra).toMatchObject({
       connectionTimeoutMillis: 12000,
