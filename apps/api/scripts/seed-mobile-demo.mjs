@@ -89,6 +89,7 @@ async function createSubmittedListing(session) {
   const documentPresign = await session.post(
     '/storage/documents/presign',
     {
+      listingId: listing.id,
       documentType: 'REGISTRATION_BOOK',
       contentType: 'application/pdf',
       contentLength: pdfBytes.length,
@@ -115,7 +116,7 @@ async function createSubmittedListing(session) {
 async function uploadListingImage(session, listingId, imageBytes, slot, isCover) {
   const presign = await session.post(
     '/storage/images/presign',
-    { slot, contentType: 'image/jpeg', contentLength: imageBytes.length },
+    { listingId, slot, contentType: 'image/jpeg', contentLength: imageBytes.length },
     { csrf: true },
   );
   await rawUpload(presign.uploadUrl, imageBytes, 'image/jpeg');
