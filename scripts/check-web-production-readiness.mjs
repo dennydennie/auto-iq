@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -149,6 +149,14 @@ const forbiddenSourceFragments = [
 
 const failures = [];
 
+for (const [route, files] of collectPageRoutes(join(ROOT, "apps/web/app"))) {
+  if (files.length > 1) {
+    failures.push(
+      `${route}: duplicate page files (${files.map((file) => relative(ROOT, file)).join(", ")})`,
+    );
+  }
+}
+
 for (const file of requiredRouteFiles) {
   if (!existsSync(join(ROOT, file))) {
     failures.push(`${file}: required route is missing`);
@@ -185,4 +193,34 @@ if (failures.length > 0) {
   console.error("Rendered implementation artifacts found:");
   console.error(failures.map((failure) => `- ${failure}`).join("\n"));
   process.exit(1);
+}
+
+function collectPageRoutes(directory, segments = [], routes = new Map()) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const nextSegments = isRouteGroup(entry.name)
+        ? segments
+        : [...segments, normalizeRouteSegment(entry.name)];
+      collectPageRoutes(path, nextSegments, routes);
+      continue;
+    }
+    if (!/^page\.(js|jsx|ts|tsx)$/.test(entry.name)) continue;
+    const route = `/${segments.join("/")}`.replace(/\/$/, "") || "/";
+    const owners = routes.get(route) ?? [];
+    owners.push(path);
+    routes.set(route, owners);
+  }
+  return routes;
+}
+
+function isRouteGroup(segment) {
+  return segment.startsWith("(") && segment.endsWith(")");
+}
+
+function normalizeRouteSegment(segment) {
+  if (/^\[\[\.\.\..+\]\]$/.test(segment)) return "[[...param]]";
+  if (/^\[\.\.\..+\]$/.test(segment)) return "[...param]";
+  if (/^\[.+\]$/.test(segment)) return ":param";
+  return segment;
 }
