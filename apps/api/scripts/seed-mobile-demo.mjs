@@ -8,6 +8,7 @@ const databaseUrl =
   'postgresql://auto_iq:auto_iq_dev@postgres:5432/auto_iq';
 const password = process.env.PASSWORD ?? generatedPassword();
 const runId = process.env.RUN_ID ?? `${Date.now()}`;
+const defaultTenantId = process.env.DEFAULT_TENANT_ID ?? '11111111-1111-4111-8111-111111111111';
 
 const sellerEmail = `mobile-seller-${runId}@example.com`;
 const sellerPhone = `+26377${runId.slice(-4)}1111`;
@@ -149,6 +150,14 @@ async function insertUser({ email, phone, fullName, city, role }) {
   await client.query(
     'INSERT INTO user_roles (user_id, role) VALUES ($1, $2)',
     [userId, role],
+  );
+  await client.query(
+    `
+      INSERT INTO tenant_memberships (tenant_id, user_id, role, active)
+      VALUES ($1, $2, $3, true)
+      ON CONFLICT (user_id, tenant_id) DO NOTHING
+    `,
+    [defaultTenantId, userId, role],
   );
   return userId;
 }
