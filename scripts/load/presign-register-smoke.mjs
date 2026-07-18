@@ -86,6 +86,7 @@ async function uploadAndRegister(slot, isCover, csrfToken) {
     method: "POST",
     headers: headers(csrfToken),
     body: JSON.stringify({
+      listingId,
       slot,
       contentType: "image/jpeg",
       contentLength: imageBytes.length,
