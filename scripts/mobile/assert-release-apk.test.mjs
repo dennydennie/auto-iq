@@ -9,7 +9,16 @@ const expected = {
 };
 
 const validInspection = {
-  appBinary: Buffer.from("https://api-staging.example"),
+  appBinary: Buffer.from(
+    [
+      "https://api-staging.example",
+      "Forgot password?",
+      "Recover your account",
+      "Send reset link",
+      "/api/v1/auth/forgot-password",
+      "/api/v1/auth/reset-password",
+    ].join("\n"),
+  ),
   manifest: [
     'android:scheme="autoiq"',
     'android:host="reset-password"',
@@ -48,5 +57,16 @@ test("rejects an APK built for a different API", () => {
         expected,
       ),
     /Missing API origin/,
+  );
+});
+
+test("rejects an APK without the native password recovery screens", () => {
+  assert.throws(
+    () =>
+      validateApkInspection(
+        {...validInspection, appBinary: Buffer.from("https://api-staging.example")},
+        expected,
+      ),
+    /Missing app binary string/,
   );
 });

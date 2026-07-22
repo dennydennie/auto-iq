@@ -6,6 +6,13 @@ const RESET_MANIFEST_ENTRIES = [
   'android:host="reset-password"',
   "flutter_deeplinking_enabled",
 ];
+const APP_BINARY_STRINGS = [
+  "Forgot password?",
+  "Recover your account",
+  "Send reset link",
+  "/api/v1/auth/forgot-password",
+  "/api/v1/auth/reset-password",
+];
 
 function apkSummary(summary) {
   const [packageName, versionCode, versionName] = summary.trim().split("\t");
@@ -28,12 +35,21 @@ function assertManifest(manifest) {
   }
 }
 
+function assertAppBinary(appBinary, expected) {
+  if (!appBinary.includes(Buffer.from(expected.apiOrigin))) {
+    throw new Error(`Missing API origin: ${expected.apiOrigin}`);
+  }
+  for (const value of APP_BINARY_STRINGS) {
+    if (!appBinary.includes(Buffer.from(value))) {
+      throw new Error(`Missing app binary string: ${value}`);
+    }
+  }
+}
+
 export function validateApkInspection(inspection, expected) {
   assertSummary(inspection.summary, expected);
   assertManifest(inspection.manifest);
-  if (!inspection.appBinary.includes(Buffer.from(expected.apiOrigin))) {
-    throw new Error(`Missing API origin: ${expected.apiOrigin}`);
-  }
+  assertAppBinary(inspection.appBinary, expected);
 }
 
 function inspectApk(apkPath) {
