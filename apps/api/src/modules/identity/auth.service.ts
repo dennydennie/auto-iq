@@ -31,7 +31,6 @@ import { createHash, randomBytes } from "node:crypto";
 
 const RESET_TTL_SECONDS = 60 * 30;
 const DEFAULT_WEB_BASE_URL = "http://localhost:3000";
-const DEFAULT_MOBILE_RESET_URL = "autoiq://reset-password";
 const LOGIN_RATE_WINDOW_SECONDS = 60 * 15;
 const DEFAULT_TENANT_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -156,7 +155,7 @@ export class AuthService {
     const token = randomBytes(32).toString("base64url");
     await this.redisService.set(`reset:${token}`, user.id, RESET_TTL_SECONDS);
 
-    const resetUrl = this.resetUrl(token, body.client);
+    const resetUrl = this.resetUrl(token);
     const deliveries = await this.notificationService.notifyUser({
       userId: user.id,
       email: user.email,
@@ -261,16 +260,8 @@ export class AuthService {
     );
   }
 
-  private resetUrl(token: string, client: "WEB" | "MOBILE" = "WEB") {
-    const url =
-      client === "MOBILE"
-        ? new URL(
-            this.config.get<string>(
-              "MOBILE_RESET_URL",
-              DEFAULT_MOBILE_RESET_URL,
-            ),
-          )
-        : new URL("/auth/reset-password", this.webBaseUrl());
+  private resetUrl(token: string) {
+    const url = new URL("/auth/reset-password", this.webBaseUrl());
     url.hash = `token=${encodeURIComponent(token)}`;
     return url.toString();
   }

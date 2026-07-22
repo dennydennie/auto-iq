@@ -48,6 +48,40 @@ describe("ConfigurableNotificationProvider", () => {
     });
   });
 
+  it("renders password reset emails with a visible HTTPS reset link", async () => {
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({}), {
+        status: 202,
+        headers: { "x-message-id": "sendgrid-message-2" },
+      }),
+    );
+    const resetUrl = "https://web.example.com/auth/reset-password#token=abc123";
+    const provider = createProvider({
+      NODE_ENV: "staging",
+      SENDGRID_API_KEY: "sendgrid-key",
+      SENDGRID_SENDER_EMAIL: "no-reply@autoiq.example",
+    });
+
+    await provider.send({
+      channel: "EMAIL",
+      recipientAddress: "buyer@example.com",
+      template: "PASSWORD_RESET",
+      payload: { resetUrl, expiresInMinutes: 30 },
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const html = body.content.find(
+      (part: { type: string }) => part.type === "text/html",
+    )?.value;
+    const text = body.content.find(
+      (part: { type: string }) => part.type === "text/plain",
+    )?.value;
+
+    expect(text).toContain(resetUrl);
+    expect(html).toContain(`href="${resetUrl}"`);
+    expect(html).toContain(`>${resetUrl}</a>`);
+  });
+
   it("auto-detects Gikko SMS delivery from Blue-style configuration", async () => {
     const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

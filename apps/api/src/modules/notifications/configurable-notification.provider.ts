@@ -370,6 +370,8 @@ function renderNotificationMessage(input: ProviderSendInput): NotificationMessag
         '<div style="font-family: Arial, sans-serif; line-height: 1.5;">' +
         "<p>We received a request to reset your Auto IQ password.</p>" +
         `<p><a href="${escapeHtml(resetUrl)}">Open the secure reset link</a></p>` +
+        `<p>If that link is not clickable, copy and paste this URL: ` +
+        `<a href="${escapeHtml(resetUrl)}">${escapeHtml(resetUrl)}</a></p>` +
         `<p>This link expires in ${expiresInMinutes} minutes.</p>` +
         "</div>",
     };

@@ -186,7 +186,7 @@ describe("AuthService", () => {
     );
   });
 
-  it("sends mobile password reset requests to the native app", async () => {
+  it("sends mobile password reset emails with an email-safe web link", async () => {
     const user = {
       id: "user-1",
       email: "buyer@example.com",
@@ -213,8 +213,10 @@ describe("AuthService", () => {
     const notifyCall = notificationService.notifyUser.mock.calls[0]?.[0];
     const resetUrl = notifyCall?.payload?.resetUrl as string;
 
-    expect(resetUrl).toMatch(/^autoiq:\/\/reset-password#token=/);
-    expect(resetUrl).not.toContain("web.example.com");
+    expect(resetUrl).toMatch(
+      /^https:\/\/web\.example\.com\/auth\/reset-password#token=/,
+    );
+    expect(resetUrl).not.toMatch(/^autoiq:/);
     expect(resetUrl).not.toContain("?token=");
   });
 
