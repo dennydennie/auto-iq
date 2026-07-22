@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
@@ -7,9 +8,11 @@ import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key, required this.token});
+  const ResetPasswordScreen({super.key, this.token, this.email})
+      : assert(token != null || email != null);
 
-  final String token;
+  final String? email;
+  final String? token;
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -17,14 +20,26 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _emailController;
+  final _codeController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _busy = false;
   bool _completed = false;
   bool _showPassword = false;
 
+  bool get _usesCode => widget.token == null;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.email ?? '');
+  }
+
   @override
   void dispose() {
+    _emailController.dispose();
+    _codeController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -52,7 +67,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const BiSellLogo(size: 32),
           const SizedBox(height: 24),
           Text(
-            _completed ? 'Password updated' : 'Choose a new password',
+            _completed
+                ? 'Password updated'
+                : _usesCode
+                    ? 'Enter reset code'
+                    : 'Choose a new password',
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
@@ -63,7 +82,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           Text(
             _completed
                 ? 'Your Auto IQ account is secure. Return to sign in with your new password.'
-                : 'Use at least 8 characters with a letter and a number.',
+                : _usesCode
+                    ? 'Enter the 6-digit code from your email, then choose a new password.'
+                    : 'Use at least 8 characters with a letter and a number.',
             style: const TextStyle(color: AppColors.ink500, height: 1.5),
           ),
           const SizedBox(height: 24),
@@ -77,6 +98,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_usesCode) ...[
+          _emailField(),
+          const SizedBox(height: 14),
+          _codeField(),
+          const SizedBox(height: 14),
+        ],
         _passwordField(),
         const SizedBox(height: 14),
         TextFormField(
@@ -100,6 +127,33 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               : const Text('Reset password'),
         ),
       ],
+    );
+  }
+
+  Widget _emailField() {
+    return TextFormField(
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      autofillHints: const [AutofillHints.email],
+      autocorrect: false,
+      decoration: const InputDecoration(labelText: 'Email address'),
+      validator: _validateEmail,
+    );
+  }
+
+  Widget _codeField() {
+    return TextFormField(
+      controller: _codeController,
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.next,
+      autofillHints: const [AutofillHints.oneTimeCode],
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      decoration: const InputDecoration(labelText: 'Reset code'),
+      validator: _validateCode,
     );
   }
 
@@ -136,10 +190,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      await context.read<AuthRepository>().resetPassword(
-            token: widget.token,
-            newPassword: _passwordController.text,
-          );
+      if (_usesCode) {
+        await context.read<AuthRepository>().resetPasswordWithCode(
+              email: _emailController.text,
+              code: _codeController.text,
+              newPassword: _passwordController.text,
+            );
+      } else {
+        await context.read<AuthRepository>().resetPassword(
+              token: widget.token!,
+              newPassword: _passwordController.text,
+            );
+      }
       _complete();
     } on ApiException catch (error) {
       _showError(error.message);
@@ -152,7 +214,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!mounted) return;
     _passwordController.clear();
     _confirmController.clear();
+    _codeController.clear();
     setState(() => _completed = true);
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _validateCode(String? value) {
+    if (!RegExp(r'^\d{6}$').hasMatch(value ?? '')) {
+      return 'Enter the 6-digit code';
+    }
+    return null;
   }
 
   String? _validatePassword(String? value) {

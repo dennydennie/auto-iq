@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('requests a mobile reset link without leaving the app',
+  testWidgets('requests a mobile reset code and opens code entry',
       (tester) async {
     final repository = _RecordingAuthRepository();
     await tester.pumpWidget(
@@ -21,11 +21,13 @@ void main() {
       find.widgetWithText(TextFormField, 'Email address'),
       'Buyer@Example.com',
     );
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Send reset link'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Send reset code'));
     await tester.pumpAndSettle();
 
     expect(repository.forgottenEmail, 'Buyer@Example.com');
-    expect(find.text('Check your email'), findsOneWidget);
+    expect(find.text('Enter reset code'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Email address'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Reset code'), findsOneWidget);
   });
 
   testWidgets('resets the password from the native token', (tester) async {
@@ -54,10 +56,44 @@ void main() {
     expect(repository.resetPasswordValue, 'Secure123');
     expect(find.text('Password updated'), findsOneWidget);
   });
+
+  testWidgets('resets the password from a mobile email code', (tester) async {
+    final repository = _RecordingAuthRepository();
+    await tester.pumpWidget(
+      Provider<AuthRepository>.value(
+        value: repository,
+        child: const MaterialApp(
+          home: ResetPasswordScreen(email: 'Buyer@Example.com'),
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reset code'),
+      '123456',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'New password'),
+      'Secure123',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Confirm password'),
+      'Secure123',
+    );
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Reset password'));
+    await tester.pumpAndSettle();
+
+    expect(repository.resetEmail, 'Buyer@Example.com');
+    expect(repository.resetCode, '123456');
+    expect(repository.resetPasswordValue, 'Secure123');
+    expect(find.text('Password updated'), findsOneWidget);
+  });
 }
 
 class _RecordingAuthRepository implements AuthRepository {
   String? forgottenEmail;
+  String? resetCode;
+  String? resetEmail;
   String? resetToken;
   String? resetPasswordValue;
 
@@ -72,6 +108,17 @@ class _RecordingAuthRepository implements AuthRepository {
     required String newPassword,
   }) async {
     resetToken = token;
+    resetPasswordValue = newPassword;
+  }
+
+  @override
+  Future<void> resetPasswordWithCode({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    resetEmail = email;
+    resetCode = code;
     resetPasswordValue = newPassword;
   }
 

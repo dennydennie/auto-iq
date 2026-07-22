@@ -7,6 +7,7 @@ import {
   MaxLength,
   Matches,
   MinLength,
+  ValidateIf,
 } from "class-validator";
 
 export class RegisterDto {
@@ -84,10 +85,19 @@ export class ForgotPasswordDto {
 }
 
 export class ResetPasswordDto {
+  @ValidateIf((body: ResetPasswordDto) => !body.email && !body.code)
   @IsString()
   @IsNotEmpty()
   @MaxLength(512)
-  token!: string;
+  token?: string;
+
+  @ValidateIf((body: ResetPasswordDto) => !body.token)
+  @IsEmail()
+  email?: string;
+
+  @ValidateIf((body: ResetPasswordDto) => !body.token)
+  @Matches(/^\d{6}$/)
+  code?: string;
 
   @IsString()
   @MaxLength(128)

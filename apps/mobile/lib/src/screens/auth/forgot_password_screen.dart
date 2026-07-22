@@ -5,6 +5,7 @@ import '../../../theme/app_colors.dart';
 import '../../../widgets/bisell_logo.dart';
 import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
+import 'reset_password_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -17,7 +18,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _busy = false;
-  bool _submitted = false;
 
   @override
   void dispose() {
@@ -56,11 +56,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Enter your account email. We will send a secure link that opens in Auto IQ.',
+            'Enter your account email. We will send a secure reset code.',
             style: TextStyle(color: AppColors.ink500, height: 1.5),
           ),
           const SizedBox(height: 24),
-          if (_submitted) _successMessage() else _requestForm(),
+          _requestForm(),
         ],
       ),
     );
@@ -89,42 +89,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Send reset link'),
+              : const Text('Send reset code'),
         ),
       ],
     );
   }
 
-  Widget _successMessage() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.amber.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Check your email',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 6),
-          Text(
-            'If an account matches that address, the Auto IQ reset link will arrive shortly.',
-            style: TextStyle(color: AppColors.ink500, height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
     setState(() => _busy = true);
     try {
-      await context.read<AuthRepository>().forgotPassword(
-            _emailController.text,
-          );
-      if (mounted) setState(() => _submitted = true);
+      await context.read<AuthRepository>().forgotPassword(email);
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ResetPasswordScreen(email: email),
+        ),
+      );
     } on ApiException catch (error) {
       _showError(error.message);
     } finally {

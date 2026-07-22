@@ -33,6 +33,24 @@ void main() {
       'newPassword': 'Secure123',
     });
   });
+
+  test('reset password submits the mobile email code and password', () async {
+    final apiClient = _RecordingApiClient();
+    final repository = AuthRepository(apiClient);
+
+    await repository.resetPasswordWithCode(
+      email: ' Buyer@Example.com ',
+      code: '123456',
+      newPassword: 'Secure123',
+    );
+
+    expect(apiClient.path, '/api/v1/auth/reset-password');
+    expect(apiClient.body, {
+      'email': 'buyer@example.com',
+      'code': '123456',
+      'newPassword': 'Secure123',
+    });
+  });
 }
 
 class _RecordingApiClient implements ApiClient {

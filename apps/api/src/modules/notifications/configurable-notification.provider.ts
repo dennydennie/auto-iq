@@ -377,6 +377,26 @@ function renderNotificationMessage(input: ProviderSendInput): NotificationMessag
     };
   }
 
+  if (input.template === "PASSWORD_RESET_CODE") {
+    const resetCode = readString(input.payload.resetCode, "Password reset code");
+    const expiresInMinutes = readNumber(input.payload.expiresInMinutes, 30);
+    const text =
+      "We received a request to reset your Auto IQ password.\n\n" +
+      `Enter this code in the Auto IQ app: ${resetCode}\n\n` +
+      `This code expires in ${expiresInMinutes} minutes.`;
+
+    return {
+      subject: "Reset your Auto IQ password",
+      text,
+      html:
+        '<div style="font-family: Arial, sans-serif; line-height: 1.5;">' +
+        "<p>We received a request to reset your Auto IQ password.</p>" +
+        `<p>Enter this code in the Auto IQ app: <strong>${escapeHtml(resetCode)}</strong></p>` +
+        `<p>This code expires in ${expiresInMinutes} minutes.</p>` +
+        "</div>",
+    };
+  }
+
   const label = titleCase(input.template.replace(/_/g, " ").toLowerCase());
   const text =
     `Auto IQ notification: ${label}\n\n` +

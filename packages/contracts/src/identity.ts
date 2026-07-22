@@ -91,10 +91,19 @@ export interface ForgotPasswordRequest {
   client?: "WEB" | "MOBILE";
 }
 
-export interface ResetPasswordRequest {
-  token: string;
-  newPassword: string;
-}
+export type ResetPasswordRequest =
+  | {
+      /** Web reset token from the HTTPS reset link */
+      token: string;
+      newPassword: string;
+    }
+  | {
+      /** Email address that requested the mobile reset code */
+      email: string;
+      /** Six-digit code delivered to the user by email */
+      code: string;
+      newPassword: string;
+    };
 
 // ─── /me ──────────────────────────────────────────────────────────────────────
 

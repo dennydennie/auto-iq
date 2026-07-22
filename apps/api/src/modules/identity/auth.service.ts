@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -27,9 +28,10 @@ import {
 } from "./dto/auth.dto";
 import { PasswordService } from "./password.service";
 import { RateLimitService } from "./rate-limit.service";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 
 const RESET_TTL_SECONDS = 60 * 30;
+const RESET_CODE_VERIFY_LIMIT = 5;
 const DEFAULT_WEB_BASE_URL = "http://localhost:3000";
 const LOGIN_RATE_WINDOW_SECONDS = 60 * 15;
 const DEFAULT_TENANT_ID = "11111111-1111-4111-8111-111111111111";
@@ -152,6 +154,71 @@ export class AuthService {
       return;
     }
 
+    if (body.client === "MOBILE") {
+      await this.sendResetCode(user);
+    } else {
+      await this.sendResetLink(user);
+    }
+
+    await this.audit("auth.password_reset_requested", user.id, "success");
+  }
+
+  async resetPassword(body: ResetPasswordDto) {
+    if (body.token) {
+      await this.resetPasswordWithToken(body.token, body.newPassword);
+      return;
+    }
+    if (body.email && body.code) {
+      await this.resetPasswordWithCode(body.email, body.code, body.newPassword);
+      return;
+    }
+    throw new BadRequestException({
+      code: "VALIDATION_FAILED",
+      message: "Provide a reset token or email and code.",
+    });
+  }
+
+  private async resetPasswordWithToken(token: string, newPassword: string) {
+    const userId = await this.redisService.get(`reset:${token}`);
+    if (!userId) {
+      throw new UnauthorizedException({
+        code: "INVALID_CREDENTIALS",
+        message: "Invalid reset token",
+      });
+    }
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException({
+        code: "INVALID_CREDENTIALS",
+        message: "Invalid reset token",
+      });
+    }
+    user.passwordHash = await this.passwordService.hash(newPassword);
+    await this.userRepository.save(user);
+    await this.redisService.del(`reset:${token}`);
+    await this.redisService.del(`reset_delivery:${user.email}`);
+    await this.audit("auth.password_reset_completed", user.id, "success");
+  }
+
+  private async resetPasswordWithCode(
+    email: string,
+    code: string,
+    newPassword: string,
+  ) {
+    const user = await this.userRepository.findByEmail(email.toLowerCase());
+    if (!user) throw this.invalidResetCode();
+    const stored = await this.redisService.get(this.resetCodeKey(user.id));
+    if (!stored) throw this.invalidResetCode();
+    if (stored !== hashKey(code)) {
+      await this.rejectInvalidResetCode(user);
+    }
+    user.passwordHash = await this.passwordService.hash(newPassword);
+    await this.userRepository.save(user);
+    await this.clearResetCode(user);
+    await this.audit("auth.password_reset_completed", user.id, "success");
+  }
+
+  private async sendResetLink(user: Pick<UserEntity, "id" | "email" | "phone">) {
     const token = randomBytes(32).toString("base64url");
     await this.redisService.set(`reset:${token}`, user.id, RESET_TTL_SECONDS);
 
@@ -181,36 +248,95 @@ export class AuthService {
     if (!deliveries.some((delivery) => delivery.status === "SENT")) {
       await this.redisService.del(`reset:${token}`);
       await this.redisService.del(`reset_delivery:${user.email}`);
-      throw new ServiceUnavailableException({
-        code: "DELIVERY_UNAVAILABLE",
-        message:
-          "Password reset is temporarily unavailable. Please try again shortly.",
-      });
+      throw this.resetDeliveryUnavailable();
     }
-
-    await this.audit("auth.password_reset_requested", user.id, "success");
   }
 
-  async resetPassword(body: ResetPasswordDto) {
-    const userId = await this.redisService.get(`reset:${body.token}`);
-    if (!userId) {
-      throw new UnauthorizedException({
-        code: "INVALID_CREDENTIALS",
-        message: "Invalid reset token",
-      });
+  private async sendResetCode(user: Pick<UserEntity, "id" | "email" | "phone">) {
+    const resetCode = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    await this.redisService.del(this.resetAttemptsKey(user.id));
+    await this.redisService.set(
+      this.resetCodeKey(user.id),
+      hashKey(resetCode),
+      RESET_TTL_SECONDS,
+    );
+
+    if (this.config.get<string>("NODE_ENV") !== "production") {
+      await this.redisService.set(
+        this.resetCodeDeliveryKey(user.email),
+        resetCode,
+        RESET_TTL_SECONDS,
+      );
     }
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new UnauthorizedException({
-        code: "INVALID_CREDENTIALS",
-        message: "Invalid reset token",
-      });
+
+    const deliveries = await this.notificationService.notifyUser({
+      userId: user.id,
+      email: user.email,
+      phone: user.phone,
+      template: "PASSWORD_RESET_CODE",
+      idempotencyKeyBase: `password-reset-code:${user.id}:${hashKey(resetCode)}`,
+      payload: {
+        email: user.email,
+        expiresInMinutes: Math.round(RESET_TTL_SECONDS / 60),
+        resetCode,
+      },
+      channels: ["EMAIL"],
+    });
+
+    if (!deliveries.some((delivery) => delivery.status === "SENT")) {
+      await this.clearResetCode(user);
+      throw this.resetDeliveryUnavailable();
     }
-    user.passwordHash = await this.passwordService.hash(body.newPassword);
-    await this.userRepository.save(user);
-    await this.redisService.del(`reset:${body.token}`);
-    await this.redisService.del(`reset_delivery:${user.email}`);
-    await this.audit("auth.password_reset_completed", user.id, "success");
+  }
+
+  private async rejectInvalidResetCode(
+    user: Pick<UserEntity, "id" | "email">,
+  ): Promise<never> {
+    const attempts = await this.redisService.increment(
+      this.resetAttemptsKey(user.id),
+      RESET_TTL_SECONDS,
+    );
+    if (attempts < RESET_CODE_VERIFY_LIMIT) {
+      throw this.invalidResetCode();
+    }
+    await this.clearResetCode(user);
+    throw new UnauthorizedException({
+      code: "RESET_CODE_MAX_ATTEMPTS",
+      message: "Too many attempts. Request a new code.",
+    });
+  }
+
+  private async clearResetCode(user: Pick<UserEntity, "id" | "email">) {
+    await this.redisService.del(this.resetCodeKey(user.id));
+    await this.redisService.del(this.resetCodeDeliveryKey(user.email));
+    await this.redisService.del(this.resetAttemptsKey(user.id));
+  }
+
+  private invalidResetCode() {
+    return new UnauthorizedException({
+      code: "INVALID_CREDENTIALS",
+      message: "Invalid reset code",
+    });
+  }
+
+  private resetDeliveryUnavailable() {
+    return new ServiceUnavailableException({
+      code: "DELIVERY_UNAVAILABLE",
+      message:
+        "Password reset is temporarily unavailable. Please try again shortly.",
+    });
+  }
+
+  private resetCodeKey(userId: string) {
+    return `reset_code:${userId}`;
+  }
+
+  private resetCodeDeliveryKey(email: string) {
+    return `reset_code_delivery:${email}`;
+  }
+
+  private resetAttemptsKey(userId: string) {
+    return `reset_attempts:${userId}`;
   }
 
   private async assertUnique(email: string, phone: string) {

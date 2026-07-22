@@ -9,7 +9,9 @@ const RESET_MANIFEST_ENTRIES = [
 const APP_BINARY_STRINGS = [
   "Forgot password?",
   "Recover your account",
-  "Send reset link",
+  "Send reset code",
+  "Enter reset code",
+  "Reset code",
   "/api/v1/auth/forgot-password",
   "/api/v1/auth/reset-password",
 ];

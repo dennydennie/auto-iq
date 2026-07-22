@@ -152,6 +152,15 @@ class _UnusedAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> resetPasswordWithCode({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> sendOtp({required String identifier, String? phone}) async {}
 
   @override

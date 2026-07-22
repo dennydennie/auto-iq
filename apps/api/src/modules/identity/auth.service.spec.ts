@@ -33,6 +33,7 @@ describe("AuthService", () => {
     const redisService = {
       del: jest.fn(),
       get: jest.fn(),
+      increment: jest.fn(),
       set: jest.fn().mockResolvedValue(undefined),
     };
     const userRepository = {
@@ -186,20 +187,14 @@ describe("AuthService", () => {
     );
   });
 
-  it("sends mobile password reset emails with an email-safe web link", async () => {
+  it("sends mobile password reset emails with a numeric code", async () => {
     const user = {
       id: "user-1",
       email: "buyer@example.com",
       phone: "+263771111111",
     };
-    const { service, notificationService } = createService({
+    const { service, notificationService, redisService } = createService({
       configGet: (key, defaultValue) => {
-        if (key === "MOBILE_RESET_URL") {
-          return "autoiq://reset-password";
-        }
-        if (key === "WEB_BASE_URL") {
-          return "https://web.example.com";
-        }
         if (key === "NODE_ENV") {
           return "staging";
         }
@@ -211,13 +206,91 @@ describe("AuthService", () => {
     await service.forgotPassword({ email: user.email, client: "MOBILE" });
 
     const notifyCall = notificationService.notifyUser.mock.calls[0]?.[0];
-    const resetUrl = notifyCall?.payload?.resetUrl as string;
-
-    expect(resetUrl).toMatch(
-      /^https:\/\/web\.example\.com\/auth\/reset-password#token=/,
+    const resetCode = notifyCall?.payload?.resetCode as string;
+    const resetCodeSet = redisService.set.mock.calls.find(
+      ([key]) => key === "reset_code:user-1",
     );
-    expect(resetUrl).not.toMatch(/^autoiq:/);
-    expect(resetUrl).not.toContain("?token=");
+
+    expect(resetCode).toMatch(/^\d{6}$/);
+    expect(resetCodeSet?.[1]).toMatch(/^[a-f0-9]{64}$/);
+    expect(resetCodeSet?.[1]).not.toBe(resetCode);
+    expect(redisService.del).toHaveBeenCalledWith("reset_attempts:user-1");
+    expect(notificationService.notifyUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channels: ["EMAIL"],
+        template: "PASSWORD_RESET_CODE",
+        payload: expect.objectContaining({
+          expiresInMinutes: 30,
+          resetCode,
+        }),
+      }),
+    );
+    expect(notifyCall?.payload).not.toHaveProperty("resetUrl");
+  });
+
+  it("resets a password with a valid mobile reset code", async () => {
+    const user = {
+      id: "user-1",
+      email: "buyer@example.com",
+      passwordHash: "old-hash",
+    };
+    const { service, passwordService, redisService, userRepository } =
+      createService({
+        findByEmail: jest.fn().mockResolvedValue(user),
+      });
+    redisService.get.mockResolvedValue(
+      "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+    );
+    passwordService.hash.mockResolvedValue("new-hash");
+
+    await service.resetPassword({
+      email: user.email,
+      code: "123456",
+      newPassword: "Secure123",
+    });
+
+    expect(user.passwordHash).toBe("new-hash");
+    expect(userRepository.save).toHaveBeenCalledWith(user);
+    expect(redisService.del).toHaveBeenCalledWith("reset_code:user-1");
+    expect(redisService.del).toHaveBeenCalledWith(
+      "reset_code_delivery:buyer@example.com",
+    );
+    expect(redisService.del).toHaveBeenCalledWith("reset_attempts:user-1");
+  });
+
+  it("invalidates a mobile reset code after five failed attempts", async () => {
+    const user = {
+      id: "user-1",
+      email: "buyer@example.com",
+      passwordHash: "old-hash",
+    };
+    const { service, redisService } = createService({
+      findByEmail: jest.fn().mockResolvedValue(user),
+    });
+    redisService.get.mockResolvedValue("stored-hash");
+    redisService.increment.mockResolvedValue(5);
+
+    const error = await service
+      .resetPassword({
+        email: user.email,
+        code: "000000",
+        newPassword: "Secure123",
+      })
+      .catch((value) => value);
+
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    expect(error.getResponse()).toEqual({
+      code: "RESET_CODE_MAX_ATTEMPTS",
+      message: "Too many attempts. Request a new code.",
+    });
+    expect(redisService.increment).toHaveBeenCalledWith(
+      "reset_attempts:user-1",
+      1800,
+    );
+    expect(redisService.del).toHaveBeenCalledWith("reset_code:user-1");
+    expect(redisService.del).toHaveBeenCalledWith(
+      "reset_code_delivery:buyer@example.com",
+    );
   });
 
   it("falls back to the hosted web origin for password reset links", async () => {
