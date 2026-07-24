@@ -634,7 +634,8 @@ class _BrowseTab extends StatelessWidget {
 }
 
 class BrowseFilters extends StatelessWidget {
-  const BrowseFilters({super.key,
+  const BrowseFilters({
+    super.key,
     required this.searchController,
     required this.filters,
     required this.makes,
