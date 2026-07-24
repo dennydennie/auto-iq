@@ -8,6 +8,7 @@ import '../../../widgets/verified_badge.dart';
 import '../../core/network/api_exception.dart';
 import '../../models/activity_models.dart';
 import '../../models/listing_models.dart';
+import '../../models/listing_filters.dart';
 import '../../models/reference_data.dart';
 import '../../repositories/buyer_repository.dart';
 import '../../state/session_controller.dart';
@@ -31,9 +32,17 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   late Future<List<QuoteItem>> _quotesFuture;
   late Future<List<VehicleRequestItem>> _requestFuture;
   late Future<List<ViewingItem>> _viewingsFuture;
-  String _searchText = '';
-  String? _selectedBodyType;
-  bool _verifiedOnly = false;
+  ListingFilterState _draftFilters = const ListingFilterState();
+  ListingFilterState _appliedFilters = const ListingFilterState();
+  final _searchController = TextEditingController();
+  String _draftSearchText = '';
+  String _appliedSearchText = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -54,16 +63,49 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       children: [
         _BrowseTab(
           future: _browseFuture,
-          searchText: _searchText,
-          selectedBodyType: _selectedBodyType,
-          verifiedOnly: _verifiedOnly,
-          onSearchChanged: (value) => setState(() => _searchText = value),
-          onToggleVerified: () => setState(() {
-            _verifiedOnly = !_verifiedOnly;
+          searchController: _searchController,
+          appliedSearchText: _appliedSearchText,
+          filters: _draftFilters,
+          makes: session.referenceData?.makes ?? const [],
+          cities: uniqueCities(
+            session.referenceData?.viewingLocations ?? const [],
+          ),
+          onSearchChanged: (value) => setState(() => _draftSearchText = value),
+          onMakeChanged: (value) => setState(() {
+            _draftFilters = _draftFilters.copyWith(
+              make: value,
+              model: null,
+              year: null,
+            );
+          }),
+          onModelChanged: (value) => setState(() {
+            _draftFilters = _draftFilters.copyWith(model: value, year: null);
+          }),
+          onYearChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(year: value),
+          ),
+          onCityChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(city: value),
+          ),
+          onBodyTypeChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(bodyType: value),
+          ),
+          onToggleVerified: () => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              verifiedOnly: !_draftFilters.verifiedOnly,
+            ),
+          ),
+          onSearch: () => setState(() {
+            _appliedFilters = _draftFilters;
+            _appliedSearchText = _draftSearchText;
             _browseFuture = _loadBrowse();
           }),
-          onBodyTypeChanged: (value) => setState(() {
-            _selectedBodyType = value;
+          onClear: () => setState(() {
+            _draftFilters = const ListingFilterState();
+            _appliedFilters = const ListingFilterState();
+            _searchController.clear();
+            _draftSearchText = '';
+            _appliedSearchText = '';
             _browseFuture = _loadBrowse();
           }),
           bodyTypes: session.referenceData?.bodyTypes ?? const [],
@@ -385,8 +427,13 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   Future<ListingViewState> _loadBrowse() async {
     final repository = context.read<BuyerRepository>();
     final page = await repository.browse(
-      bodyType: _selectedBodyType,
-      verifiedOnly: _verifiedOnly ? true : null,
+      make: _appliedFilters.make,
+      model: _appliedFilters.model,
+      yearMin: _appliedFilters.year,
+      yearMax: _appliedFilters.year,
+      bodyType: _appliedFilters.bodyType,
+      city: _appliedFilters.city,
+      verifiedOnly: _appliedFilters.verifiedOnly ? true : null,
     );
     final savedItems = await repository.savedVehicles();
     final savedIds = savedItems.map((item) => item.listing.id).toSet();
@@ -465,24 +512,40 @@ class ListingViewState {
 class _BrowseTab extends StatelessWidget {
   const _BrowseTab({
     required this.future,
-    required this.searchText,
-    required this.selectedBodyType,
-    required this.verifiedOnly,
+    required this.searchController,
+    required this.appliedSearchText,
+    required this.filters,
+    required this.makes,
+    required this.cities,
     required this.onSearchChanged,
+    required this.onMakeChanged,
+    required this.onModelChanged,
+    required this.onYearChanged,
+    required this.onCityChanged,
     required this.onToggleVerified,
     required this.onBodyTypeChanged,
+    required this.onSearch,
+    required this.onClear,
     required this.bodyTypes,
     required this.onOpenListing,
     required this.onRefresh,
   });
 
   final Future<ListingViewState> future;
-  final String searchText;
-  final String? selectedBodyType;
-  final bool verifiedOnly;
+  final TextEditingController searchController;
+  final String appliedSearchText;
+  final ListingFilterState filters;
+  final List<VehicleMake> makes;
+  final List<String> cities;
   final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String?> onMakeChanged;
+  final ValueChanged<String?> onModelChanged;
+  final ValueChanged<int?> onYearChanged;
+  final ValueChanged<String?> onCityChanged;
   final VoidCallback onToggleVerified;
   final ValueChanged<String?> onBodyTypeChanged;
+  final VoidCallback onSearch;
+  final VoidCallback onClear;
   final List<ReferenceOption> bodyTypes;
   final Future<void> Function(String listingId, {bool saved}) onOpenListing;
   final Future<void> Function() onRefresh;
@@ -507,153 +570,329 @@ class _BrowseTab extends StatelessWidget {
         }
         final viewState = snapshot.data!;
         final filtered = viewState.listings.where((listing) {
-          final query = searchText.trim().toLowerCase();
+          final query = appliedSearchText.trim().toLowerCase();
           if (query.isEmpty) {
             return true;
           }
           return listing.title.toLowerCase().contains(query) ||
               listing.city.toLowerCase().contains(query);
         }).toList(growable: false);
-        if (filtered.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: onRefresh,
-            child: ListView(
-              children: [
-                const SizedBox(height: 120),
-                EmptyState(
-                  title: 'No published vehicles',
-                  message:
-                      'Seed a published listing or widen the current filters.',
-                  action: OutlinedButton(
-                    onPressed: onToggleVerified,
-                    child: const Text('Toggle verified filter'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
         return RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              TextField(
-                onChanged: onSearchChanged,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search_outlined),
-                  labelText: 'Search by make, model, or city',
-                ),
+              BrowseFilters(
+                searchController: searchController,
+                filters: filters,
+                makes: makes,
+                cities: cities,
+                bodyTypes: bodyTypes,
+                onSearchChanged: onSearchChanged,
+                onMakeChanged: onMakeChanged,
+                onModelChanged: onModelChanged,
+                onYearChanged: onYearChanged,
+                onCityChanged: onCityChanged,
+                onBodyTypeChanged: onBodyTypeChanged,
+                onToggleVerified: onToggleVerified,
+                onSearch: onSearch,
+                onClear: onClear,
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String?>(
-                      initialValue: selectedBodyType,
-                      decoration: const InputDecoration(labelText: 'Body type'),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('All body types'),
-                        ),
-                        ...bodyTypes.map(
-                          (type) => DropdownMenuItem<String?>(
-                            value: type.value,
-                            child: Text(type.label),
-                          ),
-                        ),
-                      ],
-                      onChanged: onBodyTypeChanged,
-                    ),
+              if (filtered.isEmpty)
+                EmptyState(
+                  title: 'No published vehicles',
+                  message:
+                      'Seed a published listing or widen the current filters.',
+                  action: OutlinedButton(
+                    onPressed: onClear,
+                    child: const Text('Clear filters'),
                   ),
-                  const SizedBox(width: 12),
-                  FilterChip(
-                    label: const Text('Verified'),
-                    selected: verifiedOnly,
-                    onSelected: (_) => onToggleVerified(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ...filtered.map(
-                (listing) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: GestureDetector(
-                    onTap: () => onOpenListing(
-                      listing.id,
-                      saved: viewState.savedIds.contains(listing.id),
-                    ),
-                    child: SectionCard(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 110,
-                            child: VehicleImageView(
-                              imageUrl: listing.coverImageUrl,
-                              height: 90,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (listing.bisellVerified)
-                                  const VerifiedBadge(),
-                                const SizedBox(height: 8),
-                                Text(
-                                  listing.title,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.ink900,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${listing.city} · ${listing.bodyType}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.ink500,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                PriceDisplay(
-                                  amount:
-                                      listing.askPriceUsd.toStringAsFixed(0),
-                                  fontSize: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              if (listing.inspectionScore != null)
-                                StatusChip(
-                                    label: '${listing.inspectionScore}/100'),
-                              const SizedBox(height: 12),
-                              Icon(
-                                viewState.savedIds.contains(listing.id)
-                                    ? Icons.bookmark
-                                    : Icons.chevron_right,
-                                color: AppColors.ink400,
-                              ),
-                            ],
-                          ),
-                        ],
+                )
+              else
+                ...filtered.map(
+                  (listing) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      onTap: () => onOpenListing(
+                        listing.id,
+                        saved: viewState.savedIds.contains(listing.id),
+                      ),
+                      child: _ListingCard(
+                        listing: listing,
+                        saved: viewState.savedIds.contains(listing.id),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class BrowseFilters extends StatelessWidget {
+  const BrowseFilters({super.key,
+    required this.searchController,
+    required this.filters,
+    required this.makes,
+    required this.cities,
+    required this.bodyTypes,
+    required this.onSearchChanged,
+    required this.onMakeChanged,
+    required this.onModelChanged,
+    required this.onYearChanged,
+    required this.onCityChanged,
+    required this.onBodyTypeChanged,
+    required this.onToggleVerified,
+    required this.onSearch,
+    required this.onClear,
+  });
+
+  final TextEditingController searchController;
+  final ListingFilterState filters;
+  final List<VehicleMake> makes;
+  final List<String> cities;
+  final List<ReferenceOption> bodyTypes;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String?> onMakeChanged;
+  final ValueChanged<String?> onModelChanged;
+  final ValueChanged<int?> onYearChanged;
+  final ValueChanged<String?> onCityChanged;
+  final ValueChanged<String?> onBodyTypeChanged;
+  final VoidCallback onToggleVerified;
+  final VoidCallback onSearch;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedMake = _makeFor(filters.make);
+    final models = selectedMake?.popularModels ?? const <String>[];
+    final years = _years();
+    return Column(
+      children: [
+        TextField(
+          controller: searchController,
+          onChanged: onSearchChanged,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search_outlined),
+            labelText: 'Search by make, model, or city',
+          ),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String?>(
+          initialValue: filters.make,
+          decoration: const InputDecoration(labelText: 'Make'),
+          items: [
+            const DropdownMenuItem<String?>(
+              value: null,
+              child: Text('All makes'),
+            ),
+            ...makes.map(
+              (make) => DropdownMenuItem<String?>(
+                value: make.name,
+                child: Text(make.name),
+              ),
+            ),
+          ],
+          onChanged: onMakeChanged,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String?>(
+                initialValue: filters.model,
+                decoration: const InputDecoration(labelText: 'Model'),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('All models'),
+                  ),
+                  ...models.map(
+                    (model) => DropdownMenuItem<String?>(
+                      value: model,
+                      child: Text(model),
+                    ),
+                  ),
+                ],
+                onChanged: selectedMake == null ? null : onModelChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: filters.year,
+                decoration: const InputDecoration(labelText: 'Year'),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Any year'),
+                  ),
+                  ...years.map(
+                    (year) => DropdownMenuItem<int?>(
+                      value: year,
+                      child: Text('$year'),
+                    ),
+                  ),
+                ],
+                onChanged: filters.model == null ? null : onYearChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String?>(
+          initialValue: filters.city,
+          decoration: const InputDecoration(labelText: 'Location'),
+          items: [
+            const DropdownMenuItem<String?>(
+              value: null,
+              child: Text('All locations'),
+            ),
+            ...cities.map(
+              (city) => DropdownMenuItem<String?>(
+                value: city,
+                child: Text(city),
+              ),
+            ),
+          ],
+          onChanged: onCityChanged,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String?>(
+                initialValue: filters.bodyType,
+                decoration: const InputDecoration(labelText: 'Body type'),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('All body types'),
+                  ),
+                  ...bodyTypes.map(
+                    (type) => DropdownMenuItem<String?>(
+                      value: type.value,
+                      child: Text(type.label),
+                    ),
+                  ),
+                ],
+                onChanged: onBodyTypeChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilterChip(
+              label: const Text('Verified'),
+              selected: filters.verifiedOnly,
+              onSelected: (_) => onToggleVerified(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onClear,
+                child: const Text('Clear'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: onSearch,
+                child: const Text('Search'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  VehicleMake? _makeFor(String? name) {
+    for (final make in makes) {
+      if (make.name == name) {
+        return make;
+      }
+    }
+    return null;
+  }
+
+  List<int> _years() {
+    final currentYear = DateTime.now().year;
+    return [for (var year = currentYear; year >= 1990; year--) year];
+  }
+}
+
+class _ListingCard extends StatelessWidget {
+  const _ListingCard({required this.listing, required this.saved});
+
+  final ListingCard listing;
+  final bool saved;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: VehicleImageView(
+              imageUrl: listing.coverImageUrl,
+              height: 90,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (listing.bisellVerified) const VerifiedBadge(),
+                const SizedBox(height: 8),
+                Text(
+                  listing.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${listing.city} · ${listing.bodyType}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.ink500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                PriceDisplay(
+                  amount: listing.askPriceUsd.toStringAsFixed(0),
+                  fontSize: 18,
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (listing.inspectionScore != null)
+                StatusChip(label: '${listing.inspectionScore}/100'),
+              const SizedBox(height: 12),
+              Icon(
+                saved ? Icons.bookmark : Icons.chevron_right,
+                color: AppColors.ink400,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
