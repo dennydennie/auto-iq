@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Min,
   MaxLength,
   Matches,
 } from "class-validator";
@@ -34,16 +35,18 @@ export class UpdateMeDto {
 
   @IsOptional()
   @IsNumber()
-  budgetMin?: number;
+  @Min(0)
+  budgetMin?: number | null;
 
   @IsOptional()
   @IsNumber()
-  budgetMax?: number;
+  @Min(0)
+  budgetMax?: number | null;
 
   @IsOptional()
   @IsString()
   @MaxLength(160)
-  businessName?: string;
+  businessName?: string | null;
 }
 
 export class RecordConsentDto {

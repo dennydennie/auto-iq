@@ -144,10 +144,10 @@ export interface UpdateMeRequest {
   /** Buyer preferences */
   preferredBodyTypes?: string[];
   preferredMakes?: string[];
-  budgetMin?: number;
-  budgetMax?: number;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
   /** Seller info */
-  businessName?: string;
+  businessName?: string | null;
 }
 
 // ─── Consents ─────────────────────────────────────────────────────────────────

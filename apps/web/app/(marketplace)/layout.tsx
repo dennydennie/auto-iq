@@ -16,6 +16,7 @@ const AUTHED_LINKS = [
   { href: "/quotes", label: "Quotes" },
   { href: "/requests", label: "Requests" },
   { href: "/viewings", label: "Viewings" },
+  { href: "/account", label: "Account" },
   { href: "/seller", label: "Sell my car" },
 ];
 
