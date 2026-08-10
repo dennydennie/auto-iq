@@ -184,6 +184,7 @@ jobs:
 
       - name: Run web production readiness checks
         run: |
+          node --test scripts/deploy/railway-web.test.mjs
           node scripts/check-web-production-readiness.mjs
           node scripts/check-contract-routes.mjs
           node scripts/check-web-saved-vehicles-contract.mjs

@@ -95,45 +95,35 @@ create_bundle() {
 }
 
 deploy_bundle() {
-  local project_id
-  project_id="$(resolve_project_id)"
+  local project_id=$1
   local args=("$TMP_DIR" "--path-as-root" "--project" "$project_id" "--service" "$WEB_SERVICE" "--environment" "$ENVIRONMENT_NAME" "--ci" "--verbose" "--message" "$DEPLOY_MESSAGE")
 
   railway up "${args[@]}"
 }
 
-configure_storage_variables() {
-  railway variable set "STORAGE_ENDPOINT=\${{${BUCKET_SERVICE}.ENDPOINT}}" \
-    --service "$WEB_SERVICE" \
-    --environment "$ENVIRONMENT_NAME" \
-    --skip-deploys >/dev/null
-  railway variable set "STORAGE_FORCE_PATH_STYLE=false" \
+set_web_variable() {
+  local project_id=$1
+  local value=$2
+  railway variable set "$value" \
+    --project "$project_id" \
     --service "$WEB_SERVICE" \
     --environment "$ENVIRONMENT_NAME" \
     --skip-deploys >/dev/null
 }
 
+configure_storage_variables() {
+  local project_id=$1
+  set_web_variable "$project_id" "STORAGE_ENDPOINT=\${{${BUCKET_SERVICE}.ENDPOINT}}"
+  set_web_variable "$project_id" "STORAGE_FORCE_PATH_STYLE=false"
+}
+
 configure_observability_variables() {
-  railway variable set "NODE_ENV=production" \
-    --service "$WEB_SERVICE" \
-    --environment "$ENVIRONMENT_NAME" \
-    --skip-deploys >/dev/null
-  railway variable set "SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}" \
-    --service "$WEB_SERVICE" \
-    --environment "$ENVIRONMENT_NAME" \
-    --skip-deploys >/dev/null
-  railway variable set "NEXT_PUBLIC_SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}" \
-    --service "$WEB_SERVICE" \
-    --environment "$ENVIRONMENT_NAME" \
-    --skip-deploys >/dev/null
-  railway variable set "SENTRY_ENVIRONMENT=$ENVIRONMENT_NAME" \
-    --service "$WEB_SERVICE" \
-    --environment "$ENVIRONMENT_NAME" \
-    --skip-deploys >/dev/null
-  railway variable set "SENTRY_RELEASE=\${{RAILWAY_GIT_COMMIT_SHA}}" \
-    --service "$WEB_SERVICE" \
-    --environment "$ENVIRONMENT_NAME" \
-    --skip-deploys >/dev/null
+  local project_id=$1
+  set_web_variable "$project_id" "NODE_ENV=production"
+  set_web_variable "$project_id" "SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}"
+  set_web_variable "$project_id" "NEXT_PUBLIC_SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}"
+  set_web_variable "$project_id" "SENTRY_ENVIRONMENT=$ENVIRONMENT_NAME"
+  set_web_variable "$project_id" "SENTRY_RELEASE=\${{RAILWAY_GIT_COMMIT_SHA}}"
 }
 
 main() {
@@ -145,15 +135,17 @@ main() {
 
   log_step "Preparing web deploy bundle"
   create_bundle
+  local project_id
+  project_id="$(resolve_project_id)"
 
   log_step "Configuring private storage image host"
-  configure_storage_variables
+  configure_storage_variables "$project_id"
 
   log_step "Configuring web observability"
-  configure_observability_variables
+  configure_observability_variables "$project_id"
 
   log_step "Deploying web service"
-  deploy_bundle
+  deploy_bundle "$project_id"
 }
 
 main "$@"
