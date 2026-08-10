@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   APP_LOCALES,
   localeDirection,
+  normalizeReturnPath,
   resolveLocale,
   translate,
 } from "./i18n.ts";
@@ -24,6 +25,13 @@ test("formats ICU-style plural messages with locale-aware counts", () => {
 test("exposes RTL direction for Arabic", () => {
   assert.equal(localeDirection("ar"), "rtl");
   assert.equal(localeDirection("en-ZW"), "ltr");
+});
+
+test("keeps locale redirects on the current origin", () => {
+  assert.equal(normalizeReturnPath("/vehicles?make=Toyota"), "/vehicles?make=Toyota");
+  assert.equal(normalizeReturnPath("https://example.com"), "/");
+  assert.equal(normalizeReturnPath("//example.com"), "/");
+  assert.equal(normalizeReturnPath("/\\example.com"), "/");
 });
 
 test("formats dates, prices, and mileage for the requested locale", () => {

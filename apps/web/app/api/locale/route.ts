@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   APP_LOCALES,
   LOCALE_COOKIE_NAME,
+  normalizeReturnPath,
   type AppLocale,
 } from "@/lib/i18n";
 
@@ -14,7 +15,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unsupported locale" }, { status: 400 });
   }
 
-  const response = NextResponse.redirect(destination(request, form.get("returnTo")), 303);
+  const response = new NextResponse(null, {
+    status: 303,
+    headers: { location: normalizeReturnPath(form.get("returnTo")) },
+  });
   response.cookies.set(LOCALE_COOKIE_NAME, locale, {
     httpOnly: true,
     maxAge: ONE_YEAR_SECONDS,
@@ -27,10 +31,4 @@ export async function POST(request: NextRequest) {
 
 function isAppLocale(value: FormDataEntryValue | null): value is AppLocale {
   return typeof value === "string" && APP_LOCALES.includes(value as AppLocale);
-}
-
-function destination(request: NextRequest, value: FormDataEntryValue | null) {
-  const path = typeof value === "string" ? value : "/";
-  const safePath = path.startsWith("/") && !path.startsWith("//") ? path : "/";
-  return new URL(safePath, request.url);
 }

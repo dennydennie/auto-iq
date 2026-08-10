@@ -6,7 +6,10 @@ const root = process.cwd();
 
 const requiredEvidence = [
   ["apps/web/app/layout.tsx", ["getRequestLocale", "localeDirection(locale)", "lang={locale}", "dir={direction}"]],
-  ["apps/web/app/api/locale/route.ts", ["LOCALE_COOKIE_NAME", "httpOnly: true", 'sameSite: "lax"']],
+  [
+    "apps/web/app/api/locale/route.ts",
+    ["LOCALE_COOKIE_NAME", "normalizeReturnPath", "headers: { location:", "httpOnly: true", 'sameSite: "lax"'],
+  ],
   ["apps/web/components/shared/site-header.tsx", ["LocaleSwitcher", "messageKey"]],
   ["apps/mobile/lib/src/app.dart", ["localizationsDelegates", "supportedLocales"]],
   ["apps/mobile/lib/src/screens/buyer/buyer_home_screen.dart", ["AutoIqLocalizations.of(context)"]],

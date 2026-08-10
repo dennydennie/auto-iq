@@ -118,6 +118,12 @@ export function localeDirection(locale: AppLocale): TextDirection {
   return locale === "ar" ? "rtl" : "ltr";
 }
 
+export function normalizeReturnPath(value: unknown) {
+  if (typeof value !== "string") return "/";
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+  return value;
+}
+
 export function translate(
   locale: AppLocale,
   key: MessageKey,
