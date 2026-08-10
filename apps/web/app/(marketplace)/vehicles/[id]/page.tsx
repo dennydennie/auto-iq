@@ -121,7 +121,7 @@ export default async function VehicleDetailPage({
   const savedVehicles =
     savedResult !== null && savedResult.ok ? extractSavedVehicles(savedResult.data) : [];
   const isSaved = savedVehicles.some((entry) => entry.listing.id === listing.id);
-  const signedIn = currentViewer !== "anonymous";
+  const buyerSignedIn = currentViewer === "buyer";
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
@@ -185,12 +185,12 @@ export default async function VehicleDetailPage({
                 href="#contact"
                 className={buttonVariants({ variant: "amber", size: "sm", className: "flex-1 justify-center" })}
               >
-                {signedIn ? "Request viewing" : "Sign in to contact"}
+                {buyerSignedIn ? "Request viewing" : "Sign in to contact"}
               </Link>
               <SaveVehicleButton
                 listingId={listing.id}
                 listingSlugOrId={listing.slug}
-                signedIn={signedIn}
+                signedIn={buyerSignedIn}
                 initialSaved={isSaved}
                 variant="outline"
                 size="sm"
@@ -337,7 +337,7 @@ export default async function VehicleDetailPage({
       </div>
 
       <Suspense fallback={null}>
-        <SimilarVehicles listing={listing} signedIn={signedIn} />
+        <SimilarVehicles listing={listing} signedIn={buyerSignedIn} />
       </Suspense>
     </main>
   );

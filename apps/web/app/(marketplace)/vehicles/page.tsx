@@ -149,7 +149,8 @@ export default async function VehiclesPage({
   const makes = !isServerApiFailure(makesResult) ? makesResult.data : [];
   const models = !isServerApiFailure(modelsResult) ? modelsResult.data : [];
 
-  const signedIn = meResult !== null && meResult.ok;
+  const buyerSignedIn =
+    meResult !== null && meResult.ok && meResult.data.roles.includes("BUYER");
   const savedVehicles =
     savedResult !== null && savedResult.ok
       ? extractSavedVehicles(savedResult.data)
@@ -228,7 +229,7 @@ export default async function VehiclesPage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-      {signedIn ? (
+      {buyerSignedIn ? (
         // Compact workspace-style header for returning buyers
         <PageHeader
           eyebrow="Live catalogue"
@@ -477,7 +478,7 @@ export default async function VehiclesPage({
                   <VehicleCard
                     key={listing.id}
                     {...listing}
-                    signedIn={signedIn}
+                    signedIn={buyerSignedIn}
                     savedInitial={savedIds.has(listing.id)}
                     returnHref={returnHref}
                   />

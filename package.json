@@ -10,6 +10,7 @@
     "check:web-saved-vehicles-contract": "node scripts/check-web-saved-vehicles-contract.mjs",
     "check:web-account-contract": "node scripts/check-web-account-contract.mjs",
     "check:web-admin-review-contract": "node scripts/check-web-admin-review-contract.mjs",
+    "check:buyer-marketplace": "node scripts/check-buyer-marketplace.mjs",
     "check:inspection-workflow": "node scripts/check-inspection-workflow.mjs",
     "check:seller-listing-workflow": "node scripts/check-seller-listing-workflow.mjs",
     "check:web-production-readiness": "node scripts/check-web-production-readiness.mjs",
