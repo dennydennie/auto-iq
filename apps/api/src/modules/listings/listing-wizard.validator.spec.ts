@@ -31,14 +31,20 @@ function makeImage(index: number, isCover = false) {
   };
 }
 
-function makeDocument() {
+function makeDocument(documentType: string) {
   return {
-    id: "doc-1",
-    documentType: "REGISTRATION",
-    storageKey: "doc-key",
+    id: `doc-${documentType}`,
+    documentType,
+    storageKey: `doc-key-${documentType}`,
     reviewStatus: "PENDING",
     uploadedAt: new Date(),
   };
+}
+
+function makeRequiredDocuments() {
+  return ["REGISTRATION_BOOK", "SELLER_ID", "PURCHASE_IMPORT_DOCS"].map(
+    makeDocument,
+  );
 }
 
 describe("ListingWizardValidator", () => {
@@ -46,56 +52,99 @@ describe("ListingWizardValidator", () => {
 
   it("fails when photos, documents, price, and disclosure are missing", () => {
     expect(() =>
-      validator.validateForSubmit({
-        specs: baseSpecs,
-        pricing: null,
-        images: [],
-        documents: [],
-      } as never, ""),
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: null,
+          images: [],
+          documents: [],
+        } as never,
+        "",
+      ),
     ).toThrow("Listing wizard is incomplete");
   });
 
   it("fails when only one photo is uploaded (below 3-photo minimum)", () => {
     expect(() =>
-      validator.validateForSubmit({
-        specs: baseSpecs,
-        pricing: basePricing,
-        images: [makeImage(0, true)],
-        documents: [makeDocument()],
-      } as never, validDisclosure),
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: basePricing,
+          images: [makeImage(0, true)],
+          documents: makeRequiredDocuments(),
+        } as never,
+        validDisclosure,
+      ),
     ).toThrow("Listing wizard is incomplete");
   });
 
   it("fails when three photos are uploaded but none marked as cover", () => {
     expect(() =>
-      validator.validateForSubmit({
-        specs: baseSpecs,
-        pricing: basePricing,
-        images: [makeImage(0), makeImage(1), makeImage(2)],
-        documents: [makeDocument()],
-      } as never, validDisclosure),
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: basePricing,
+          images: [makeImage(0), makeImage(1), makeImage(2)],
+          documents: makeRequiredDocuments(),
+        } as never,
+        validDisclosure,
+      ),
     ).toThrow("Listing wizard is incomplete");
   });
 
   it("fails when disclosure is shorter than the minimum length", () => {
     expect(() =>
-      validator.validateForSubmit({
-        specs: baseSpecs,
-        pricing: basePricing,
-        images: [makeImage(0, true), makeImage(1), makeImage(2)],
-        documents: [makeDocument()],
-      } as never, "Great car"),
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: basePricing,
+          images: [makeImage(0, true), makeImage(1), makeImage(2)],
+          documents: makeRequiredDocuments(),
+        } as never,
+        "Great car",
+      ),
     ).toThrow("Listing wizard is incomplete");
   });
 
-  it("passes when specs, pricing, 3 photos with cover, 1 doc, and a full disclosure are present", () => {
+  it("fails when one mandatory document type is missing", () => {
     expect(() =>
-      validator.validateForSubmit({
-        specs: baseSpecs,
-        pricing: basePricing,
-        images: [makeImage(0, true), makeImage(1), makeImage(2)],
-        documents: [makeDocument()],
-      } as never, validDisclosure),
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: basePricing,
+          images: [makeImage(0, true), makeImage(1), makeImage(2)],
+          documents: makeRequiredDocuments().slice(0, 2),
+        } as never,
+        validDisclosure,
+      ),
+    ).toThrow("Listing wizard is incomplete");
+  });
+
+  it("does not accept optional documents in place of mandatory documents", () => {
+    expect(() =>
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: basePricing,
+          images: [makeImage(0, true), makeImage(1), makeImage(2)],
+          documents: [makeDocument("INSURANCE_CERTIFICATE")],
+        } as never,
+        validDisclosure,
+      ),
+    ).toThrow("Listing wizard is incomplete");
+  });
+
+  it("passes with specs, pricing, photos, mandatory documents, and disclosure", () => {
+    expect(() =>
+      validator.validateForSubmit(
+        {
+          specs: baseSpecs,
+          pricing: basePricing,
+          images: [makeImage(0, true), makeImage(1), makeImage(2)],
+          documents: makeRequiredDocuments(),
+        } as never,
+        validDisclosure,
+      ),
     ).not.toThrow();
   });
 });

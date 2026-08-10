@@ -37,13 +37,17 @@ class SellerRepository {
     'VIN_PLATE',
   ];
 
-  static const documentTypes = <String>[
+  static const requiredDocumentTypes = <String>[
     'REGISTRATION_BOOK',
+    'SELLER_ID',
+    'PURCHASE_IMPORT_DOCS',
+  ];
+
+  static const documentTypes = <String>[
+    ...requiredDocumentTypes,
     'INSURANCE_CERTIFICATE',
     'POLICE_CLEARANCE',
     'ROADWORTHY_CERTIFICATE',
-    'PURCHASE_IMPORT_DOCS',
-    'SELLER_ID',
   ];
 
   Future<List<SellerListingSummary>> listings() {

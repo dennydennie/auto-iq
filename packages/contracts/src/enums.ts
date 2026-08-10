@@ -16,7 +16,11 @@ export const USER_ROLES = [
 
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const USER_STATUSES = ['ACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION'] as const;
+export const USER_STATUSES = [
+  'ACTIVE',
+  'SUSPENDED',
+  'PENDING_VERIFICATION',
+] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 export const CONSENT_TYPES = [
@@ -72,7 +76,8 @@ export const INSPECTION_TASK_STATUSES = [
 export type InspectionTaskStatus = (typeof INSPECTION_TASK_STATUSES)[number];
 
 export const INSPECTION_FINDING_RATINGS = ['PASS', 'WATCH', 'FAIL'] as const;
-export type InspectionFindingRating = (typeof INSPECTION_FINDING_RATINGS)[number];
+export type InspectionFindingRating =
+  (typeof INSPECTION_FINDING_RATINGS)[number];
 
 export const INSPECTION_CATEGORIES = [
   'ENGINE',
@@ -94,7 +99,8 @@ export const OWNERSHIP_VERIFICATION_STATUSES = [
   'NEEDS_CLARIFICATION',
   'REJECTED',
 ] as const;
-export type OwnershipVerificationStatus = (typeof OWNERSHIP_VERIFICATION_STATUSES)[number];
+export type OwnershipVerificationStatus =
+  (typeof OWNERSHIP_VERIFICATION_STATUSES)[number];
 
 // ─── Quote ────────────────────────────────────────────────────────────────────
 
@@ -149,18 +155,42 @@ export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
 export const NOTIFICATION_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
-export const NOTIFICATION_STATUSES = ['QUEUED', 'SENT', 'FAILED', 'DEAD_LETTER'] as const;
+export const NOTIFICATION_STATUSES = [
+  'QUEUED',
+  'SENT',
+  'FAILED',
+  'DEAD_LETTER',
+] as const;
 export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number];
 
 // ─── Reference data ───────────────────────────────────────────────────────────
 
-export const BODY_TYPES = ['SEDAN', 'SUV', 'HATCH', 'BAKKIE', 'VAN', 'COUPE', 'WAGON'] as const;
+export const BODY_TYPES = [
+  'SEDAN',
+  'SUV',
+  'HATCH',
+  'BAKKIE',
+  'VAN',
+  'COUPE',
+  'WAGON',
+] as const;
 export type BodyType = (typeof BODY_TYPES)[number];
 
-export const FUEL_TYPES = ['PETROL', 'DIESEL', 'HYBRID', 'ELECTRIC', 'OTHER'] as const;
+export const FUEL_TYPES = [
+  'PETROL',
+  'DIESEL',
+  'HYBRID',
+  'ELECTRIC',
+  'OTHER',
+] as const;
 export type FuelType = (typeof FUEL_TYPES)[number];
 
-export const TRANSMISSION_TYPES = ['AUTOMATIC', 'MANUAL', 'CVT', 'DSG'] as const;
+export const TRANSMISSION_TYPES = [
+  'AUTOMATIC',
+  'MANUAL',
+  'CVT',
+  'DSG',
+] as const;
 export type TransmissionType = (typeof TRANSMISSION_TYPES)[number];
 
 export const DRIVE_TYPES = ['FWD', 'RWD', '4WD', 'AWD'] as const;
@@ -180,6 +210,13 @@ export const DOCUMENT_TYPES = [
   'SELLER_ID',
 ] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+/** Documents every seller must provide before a listing can be submitted. */
+export const REQUIRED_SELLER_DOCUMENT_TYPES = [
+  'REGISTRATION_BOOK',
+  'SELLER_ID',
+  'PURCHASE_IMPORT_DOCS',
+] as const satisfies readonly DocumentType[];
 
 export const IMAGE_SLOTS = [
   'FRONT_THREE_QUARTER',

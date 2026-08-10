@@ -468,7 +468,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                 .map(
                   (type) => DropdownMenuItem(
                     value: type,
-                    child: Text(type.replaceAll('_', ' ')),
+                    child: Text(
+                      '${type.replaceAll('_', ' ')}${SellerRepository.requiredDocumentTypes.contains(type) ? ' · Required' : ''}',
+                    ),
                   ),
                 )
                 .toList(growable: false),
@@ -578,8 +580,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed:
-                _busy || _listingId == null || !editable ? null : _submit,
+            onPressed: _busy || detail == null || !editable
+                ? null
+                : () => _submit(detail),
             child: const Text('Submit for review'),
           ),
         ),
@@ -699,7 +702,33 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
     }
   }
 
-  Future<void> _submit() async {
+  String? _submissionIssue(SellerListingDetail detail) {
+    if (detail.images.length < 3) {
+      return 'Upload at least 3 vehicle photos before submitting.';
+    }
+    if (!detail.images.any((image) => image.isCover)) {
+      return 'Choose a cover photo before submitting.';
+    }
+    final uploaded = detail.documents.map((item) => item.documentType).toSet();
+    final missing = SellerRepository.requiredDocumentTypes
+        .where((type) => !uploaded.contains(type))
+        .toList(growable: false);
+    if (missing.isNotEmpty) {
+      return 'Upload required documents: ${missing.join(', ')}.';
+    }
+    if (_disclosureController.text.trim().length < 20) {
+      return 'Add a seller disclosure of at least 20 characters.';
+    }
+    return null;
+  }
+
+  Future<void> _submit(SellerListingDetail detail) async {
+    final issue = _submissionIssue(detail);
+    if (issue != null) {
+      _showSnack(issue);
+      return;
+    }
+    setState(() => _busy = true);
     try {
       await context.read<SellerRepository>().submit(
             listingId: _listingId!,
@@ -709,6 +738,10 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
       _showSnack('Listing submitted for review.');
     } on ApiException catch (error) {
       _showSnack(error.message);
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 

@@ -28,7 +28,7 @@ export default async function SellerListingNewPage({
       <PageHeader
         eyebrow="New listing"
         title="List your vehicle"
-        description="Work through one short section at a time, then review the draft before saving."
+        description="Complete specs, pricing, photos, and ownership documents, then submit one verified draft for review."
         breadcrumb={
           <Breadcrumb
             items={[

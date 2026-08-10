@@ -4,20 +4,23 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Send } from "lucide-react";
 import type { ApiError } from "@auto-iq/contracts/error";
-import type { SellerListingDto, SubmitListingRequest } from "@auto-iq/contracts/listings";
+import {
+  MIN_LISTING_PHOTOS,
+  MIN_SELLER_DISCLOSURE_LENGTH,
+  type SellerListingDto,
+  type SubmitListingRequest,
+} from "@auto-iq/contracts/listings";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import {
+  disclosureIsReady,
+  missingRequiredDocuments,
+} from "@/lib/listing-readiness";
 import { isApiFailure, postJson } from "@/lib/web-api";
-
-// Minimum bar before the submit button unlocks. The API also enforces these
-// (kept in sync deliberately so the button never fires a doomed request).
-const MIN_DISCLOSURE_LENGTH = 20;
-const MIN_PHOTOS = 3;
-const MIN_DOCUMENTS = 1;
 
 type ChecklistItem = {
   id: string;
@@ -27,23 +30,26 @@ type ChecklistItem = {
   hint?: string;
 };
 
-function buildChecklist(listing: SellerListingDto, disclosure: string): ChecklistItem[] {
+function buildChecklist(
+  listing: SellerListingDto,
+  disclosure: string,
+): ChecklistItem[] {
   const specs = listing.specs;
   const pricing = listing.pricing;
   const basicsComplete = Boolean(
     specs.make &&
-      specs.model &&
-      specs.year &&
-      specs.colour &&
-      Number.isFinite(specs.mileageKm) &&
-      Number.isFinite(pricing.askPriceUsd) &&
-      pricing.askPriceUsd > 0,
+    specs.model &&
+    specs.year &&
+    specs.colour &&
+    Number.isFinite(specs.mileageKm) &&
+    Number.isFinite(pricing.askPriceUsd) &&
+    pricing.askPriceUsd > 0,
   );
 
   const photoCount = listing.images.length;
   const hasCover = listing.images.some((image) => image.isCover);
-  const documentCount = listing.documents.length;
-  const disclosureOk = disclosure.trim().length >= MIN_DISCLOSURE_LENGTH;
+  const missingDocuments = missingRequiredDocuments(listing.documents);
+  const disclosureOk = disclosureIsReady(disclosure);
 
   return [
     {
@@ -56,25 +62,29 @@ function buildChecklist(listing: SellerListingDto, disclosure: string): Checklis
     },
     {
       id: "photos",
-      label: `${MIN_PHOTOS}+ photos uploaded`,
-      complete: photoCount >= MIN_PHOTOS,
-      hint: photoCount >= MIN_PHOTOS
-        ? undefined
-        : `You've uploaded ${photoCount} of ${MIN_PHOTOS}. Front three-quarter, driver side, and interior are the priority shots.`,
+      label: `${MIN_LISTING_PHOTOS}+ photos uploaded`,
+      complete: photoCount >= MIN_LISTING_PHOTOS,
+      hint:
+        photoCount >= MIN_LISTING_PHOTOS
+          ? undefined
+          : `You've uploaded ${photoCount} of ${MIN_LISTING_PHOTOS}. Front three-quarter, driver side, and interior are the priority shots.`,
     },
     {
       id: "cover",
       label: "Cover photo selected",
       complete: hasCover,
-      hint: hasCover ? undefined : "Upload a front three-quarter photo — it becomes the cover automatically.",
+      hint: hasCover
+        ? undefined
+        : "Upload a front three-quarter photo — it becomes the cover automatically.",
     },
     {
       id: "documents",
-      label: `${MIN_DOCUMENTS}+ ownership document uploaded`,
-      complete: documentCount >= MIN_DOCUMENTS,
-      hint: documentCount >= MIN_DOCUMENTS
-        ? undefined
-        : "At least one ownership document is required for admin verification.",
+      label: "Mandatory ownership documents uploaded",
+      complete: missingDocuments.length === 0,
+      hint:
+        missingDocuments.length === 0
+          ? undefined
+          : `Still required: ${missingDocuments.map((type) => type.toLowerCase().replaceAll("_", " ")).join(", ")}.`,
     },
     {
       id: "disclosure",
@@ -82,7 +92,7 @@ function buildChecklist(listing: SellerListingDto, disclosure: string): Checklis
       complete: disclosureOk,
       hint: disclosureOk
         ? undefined
-        : `Add at least ${MIN_DISCLOSURE_LENGTH} characters covering service history or known issues.`,
+        : `Add at least ${MIN_SELLER_DISCLOSURE_LENGTH} characters covering service history or known issues.`,
     },
   ];
 }
@@ -112,7 +122,10 @@ export function SubmitListingAction({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const checklist = useMemo(() => buildChecklist(listing, disclosure), [listing, disclosure]);
+  const checklist = useMemo(
+    () => buildChecklist(listing, disclosure),
+    [listing, disclosure],
+  );
   const allComplete = checklist.every((item) => item.complete);
   const completeCount = checklist.filter((item) => item.complete).length;
 
@@ -128,7 +141,9 @@ export function SubmitListingAction({
   function submit() {
     setConfirmOpen(false);
     startTransition(async () => {
-      const body: SubmitListingRequest = { sellerDisclosure: disclosure.trim() };
+      const body: SubmitListingRequest = {
+        sellerDisclosure: disclosure.trim(),
+      };
       const result = await postJson<SellerListingDto>(
         `/api/seller/listings/${listing.id}/submit`,
         body,
@@ -147,7 +162,8 @@ export function SubmitListingAction({
 
       toast({
         title: "Submitted for review",
-        description: "The admin team has been notified. You'll see status updates here.",
+        description:
+          "The admin team has been notified. You'll see status updates here.",
         variant: "success",
       });
       router.refresh();
@@ -181,16 +197,26 @@ export function SubmitListingAction({
                 <Icon
                   className={cn(
                     "mt-0.5 h-4 w-4 shrink-0",
-                    item.complete ? "text-emerald-600" : "text-[var(--ink-300)]",
+                    item.complete
+                      ? "text-emerald-600"
+                      : "text-[var(--ink-300)]",
                   )}
                   aria-hidden="true"
                 />
                 <div className="flex-1">
-                  <p className={cn(item.complete ? "text-[var(--ink-700)]" : "text-[var(--ink-900)]")}>
+                  <p
+                    className={cn(
+                      item.complete
+                        ? "text-[var(--ink-700)]"
+                        : "text-[var(--ink-900)]",
+                    )}
+                  >
                     {item.label}
                   </p>
                   {!item.complete && item.hint ? (
-                    <p className="text-xs leading-5 text-[var(--ink-400)]">{item.hint}</p>
+                    <p className="text-xs leading-5 text-[var(--ink-400)]">
+                      {item.hint}
+                    </p>
                   ) : null}
                 </div>
               </li>
@@ -216,7 +242,8 @@ export function SubmitListingAction({
           <p className="text-xs font-medium text-[var(--reject)]">{error}</p>
         ) : (
           <p className="text-xs text-[var(--ink-400)]">
-            Public on the buyer detail page. Keep it accurate — admin can request changes.
+            Public on the buyer detail page. Keep it accurate — admin can
+            request changes.
           </p>
         )}
       </div>
@@ -230,10 +257,17 @@ export function SubmitListingAction({
         aria-describedby="submit-cta-help"
       >
         <Send className="h-4 w-4" />
-        {isPending ? "Submitting..." : allComplete ? "Submit for review" : "Complete checklist to submit"}
+        {isPending
+          ? "Submitting..."
+          : allComplete
+            ? "Submit for review"
+            : "Complete checklist to submit"}
       </Button>
       {!allComplete ? (
-        <p id="submit-cta-help" className="text-center text-xs text-[var(--ink-400)]">
+        <p
+          id="submit-cta-help"
+          className="text-center text-xs text-[var(--ink-400)]"
+        >
           Finish every item above to unlock submit.
         </p>
       ) : null}

@@ -1,10 +1,17 @@
 import type {
-  ListingStatus, BodyType, FuelType, TransmissionType, DriveType,
+  ListingStatus,
+  BodyType,
+  FuelType,
+  TransmissionType,
+  DriveType,
   ConditionGrade,
 } from './enums.js';
 import type { TimestampFields } from './identity.js';
 import type { VehicleImageDto, VehicleDocumentDto } from './storage.js';
 import type { OffsetPaginationParams, SortDirection } from './pagination.js';
+
+export const MIN_LISTING_PHOTOS = 3;
+export const MIN_SELLER_DISCLOSURE_LENGTH = 20;
 
 // ─── Shared sub-shapes ────────────────────────────────────────────────────────
 
@@ -17,7 +24,7 @@ export interface VehicleSpecsDto {
   fuelType: FuelType;
   transmission: TransmissionType;
   driveType: DriveType;
-  engineCapacity: string | null;  // e.g. "2.4L"
+  engineCapacity: string | null; // e.g. "2.4L"
   mileageKm: number;
   condition: ConditionGrade;
   hasAccidentHistory: boolean;

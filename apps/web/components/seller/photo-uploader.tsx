@@ -36,9 +36,11 @@ function humanSlot(slot: ImageSlot) {
 export function PhotoUploader({
   listingId,
   images: initialImages,
+  onUploaded,
 }: {
   listingId: string;
   images: VehicleImageDto[];
+  onUploaded?: (image: VehicleImageDto) => void;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -55,7 +57,9 @@ export function PhotoUploader({
   async function upload(file: File, slot: ImageSlot) {
     setUploadingSlot(slot);
 
-    if (!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
+    if (
+      !ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])
+    ) {
       toast({
         title: "Unsupported file type",
         description: "Use a JPEG, PNG, or WebP image.",
@@ -117,7 +121,7 @@ export function PhotoUploader({
         slot,
         contentType: file.type as RegisterImageRequest["contentType"],
         contentLength: file.size,
-        isCover: !bySlot.has("FRONT_THREE_QUARTER") && slot === "FRONT_THREE_QUARTER",
+        isCover: slot === "FRONT_THREE_QUARTER",
       };
       const registerResult = await postJson<VehicleImageDto>(
         `/api/seller/listings/${listingId}/images`,
@@ -138,6 +142,7 @@ export function PhotoUploader({
         next.push(registerResult.data);
         return next;
       });
+      onUploaded?.(registerResult.data);
       setUploadingSlot(null);
       toast({
         title: `${humanSlot(slot)} photo uploaded`,
@@ -155,11 +160,13 @@ export function PhotoUploader({
           <div>
             <CardTitle>Photos</CardTitle>
             <p className="mt-1 text-sm text-[var(--ink-500)]">
-              Buyers see these on the detail page. Upload one photo per slot. Front
-              three-quarter becomes the cover automatically.
+              Buyers see these on the detail page. Upload one photo per slot.
+              Front three-quarter becomes the cover automatically.
             </p>
           </div>
-          <Badge variant="outline">{images.length} / {IMAGE_SLOTS.length}</Badge>
+          <Badge variant="outline">
+            {images.length} / {IMAGE_SLOTS.length}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent>
@@ -172,7 +179,9 @@ export function PhotoUploader({
                 key={slot}
                 className={cn(
                   "group relative flex aspect-[4/3] flex-col overflow-hidden rounded-2xl border border-dashed border-[var(--ink-200)] bg-[var(--ink-50)]/60 transition hover:border-[var(--amber-dark)]",
-                  existing ? "border-solid border-[var(--ink-100)] bg-white" : "",
+                  existing
+                    ? "border-solid border-[var(--ink-100)] bg-white"
+                    : "",
                   busy ? "cursor-progress" : "cursor-pointer",
                 )}
               >
@@ -196,7 +205,9 @@ export function PhotoUploader({
                       fill
                       sizes="(min-width: 1024px) 20rem, 45vw"
                       className="object-cover"
-                      unoptimized={shouldBypassNextImageOptimization(existing.url)}
+                      unoptimized={shouldBypassNextImageOptimization(
+                        existing.url,
+                      )}
                     />
                     {existing.isCover ? (
                       <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white backdrop-blur">

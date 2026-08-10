@@ -1,12 +1,19 @@
 import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { VehicleEntity } from "../../db/entity/vehicle.entity";
+import { REQUIRED_SELLER_DOCUMENT_TYPES } from "../../common/constants/listing.constants";
 
 // Kept in sync with the client-side checklist in
 // apps/web/components/seller/submit-listing-action.tsx so sellers never see
 // the button unlock only to be bounced by a 422 from the API.
 const MIN_PHOTOS = 3;
-const MIN_DOCUMENTS = 1;
 const MIN_DISCLOSURE_LENGTH = 20;
+
+function missingDocuments(listing: VehicleEntity) {
+  const uploaded = new Set(
+    (listing.documents ?? []).map((document) => document.documentType),
+  );
+  return REQUIRED_SELLER_DOCUMENT_TYPES.filter((type) => !uploaded.has(type));
+}
 
 @Injectable()
 export class ListingWizardValidator {
@@ -14,10 +21,16 @@ export class ListingWizardValidator {
     const errors: Array<{ field: string; message: string }> = [];
 
     if (!listing.specs) {
-      errors.push({ field: "specs", message: "Vehicle basics are required before submission" });
+      errors.push({
+        field: "specs",
+        message: "Vehicle basics are required before submission",
+      });
     }
     if (!listing.pricing) {
-      errors.push({ field: "pricing", message: "Price is required before submission" });
+      errors.push({
+        field: "pricing",
+        message: "Price is required before submission",
+      });
     }
 
     const photoCount = listing.images?.length ?? 0;
@@ -33,11 +46,11 @@ export class ListingWizardValidator {
       });
     }
 
-    const documentCount = listing.documents?.length ?? 0;
-    if (documentCount < MIN_DOCUMENTS) {
+    const missingDocumentTypes = missingDocuments(listing);
+    if (missingDocumentTypes.length > 0) {
       errors.push({
         field: "documents",
-        message: `At least ${MIN_DOCUMENTS} ownership document is required before submission`,
+        message: `Required documents missing: ${missingDocumentTypes.join(", ")}`,
       });
     }
 

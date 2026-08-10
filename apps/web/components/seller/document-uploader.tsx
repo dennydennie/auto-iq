@@ -10,7 +10,10 @@ import type {
   VehicleDocumentDto,
 } from "@auto-iq/contracts/storage";
 import type { DocumentType } from "@auto-iq/contracts/enums";
-import { DOCUMENT_TYPES } from "@auto-iq/contracts/enums";
+import {
+  DOCUMENT_TYPES,
+  REQUIRED_SELLER_DOCUMENT_TYPES,
+} from "@auto-iq/contracts/enums";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toaster";
@@ -19,6 +22,13 @@ import { isApiFailure, postJson } from "@/lib/web-api";
 
 const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/png"] as const;
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
+const REQUIRED_DOCUMENT_TYPE_SET = new Set<DocumentType>(
+  REQUIRED_SELLER_DOCUMENT_TYPES,
+);
+const ORDERED_DOCUMENT_TYPES: DocumentType[] = [
+  ...REQUIRED_SELLER_DOCUMENT_TYPES,
+  ...DOCUMENT_TYPES.filter((type) => !REQUIRED_DOCUMENT_TYPE_SET.has(type)),
+];
 
 function humanType(type: DocumentType) {
   return type.toLowerCase().replace(/_/g, " ");
@@ -31,13 +41,16 @@ function humanType(type: DocumentType) {
 export function DocumentUploader({
   listingId,
   documents: initialDocuments,
+  onUploaded,
 }: {
   listingId: string;
   documents: VehicleDocumentDto[];
+  onUploaded?: (document: VehicleDocumentDto) => void;
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [documents, setDocuments] = useState<VehicleDocumentDto[]>(initialDocuments);
+  const [documents, setDocuments] =
+    useState<VehicleDocumentDto[]>(initialDocuments);
   const [uploadingType, setUploadingType] = useState<DocumentType | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -46,7 +59,9 @@ export function DocumentUploader({
   async function upload(file: File, documentType: DocumentType) {
     setUploadingType(documentType);
 
-    if (!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
+    if (
+      !ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])
+    ) {
       toast({
         title: "Unsupported file type",
         description: "Use a PDF, JPEG, or PNG file.",
@@ -96,7 +111,8 @@ export function DocumentUploader({
       if (!putResponse || !putResponse.ok) {
         toast({
           title: "Upload failed",
-          description: "The document couldn't be uploaded to storage. Try again.",
+          description:
+            "The document couldn't be uploaded to storage. Try again.",
           variant: "error",
         });
         setUploadingType(null);
@@ -128,10 +144,12 @@ export function DocumentUploader({
         next.push(registerResult.data);
         return next;
       });
+      onUploaded?.(registerResult.data);
       setUploadingType(null);
       toast({
         title: `${humanType(documentType)} uploaded`,
-        description: "Saved to your listing draft. Admin reviews before publish.",
+        description:
+          "Saved to your listing draft. Admin reviews before publish.",
         variant: "success",
       });
       router.refresh();
@@ -145,25 +163,31 @@ export function DocumentUploader({
           <div>
             <CardTitle>Documents</CardTitle>
             <p className="mt-1 text-sm text-[var(--ink-500)]">
-              Ownership and roadworthiness paperwork. Admin reviews each document before
-              your listing goes live.
+              Upload the three required ownership documents. Optional paperwork
+              can support verification and inspection.
             </p>
           </div>
-          <Badge variant="outline">{documents.length} / {DOCUMENT_TYPES.length}</Badge>
+          <Badge variant="outline">
+            {documents.length} uploaded ·{" "}
+            {REQUIRED_SELLER_DOCUMENT_TYPES.length} required
+          </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-2">
-          {DOCUMENT_TYPES.map((documentType) => {
+          {ORDERED_DOCUMENT_TYPES.map((documentType) => {
             const existing = byType.get(documentType);
             const busy = uploadingType === documentType && isPending;
             const status = existing?.reviewStatus;
+            const required = REQUIRED_DOCUMENT_TYPE_SET.has(documentType);
             return (
               <label
                 key={documentType}
                 className={cn(
                   "flex cursor-pointer items-start gap-3 rounded-2xl border border-dashed border-[var(--ink-200)] bg-[var(--ink-50)]/60 p-4 transition hover:border-[var(--amber-dark)]",
-                  existing ? "border-solid border-[var(--ink-100)] bg-white" : "",
+                  existing
+                    ? "border-solid border-[var(--ink-100)] bg-white"
+                    : "",
                   busy ? "cursor-progress" : "",
                 )}
               >
@@ -190,6 +214,11 @@ export function DocumentUploader({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-[var(--ink-900)]">
                     {humanType(documentType)}
+                    {required ? (
+                      <span className="ml-2 text-xs font-medium text-[var(--amber-dark)]">
+                        Required
+                      </span>
+                    ) : null}
                   </p>
                   <p className="mt-1 text-xs text-[var(--ink-500)]">
                     {busy
@@ -204,7 +233,10 @@ export function DocumentUploader({
                     </p>
                   ) : null}
                 </div>
-                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ink-300)]" aria-hidden="true" />
+                <FileText
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ink-300)]"
+                  aria-hidden="true"
+                />
               </label>
             );
           })}
