@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 const PRIMARY_NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: Home },
   { href: "/admin/listings", label: "Listings", icon: ListChecks },
+  { href: "/admin/inspections", label: "Inspections", icon: ShieldCheck },
   { href: "/admin/viewings", label: "Viewings", icon: Calendar },
   { href: "/admin/quotes", label: "Quotes", icon: MessageSquareQuote },
   { href: "/admin/requests", label: "Buyer requests", icon: Sparkles },
@@ -33,7 +34,6 @@ const PRIMARY_NAV_ITEMS = [
 ] as const;
 
 const UPCOMING_NAV_ITEMS = [
-  { href: "/admin/inspections", label: "Inspections", icon: ShieldCheck },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },

@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
@@ -7,10 +8,12 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 import {
   INSPECTION_CATEGORIES,
@@ -44,6 +47,7 @@ export class InspectionFindingInputDto {
   @IsString()
   @MinLength(1)
   @MaxLength(120)
+  @Matches(/\S/, { message: "label must contain visible text" })
   label!: string;
 
   @IsIn(INSPECTION_FINDING_RATINGS)
@@ -60,15 +64,28 @@ export class InspectionFindingInputDto {
   photoStorageKey?: string;
 }
 
+export class InspectionPhotoPresignDto {
+  @IsIn(["image/jpeg", "image/png", "image/webp"])
+  contentType!: "image/jpeg" | "image/png" | "image/webp";
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  contentLength!: number;
+}
+
 export class SubmitInspectionReportDto {
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayMinSize(6)
+  @ArrayMaxSize(6)
+  @ValidateNested({ each: true })
   @Type(() => InspectionFindingInputDto)
   findings!: InspectionFindingInputDto[];
 
   @IsString()
   @MinLength(1)
   @MaxLength(4000)
+  @Matches(/\S/, { message: "inspectorNote must contain visible text" })
   inspectorNote!: string;
 
   @IsBoolean()

@@ -122,7 +122,12 @@ const requiredSourceFragments = [
   },
   {
     file: "apps/web/components/inspector/inspection-report-form.tsx",
-    fragments: ['type="button"', "Add finding"],
+    fragments: [
+      "createInspectionFindings",
+      "INSPECTION_FINDING_RATINGS",
+      "photos/presign",
+      'type="submit"',
+    ],
   },
   {
     file: "apps/web/components/auth/record-consents-form.tsx",

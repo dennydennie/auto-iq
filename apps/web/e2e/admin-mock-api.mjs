@@ -83,7 +83,7 @@ function verification(status) {
   };
 }
 
-function inspectionTask() {
+function inspectionTask(status = "REPORT_SUBMITTED") {
   return {
     id: "task-1",
     listingId: "11111111-1111-4111-8111-111111111111",
@@ -94,17 +94,17 @@ function inspectionTask() {
       coverImageUrl: null,
       city: "Harare",
     },
-    status: "REPORT_SUBMITTED",
+    status,
     assignedInspectorId: "inspector-1",
     assignedInspectorName: "Inspector One",
     scheduledAt: now,
-    completedAt: now,
+    completedAt: status === "SCHEDULED" ? null : now,
     createdAt: now,
     updatedAt: now,
   };
 }
 
-function inspectionReport(buyerSummaryApproved) {
+function inspectionReport(buyerSummaryApproved, findings = defaultFindings()) {
   return {
     id: "report-1",
     taskId: "task-1",
@@ -114,13 +114,26 @@ function inspectionReport(buyerSummaryApproved) {
     overallScore: 86,
     roadworthy: true,
     inspectorNote: "Roadworthy and ready for buyer review.",
-    findings: [],
+    findings,
     buyerSummaryApproved,
     buyerSummaryApprovedAt: buyerSummaryApproved ? now : null,
     buyerSummaryApprovedByAdminId: buyerSummaryApproved ? "admin-1" : null,
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function defaultFindings() {
+  return ["ENGINE", "ELECTRICAL", "BODY", "TYRES", "BRAKES", "INTERIOR"].map(
+    (category, index) => ({
+      id: `finding-${index + 1}`,
+      category,
+      label: `${category.toLowerCase()} check`,
+      rating: "PASS",
+      note: "Checked",
+      photoUrl: null,
+    }),
+  );
 }
 
 let listing = initialListing();
@@ -171,15 +184,23 @@ function apiError(message, statusCode = 409) {
 function trustGatesReady() {
   return (
     listing.ownershipVerification.status === "APPROVED" &&
-    listing.inspectionReport.buyerSummaryApproved
+    listing.inspectionReport?.buyerSummaryApproved
   );
 }
 
 function updateAction(pathname, body) {
-  if (pathname.endsWith("/ownership-verification")) {
+  if (pathname.endsWith("/inspection-tasks")) {
+    listing.status = "INSPECTION_PENDING";
+    listing.inspectionTask = inspectionTask("SCHEDULED");
+    listing.inspectionReport = null;
+  } else if (pathname.endsWith("/ownership-verification")) {
     listing.ownershipVerification = verification(body.status);
   } else if (pathname.endsWith("/inspection-summary/approve")) {
-    listing.inspectionReport = inspectionReport(true);
+    listing.inspectionReport = inspectionReport(
+      true,
+      listing.inspectionReport?.findings,
+    );
+    listing.inspectionTask = inspectionTask("BUYER_SUMMARY_APPROVED");
   } else if (pathname.endsWith("/request-changes")) {
     listing.status = "CHANGES_REQUESTED";
     listing.changesNote = body.message;
@@ -194,11 +215,35 @@ function updateAction(pathname, body) {
   return true;
 }
 
+function submitInspectionReport(body) {
+  const findings = body.findings.map((finding, index) => ({
+    id: `finding-${index + 1}`,
+    ...finding,
+    note: finding.note || null,
+    photoUrl: null,
+  }));
+  listing.inspectionTask = inspectionTask("REPORT_SUBMITTED");
+  listing.inspectionReport = {
+    ...inspectionReport(false, findings),
+    overallScore: 94,
+    inspectorNote: body.inspectorNote,
+    roadworthy: body.roadworthy,
+  };
+  return listing.inspectionReport;
+}
+
 async function handle(request, response) {
   const url = new URL(request.url ?? "/", `http://${host}:${port}`);
   if (url.pathname === "/health") return send(response, 200, { ok: true });
   if (url.pathname === "/__reset") {
     listing = initialListing();
+    return send(response, 204, "");
+  }
+  if (url.pathname === "/__inspection-reset") {
+    listing = initialListing();
+    listing.status = "SUBMITTED";
+    listing.inspectionTask = null;
+    listing.inspectionReport = null;
     return send(response, 204, "");
   }
   if (url.pathname === "/__action") {
@@ -226,6 +271,50 @@ async function handle(request, response) {
     return send(response, 200, { token: "e2e-csrf-token" });
   if (url.pathname === "/api/v1/admin/dashboard")
     return send(response, 200, dashboard());
+  if (url.pathname === "/api/v1/admin/inspectors") {
+    return send(response, 200, [
+      { id: "inspector-1", fullName: "Inspector One", city: "Harare" },
+    ]);
+  }
+  if (url.pathname === "/api/v1/admin/inspection-tasks") {
+    const tasks = listing.inspectionTask ? [listing.inspectionTask] : [];
+    return send(response, 200, {
+      data: tasks,
+      meta: { page: 1, limit: 12, total: tasks.length, totalPages: 1 },
+    });
+  }
+  if (
+    listing.inspectionTask &&
+    url.pathname === `/api/v1/admin/inspection-tasks/${listing.inspectionTask.id}`
+  ) {
+    return send(response, 200, {
+      task: listing.inspectionTask,
+      report: listing.inspectionReport,
+    });
+  }
+  if (url.pathname === "/api/v1/inspectors/inspection-tasks") {
+    const tasks = listing.inspectionTask ? [listing.inspectionTask] : [];
+    return send(response, 200, {
+      data: tasks,
+      meta: { page: 1, limit: 20, total: tasks.length, totalPages: 1 },
+    });
+  }
+  if (
+    listing.inspectionTask &&
+    url.pathname === `/api/v1/inspectors/inspection-tasks/${listing.inspectionTask.id}`
+  ) {
+    return send(response, 200, {
+      task: listing.inspectionTask,
+      report: listing.inspectionReport,
+    });
+  }
+  if (
+    request.method === "POST" &&
+    listing.inspectionTask &&
+    url.pathname === `/api/v1/inspectors/inspection-tasks/${listing.inspectionTask.id}/report`
+  ) {
+    return send(response, 200, submitInspectionReport(await readBody(request)));
+  }
   if (url.pathname === "/api/v1/admin/listings" && request.method === "GET") {
     return send(response, 200, {
       data: [listing],

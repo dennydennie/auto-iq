@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import { TenantContext } from "../../common/tenancy/tenant-context";
 import { RedisService } from "../redis/redis.service";
 
-type UploadKind = "image" | "document";
+type UploadKind = "image" | "document" | "inspection";
 
 interface UploadIntent {
   userId: string;
@@ -22,6 +22,7 @@ interface UploadIntent {
   contentLength: number;
   slot?: string;
   documentType?: string;
+  taskId?: string;
 }
 
 export interface UploadBinding {
@@ -31,12 +32,19 @@ export interface UploadBinding {
   contentLength: number;
   slot?: string;
   documentType?: string;
+  taskId?: string;
 }
 
 export interface UploadedObjectMetadata {
   byteSize: number;
   contentType: string;
   storageKey: string;
+}
+
+export interface InspectionUploadBinding {
+  userId: string;
+  listingId: string;
+  taskId: string;
 }
 
 @Injectable()
@@ -77,6 +85,21 @@ export class StorageService {
 
   async presignDocument(userId: string, listingId: string, documentType: string, contentType: string, contentLength: number) {
     return this.presignUpload("document", { userId, listingId, documentType, contentType, contentLength }, contentType, contentLength);
+  }
+
+  async presignInspectionPhoto(
+    userId: string,
+    listingId: string,
+    taskId: string,
+    contentType: string,
+    contentLength: number,
+  ) {
+    return this.presignUpload(
+      "inspection",
+      { userId, listingId, taskId, contentType, contentLength },
+      contentType,
+      contentLength,
+    );
   }
 
   async inspectPendingUpload(
@@ -123,6 +146,19 @@ export class StorageService {
       await this.redisService.del(this.claimKey(storageKey));
       throw error;
     }
+  }
+
+  async inspectPendingInspectionUpload(
+    storageKey: string,
+    binding: InspectionUploadBinding,
+  ): Promise<UploadedObjectMetadata> {
+    const intent = await this.loadIntent(storageKey, "inspection");
+    assertInspectionIntentBinding(intent, binding);
+    return this.claimAndInspect(storageKey, intent, binding);
+  }
+
+  async releasePendingUploadClaim(storageKey: string): Promise<void> {
+    await this.redisService.del(this.claimKey(storageKey));
   }
 
   async completePendingUpload(storageKey: string): Promise<void> {
@@ -201,6 +237,47 @@ export class StorageService {
     return parsed;
   }
 
+  private async claimAndInspect(
+    storageKey: string,
+    intent: UploadIntent,
+    binding: object,
+  ): Promise<UploadedObjectMetadata> {
+    const claimed = await this.redisService.setIfAbsent(
+      this.claimKey(storageKey),
+      JSON.stringify(binding),
+      this.presignTtl(),
+    );
+    if (!claimed) {
+      throw new BadRequestException({
+        code: "UPLOAD_ALREADY_REGISTERED",
+        message: "Upload intent has already been claimed",
+      });
+    }
+
+    try {
+      const head = await this.headObject(storageKey);
+      const contentType = head.ContentType ?? "";
+      const byteSize = head.ContentLength ?? 0;
+      if (contentType !== intent.contentType || byteSize !== intent.contentLength) {
+        throw new BadRequestException({
+          code: "INVALID_FILE_TYPE",
+          message: "Uploaded object metadata does not match the presigned request",
+        });
+      }
+      const signature = await this.readSignature(storageKey);
+      if (!matchesMagicBytes(contentType, signature)) {
+        throw new BadRequestException({
+          code: "INVALID_FILE_TYPE",
+          message: "Uploaded object bytes do not match the declared content type",
+        });
+      }
+      return { byteSize, contentType, storageKey };
+    } catch (error) {
+      await this.releasePendingUploadClaim(storageKey);
+      throw error;
+    }
+  }
+
   private async headObject(storageKey: string) {
     try {
       return await this.client.send(new HeadObjectCommand({
@@ -235,7 +312,11 @@ export class StorageService {
     const year = `${date.getUTCFullYear()}`;
     const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
     const fileId = randomUUID();
-    const prefix = kind === "image" ? "listing-images" : "seller-documents";
+    const prefix = kind === "image"
+      ? "listing-images"
+      : kind === "inspection"
+        ? "inspection-reports"
+        : "seller-documents";
     return `${prefix}/${year}/${month}/${fileId}.${extensionFor(contentType)}`;
   }
 
@@ -260,8 +341,9 @@ export class StorageService {
   }
 
   private assertSize(kind: UploadKind, contentLength: number): void {
-    const key = kind === "image" ? "MAX_IMAGE_UPLOAD_BYTES" : "MAX_DOCUMENT_UPLOAD_BYTES";
-    const hardMaximum = kind === "image" ? 10 * 1024 * 1024 : 15 * 1024 * 1024;
+    const isImage = kind === "image" || kind === "inspection";
+    const key = isImage ? "MAX_IMAGE_UPLOAD_BYTES" : "MAX_DOCUMENT_UPLOAD_BYTES";
+    const hardMaximum = isImage ? 10 * 1024 * 1024 : 15 * 1024 * 1024;
     const configuredMaximum = this.config.get<number>(key) ?? hardMaximum;
     const maximum = Math.min(configuredMaximum, hardMaximum);
     if (contentLength > maximum) {
@@ -270,6 +352,21 @@ export class StorageService {
         message: `Uploaded ${kind} exceeds the maximum allowed size`,
       });
     }
+  }
+}
+
+function assertInspectionIntentBinding(
+  intent: UploadIntent,
+  binding: InspectionUploadBinding,
+): void {
+  const matches = intent.userId === binding.userId
+    && intent.listingId === binding.listingId
+    && intent.taskId === binding.taskId;
+  if (!matches) {
+    throw new BadRequestException({
+      code: "UPLOAD_OWNERSHIP_MISMATCH",
+      message: "Upload intent does not belong to this inspection task",
+    });
   }
 }
 

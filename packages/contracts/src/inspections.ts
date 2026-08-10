@@ -2,6 +2,7 @@ import type {
   InspectionTaskStatus, InspectionFindingRating, InspectionCategory,
 } from './enums.js';
 import type { TimestampFields } from './identity.js';
+import type { OffsetPaginationParams } from './pagination.js';
 
 // ─── Task ─────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,16 @@ export interface AssignInspectionRequest {
   locationNote?: string;
 }
 
+export interface InspectorOptionDto {
+  id: string;
+  fullName: string;
+  city: string;
+}
+
+export interface AdminInspectionTaskListParams extends OffsetPaginationParams {
+  status?: InspectionTaskStatus;
+}
+
 // ─── Report capture (inspector) ───────────────────────────────────────────────
 
 export interface InspectionFindingInput {
@@ -50,6 +61,17 @@ export interface SubmitInspectionReportRequest {
   roadworthy: boolean;
   /** Overall score computed by API (0–100); or let API compute from findings */
   overallScore?: number;
+}
+
+export interface InspectionPhotoPresignRequest {
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp';
+  contentLength: number;
+}
+
+export interface InspectionPhotoPresignResponse {
+  uploadUrl: string;
+  storageKey: string;
+  expiresAt: string;
 }
 
 // ─── Full report (admin view) ─────────────────────────────────────────────────

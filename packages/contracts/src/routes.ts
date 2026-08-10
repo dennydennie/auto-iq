@@ -106,12 +106,18 @@ export const ROUTES = {
       `${BASE}/inspectors/inspection-tasks/${taskId}`,
     submitReport: (taskId: string) =>
       `${BASE}/inspectors/inspection-tasks/${taskId}/report`,
+    findingPhotoPresign: (taskId: string) =>
+      `${BASE}/inspectors/inspection-tasks/${taskId}/photos/presign`,
   },
 
   // ─── Admin ────────────────────────────────────────────────────────────────
 
   admin: {
     dashboard: `${BASE}/admin/dashboard`,
+    inspectors: `${BASE}/admin/inspectors`,
+    inspectionTasks: `${BASE}/admin/inspection-tasks`,
+    inspectionTask: (taskId: string) =>
+      `${BASE}/admin/inspection-tasks/${taskId}`,
 
     // Listings
     listings: `${BASE}/admin/listings`,

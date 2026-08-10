@@ -5,7 +5,11 @@ import { AuthGuard } from "../../common/guards/auth.guard";
 import { CsrfGuard } from "../../common/guards/csrf.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import type { AuthenticatedUser, CorrelatedRequest } from "../../common/types/http";
-import { InspectionTaskListQueryDto, SubmitInspectionReportDto } from "./dto/inspections.dto";
+import {
+  InspectionPhotoPresignDto,
+  InspectionTaskListQueryDto,
+  SubmitInspectionReportDto,
+} from "./dto/inspections.dto";
 import { InspectionsService } from "./inspections.service";
 
 @Controller("inspectors/inspection-tasks")
@@ -38,5 +42,15 @@ export class InspectionsController {
     @Body() body: SubmitInspectionReportDto,
   ) {
     return this.inspectionsService.submitReport(user.id, request.correlationId, taskId, body);
+  }
+
+  @Post(":taskId/photos/presign")
+  @UseGuards(CsrfGuard)
+  presignPhoto(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("taskId") taskId: string,
+    @Body() body: InspectionPhotoPresignDto,
+  ) {
+    return this.inspectionsService.presignFindingPhoto(user.id, taskId, body);
   }
 }

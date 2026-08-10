@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { DataSource } from "typeorm";
 import { VehicleEntity } from "../../db/entity/vehicle.entity";
 import { InspectionFindingEntity } from "../../db/entity/inspection-finding.entity";
@@ -9,10 +15,23 @@ import { InspectionReportRepository } from "../../db/repository/inspection-repor
 import { InspectionTaskRepository } from "../../db/repository/inspection-task.repository";
 import { UserRepository } from "../../db/repository/user.repository";
 import { AuditService } from "../audit/audit.service";
+import { NotificationService } from "../notifications/notification.service";
 import { StorageService } from "../storage/storage.service";
 import { VehicleStatusHistoryRepository } from "../../db/repository/vehicle-status-history.repository";
 import { ApproveBuyerSummaryDto, AssignInspectionDto } from "../admin-ops/dto/admin.dto";
-import { SubmitInspectionReportDto } from "./dto/inspections.dto";
+import {
+  InspectionPhotoPresignDto,
+  SubmitInspectionReportDto,
+} from "./dto/inspections.dto";
+
+const REQUIRED_REPORT_CATEGORIES = [
+  "ENGINE",
+  "ELECTRICAL",
+  "BODY",
+  "TYRES",
+  "BRAKES",
+  "INTERIOR",
+] as const;
 
 @Injectable()
 export class InspectionsService {
@@ -22,6 +41,7 @@ export class InspectionsService {
     private readonly inspectionFindingRepository: InspectionFindingRepository,
     private readonly inspectionReportRepository: InspectionReportRepository,
     private readonly inspectionTaskRepository: InspectionTaskRepository,
+    private readonly notificationService: NotificationService,
     private readonly storageService: StorageService,
     private readonly userRepository: UserRepository,
     private readonly vehicleStatusHistoryRepository: VehicleStatusHistoryRepository,
@@ -34,8 +54,18 @@ export class InspectionsService {
     body: AssignInspectionDto,
   ) {
     const inspector = await this.userRepository.findProfileById(body.inspectorId);
-    if (!inspector || !inspector.roles.some((role) => role.role === "INSPECTOR")) {
+    if (
+      !inspector ||
+      inspector.status !== "ACTIVE" ||
+      !inspector.roles.some((role) => role.role === "INSPECTOR")
+    ) {
       throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Inspector not found" });
+    }
+    if (new Date(body.scheduledAt).getTime() <= Date.now()) {
+      throw new BadRequestException({
+        code: "VALIDATION_FAILED",
+        message: "Inspection schedule must be in the future",
+      });
     }
 
     const saved = await this.dataSource.transaction(async (manager) => {
@@ -46,8 +76,20 @@ export class InspectionsService {
       if (!listingSnapshot) {
         throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Listing not found" });
       }
+      if (!["SUBMITTED", "OWNERSHIP_VERIFICATION_PENDING", "INSPECTION_PENDING"].includes(listingSnapshot.status)) {
+        throw new ConflictException({
+          code: "INVALID_STATE_TRANSITION",
+          message: `Cannot assign an inspection from ${listingSnapshot.status}`,
+        });
+      }
 
       const existing = await manager.findOne(InspectionTaskEntity, { where: { listingId } });
+      if (existing && !["UNASSIGNED", "SCHEDULED"].includes(existing.status)) {
+        throw new ConflictException({
+          code: "INVALID_STATE_TRANSITION",
+          message: `Cannot reassign an inspection from ${existing.status}`,
+        });
+      }
       const savedTask = await manager.save(InspectionTaskEntity, {
         id: existing?.id,
         listingId,
@@ -97,33 +139,85 @@ export class InspectionsService {
       entityId: listingId,
       note: inspector.fullName,
     });
+    await this.notificationService.notifyUser({
+      userId: inspector.id,
+      email: inspector.email,
+      phone: inspector.phone,
+      template: "INSPECTION_ASSIGNED",
+      idempotencyKeyBase: `inspection:${saved.id}:assigned:${saved.scheduledAt?.toISOString()}`,
+      payload: {
+        taskId: saved.id,
+        listingId,
+        scheduledAt: saved.scheduledAt?.toISOString() ?? null,
+      },
+      channels: ["EMAIL"],
+    });
 
     return this.toTaskDto(saved, inspector.fullName);
   }
 
+  async listInspectors() {
+    const inspectors = await this.userRepository.findByRole("INSPECTOR");
+    return inspectors
+      .filter((inspector) => inspector.status === "ACTIVE")
+      .sort((left, right) => left.fullName.localeCompare(right.fullName))
+      .map((inspector) => ({
+        id: inspector.id,
+        fullName: inspector.fullName,
+        city: inspector.city,
+      }));
+  }
+
+  async listAdminTasks(
+    status?: InspectionTaskEntity["status"],
+    page = 1,
+    limit = 20,
+  ) {
+    const [tasks, total] = await this.inspectionTaskRepository.findAdminPage(
+      status,
+      page,
+      limit,
+    );
+    return this.toTaskPage(tasks, total, page, limit);
+  }
+
   async listInspectorTasks(inspectorId: string, status?: InspectionTaskEntity["status"], page = 1, limit = 20) {
     const [tasks, total] = await this.inspectionTaskRepository.findInspectorPage(inspectorId, status, page, limit);
-    return {
-      data: await Promise.all(tasks.map(async (task) => this.toTaskDto(task, task.assignedInspector?.fullName ?? null))),
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / limit)),
-      },
-    };
+    return this.toTaskPage(tasks, total, page, limit);
+  }
+
+  async getAdminTaskDetail(taskId: string) {
+    const task = await this.inspectionTaskRepository.findByIdWithRelations(taskId);
+    return this.toTaskDetail(task, taskId);
   }
 
   async getInspectorTaskDetail(inspectorId: string, taskId: string) {
     const task = await this.inspectionTaskRepository.findByIdForInspector(taskId, inspectorId);
+    return this.toTaskDetail(task, taskId);
+  }
+
+  async presignFindingPhoto(
+    inspectorId: string,
+    taskId: string,
+    body: InspectionPhotoPresignDto,
+  ) {
+    const task = await this.inspectionTaskRepository.findByIdForInspector(taskId, inspectorId);
     if (!task) {
       throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "Inspection task not found" });
     }
-    const report = await this.inspectionReportRepository.findByTaskId(task.id);
-    return {
-      task: await this.toTaskDto(task, task.assignedInspector?.fullName ?? null),
-      report: report ? await this.toReportDto(report) : null,
-    };
+    if (!["SCHEDULED", "IN_PROGRESS", "REPORT_SUBMITTED"].includes(task.status)) {
+      throw new ConflictException({
+        code: "INVALID_STATE_TRANSITION",
+        message: `Cannot upload inspection evidence from ${task.status}`,
+      });
+    }
+    return this.storageService.presignInspectionPhoto(
+      inspectorId,
+      task.listingId,
+      task.id,
+      body.contentType,
+      body.contentLength,
+    );
   }
 
   async submitReport(
@@ -142,43 +236,65 @@ export class InspectionsService {
         message: `Cannot submit inspection report from ${task.status}`,
       });
     }
+    validateInspectionReport(body);
+    const claimedPhotoKeys = await this.claimFindingPhotos(
+      inspectorId,
+      task,
+      body.findings,
+    );
 
-    const report = await this.dataSource.transaction(async (manager) => {
-      const existing = await manager.findOne(InspectionReportEntity, { where: { taskId: task.id } });
-      const savedReport = await manager.save(InspectionReportEntity, {
-        id: existing?.id,
-        taskId: task.id,
-        listingId: task.listingId,
-        submittedByInspectorId: inspectorId,
-        overallScore: body.overallScore ?? scoreFromFindings(body.findings),
-        roadworthy: body.roadworthy,
-        inspectorNote: body.inspectorNote.trim(),
-        buyerNote: existing?.buyerNote ?? null,
-        buyerSummaryApproved: false,
-        buyerSummaryApprovedAt: null,
-        buyerSummaryApprovedByAdminId: null,
-      });
+    let report: InspectionReportEntity;
+    try {
+      report = await this.dataSource.transaction(async (manager) => {
+        const existing = await manager.findOne(InspectionReportEntity, {
+          where: { taskId: task.id },
+        });
+        const savedReport = await manager.save(InspectionReportEntity, {
+          id: existing?.id,
+          taskId: task.id,
+          listingId: task.listingId,
+          submittedByInspectorId: inspectorId,
+          overallScore: scoreFromFindings(body.findings),
+          roadworthy: body.roadworthy,
+          inspectorNote: body.inspectorNote.trim(),
+          buyerNote: existing?.buyerNote ?? null,
+          buyerSummaryApproved: false,
+          buyerSummaryApprovedAt: null,
+          buyerSummaryApprovedByAdminId: null,
+        });
 
-      await manager.delete(InspectionFindingEntity, { reportId: savedReport.id });
-      await manager.save(
-        InspectionFindingEntity,
-        body.findings.map((finding) => ({
+        await manager.delete(InspectionFindingEntity, {
           reportId: savedReport.id,
-          category: finding.category,
-          label: finding.label.trim(),
-          rating: finding.rating,
-          note: finding.note?.trim() || null,
-          photoStorageKey: finding.photoStorageKey?.trim() || null,
-          includeInBuyerSummary: false,
-        })),
-      );
+        });
+        await manager.save(
+          InspectionFindingEntity,
+          body.findings.map((finding) => ({
+            reportId: savedReport.id,
+            category: finding.category,
+            label: finding.label.trim(),
+            rating: finding.rating,
+            note: finding.note?.trim() || null,
+            photoStorageKey: finding.photoStorageKey?.trim() || null,
+            includeInBuyerSummary: false,
+          })),
+        );
 
-      await manager.update(InspectionTaskEntity, { id: task.id }, {
-        status: "REPORT_SUBMITTED",
-        completedAt: new Date(),
+        await manager.update(
+          InspectionTaskEntity,
+          { id: task.id },
+          { status: "REPORT_SUBMITTED", completedAt: new Date() },
+        );
+        return savedReport;
       });
-      return savedReport;
-    });
+    } catch (error) {
+      await Promise.all(
+        claimedPhotoKeys.map((key) => this.storageService.releasePendingUploadClaim(key)),
+      );
+      throw error;
+    }
+    await Promise.all(
+      claimedPhotoKeys.map((key) => this.storageService.completePendingUpload(key)),
+    );
 
     await this.auditService.record({
       action: "inspection.report_submit",
@@ -188,6 +304,20 @@ export class InspectionsService {
       outcome: "success",
       correlationId,
     });
+    const admins = await this.userRepository.findByRole("ADMIN");
+    await Promise.all(
+      admins.map((admin) =>
+        this.notificationService.notifyUser({
+          userId: admin.id,
+          email: admin.email,
+          phone: admin.phone,
+          template: "INSPECTION_COMPLETE",
+          idempotencyKeyBase: `inspection:${task.id}:complete:${admin.id}`,
+          payload: { taskId: task.id, listingId: task.listingId },
+          channels: ["EMAIL"],
+        }),
+      ),
+    );
     const savedReport = await this.inspectionReportRepository.findByTaskId(task.id);
     return this.toReportDto(savedReport ?? report);
   }
@@ -206,8 +336,21 @@ export class InspectionsService {
         message: "Inspection report must exist before buyer summary approval",
       });
     }
+    if (task.status !== "REPORT_SUBMITTED") {
+      throw new ConflictException({
+        code: "INVALID_STATE_TRANSITION",
+        message: `Cannot approve buyer summary from ${task.status}`,
+      });
+    }
 
     const includedIds = body.includedFindingIds;
+    const findingIds = new Set((report.findings ?? []).map((finding) => finding.id));
+    if (includedIds?.some((id) => !findingIds.has(id))) {
+      throw new BadRequestException({
+        code: "VALIDATION_FAILED",
+        message: "Buyer summary includes findings outside this report",
+      });
+    }
     const buyerNote = body.buyerNote?.trim() || report.inspectorNote;
 
     const updatedReport = await this.dataSource.transaction(async (manager) => {
@@ -286,7 +429,66 @@ export class InspectionsService {
     });
 
     const updatedFindings = await this.inspectionFindingRepository.findByReportId(updatedReport.id);
-    return this.toBuyerSummaryResponse(updatedReport, updatedFindings, buyerNote);
+    const hydratedReport = await this.inspectionReportRepository.findByListingId(listingId);
+    return this.toBuyerSummaryResponse(hydratedReport ?? updatedReport, updatedFindings, buyerNote);
+  }
+
+  private async toTaskPage(
+    tasks: InspectionTaskEntity[],
+    total: number,
+    page: number,
+    limit: number,
+  ) {
+    return {
+      data: await Promise.all(tasks.map((task) =>
+        this.toTaskDto(task, task.assignedInspector?.fullName ?? null))),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  private async toTaskDetail(task: InspectionTaskEntity | null, taskId: string) {
+    if (!task) {
+      throw new NotFoundException({
+        code: "RESOURCE_NOT_FOUND",
+        message: "Inspection task not found",
+      });
+    }
+    const report = await this.inspectionReportRepository.findByTaskId(taskId);
+    return {
+      task: await this.toTaskDto(task, task.assignedInspector?.fullName ?? null),
+      report: report ? await this.toReportDto(report) : null,
+    };
+  }
+
+  private async claimFindingPhotos(
+    inspectorId: string,
+    task: InspectionTaskEntity,
+    findings: SubmitInspectionReportDto["findings"],
+  ) {
+    const keys = [...new Set(findings.flatMap((finding) =>
+      finding.photoStorageKey?.trim() ? [finding.photoStorageKey.trim()] : []))];
+    const claimed: string[] = [];
+    try {
+      for (const storageKey of keys) {
+        await this.storageService.inspectPendingInspectionUpload(storageKey, {
+          userId: inspectorId,
+          listingId: task.listingId,
+          taskId: task.id,
+        });
+        claimed.push(storageKey);
+      }
+      return claimed;
+    } catch (error) {
+      await Promise.all(
+        claimed.map((key) => this.storageService.releasePendingUploadClaim(key)),
+      );
+      throw error;
+    }
   }
 
   private async toTaskDto(task: InspectionTaskEntity, inspectorName: string | null) {
@@ -370,6 +572,43 @@ interface ListingSnapshot {
   model: string;
   coverImageStorageKey: string | null;
   city: string;
+}
+
+function validateInspectionFindings(
+  findings: SubmitInspectionReportDto["findings"],
+) {
+  const covered = new Set(findings.map((finding) => finding.category));
+  const missing = REQUIRED_REPORT_CATEGORIES.filter(
+    (category) => !covered.has(category),
+  );
+  if (missing.length > 0) {
+    throw new UnprocessableEntityException({
+      code: "INSPECTION_INCOMPLETE",
+      message: `Inspection findings missing categories: ${missing.join(", ")}`,
+    });
+  }
+  if (findings.length !== REQUIRED_REPORT_CATEGORIES.length || covered.size !== findings.length) {
+    throw new UnprocessableEntityException({
+      code: "INSPECTION_INCOMPLETE",
+      message: "Inspection report must contain each required category exactly once",
+    });
+  }
+  if (findings.some((finding) => !finding.label.trim())) {
+    throw new UnprocessableEntityException({
+      code: "INSPECTION_INCOMPLETE",
+      message: "Inspection finding labels must contain visible text",
+    });
+  }
+}
+
+function validateInspectionReport(body: SubmitInspectionReportDto) {
+  if (!body.inspectorNote.trim()) {
+    throw new UnprocessableEntityException({
+      code: "INSPECTION_INCOMPLETE",
+      message: "Inspector summary must contain visible text",
+    });
+  }
+  validateInspectionFindings(body.findings);
 }
 
 function scoreFromFindings(findings: SubmitInspectionReportDto["findings"]): number {

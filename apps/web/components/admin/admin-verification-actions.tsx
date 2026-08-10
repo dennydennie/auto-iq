@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminListingDto } from "@auto-iq/contracts/admin";
 import type { OwnershipVerificationStatus } from "@auto-iq/contracts/enums";
+import type { InspectorOptionDto } from "@auto-iq/contracts/inspections";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +23,10 @@ function initialOwnershipDecision(listing: AdminListingDto): OwnershipDecision {
 
 export function AdminVerificationActions({
   listing,
+  inspectors,
 }: {
   listing: AdminListingDto;
+  inspectors: InspectorOptionDto[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -109,12 +112,25 @@ export function AdminVerificationActions({
             Assign inspection
           </h3>
           <div className="space-y-2">
-            <Label htmlFor="inspector-id">Inspector user ID</Label>
-            <Input
+            <Label htmlFor="inspector-id">Inspector</Label>
+            <Select
               id="inspector-id"
               value={inspectorId}
               onChange={(event) => setInspectorId(event.target.value)}
-            />
+              disabled={inspectors.length === 0}
+            >
+              <option value="">Select an inspector</option>
+              {inspectors.map((inspector) => (
+                <option key={inspector.id} value={inspector.id}>
+                  {inspector.fullName} · {inspector.city}
+                </option>
+              ))}
+            </Select>
+            {inspectors.length === 0 ? (
+              <p className="text-xs text-[var(--ink-500)]">
+                No active inspector accounts are available.
+              </p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="inspection-schedule">Scheduled at</Label>

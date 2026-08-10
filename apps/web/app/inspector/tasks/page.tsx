@@ -58,7 +58,7 @@ export default async function InspectorTasksPage({
         description="Open an assigned task, capture findings, and submit the roadworthiness report."
       />
       <form className="flex gap-3 rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-4">
-        <Select name="status" defaultValue={status}>
+        <Select name="status" defaultValue={status} aria-label="Inspection task status">
           <option value="">All statuses</option>
           {STATUSES.map((value) => (
             <option key={value} value={value}>

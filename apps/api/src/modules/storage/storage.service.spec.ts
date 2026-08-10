@@ -51,6 +51,12 @@ describe("StorageService", () => {
         "image/jpeg",
       ),
     ).toMatch(/^listing-images\/\d{4}\/\d{2}\//);
+    expect(
+      (service as never as { createObjectKey(kind: "inspection", type: string): string }).createObjectKey(
+        "inspection",
+        "image/jpeg",
+      ),
+    ).toMatch(/^inspection-reports\/\d{4}\/\d{2}\//);
   });
 
   it("enforces configured image and document limits before presigning", async () => {
@@ -131,6 +137,28 @@ describe("StorageService", () => {
       slot: "FRONT_THREE_QUARTER",
       contentType: "image/png",
       contentLength: 4,
+    })).rejects.toMatchObject({
+      response: expect.objectContaining({ code: "UPLOAD_OWNERSHIP_MISMATCH" }),
+    });
+    expect(redis.setIfAbsent).not.toHaveBeenCalled();
+  });
+
+  it("binds inspection evidence to the inspector and assigned task", async () => {
+    const redis = createRedis() as never as { get: jest.Mock; setIfAbsent: jest.Mock };
+    redis.get.mockResolvedValue(JSON.stringify({
+      userId: "inspector-1",
+      listingId: "listing-1",
+      taskId: "task-1",
+      kind: "inspection",
+      contentType: "image/jpeg",
+      contentLength: 4,
+    }));
+    const service = new StorageService(createConfig(), redis as never);
+
+    await expect(service.inspectPendingInspectionUpload("key", {
+      userId: "inspector-2",
+      listingId: "listing-1",
+      taskId: "task-1",
     })).rejects.toMatchObject({
       response: expect.objectContaining({ code: "UPLOAD_OWNERSHIP_MISMATCH" }),
     });

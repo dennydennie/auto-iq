@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { AdminListingDto } from "@auto-iq/contracts/admin";
+import type { InspectorOptionDto } from "@auto-iq/contracts/inspections";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import {
   AlertTriangle,
@@ -48,9 +49,10 @@ export default async function AdminListingReviewPage({
   const { id } = await params;
   const { return: returnParam } = await searchParams;
   const backHref = readReturnHref(returnParam, "/admin/listings");
-  const result = await getSessionJson<AdminListingDto>(
-    ROUTES.admin.listing(id),
-  );
+  const [result, inspectorsResult] = await Promise.all([
+    getSessionJson<AdminListingDto>(ROUTES.admin.listing(id)),
+    getSessionJson<InspectorOptionDto[]>(ROUTES.admin.inspectors),
+  ]);
 
   if (isServerApiFailure(result)) {
     return (
@@ -73,6 +75,9 @@ export default async function AdminListingReviewPage({
   }
 
   const listing = result.data;
+  const inspectors = isServerApiFailure(inspectorsResult)
+    ? []
+    : inspectorsResult.data;
   const coverImage = listing.images[0]?.url ?? null;
   const items = adminReviewChecklist(listing);
   const completedItems = items.filter((item) => item.complete).length;
@@ -200,7 +205,10 @@ export default async function AdminListingReviewPage({
               <CardTitle>Verification actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <AdminVerificationActions listing={listing} />
+              <AdminVerificationActions
+                listing={listing}
+                inspectors={inspectors}
+              />
             </CardContent>
           </Card>
 
@@ -347,6 +355,14 @@ export default async function AdminListingReviewPage({
                   </span>
                 </div>
               </div>
+              {listing.inspectionTask ? (
+                <Link
+                  href={`/admin/inspections/${listing.inspectionTask.id}`}
+                  className={buttonVariants({ variant: "outline", className: "w-full" })}
+                >
+                  Open inspection workspace
+                </Link>
+              ) : null}
             </CardContent>
           </Card>
         </div>

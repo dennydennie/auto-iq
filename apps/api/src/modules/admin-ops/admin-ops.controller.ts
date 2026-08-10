@@ -4,6 +4,7 @@ import { AuthGuard } from "../../common/guards/auth.guard";
 import { CsrfGuard } from "../../common/guards/csrf.guard";
 import type { AuthenticatedUser, CorrelatedRequest } from "../../common/types/http";
 import { InspectionsService } from "../inspections/inspections.service";
+import { InspectionTaskListQueryDto } from "../inspections/dto/inspections.dto";
 import { OwnershipVerificationService } from "../ownership-verification/ownership-verification.service";
 import { AdminOpsGuard } from "./admin-ops.guard";
 import { AdminOpsService } from "./admin-ops.service";
@@ -29,6 +30,25 @@ export class AdminOpsController {
   @Get("dashboard")
   dashboard() {
     return this.adminOpsService.dashboard();
+  }
+
+  @Get("inspectors")
+  inspectors() {
+    return this.inspectionsService.listInspectors();
+  }
+
+  @Get("inspection-tasks")
+  inspectionTasks(@Query() query: InspectionTaskListQueryDto) {
+    return this.inspectionsService.listAdminTasks(
+      query.status,
+      query.page ?? 1,
+      query.limit ?? 20,
+    );
+  }
+
+  @Get("inspection-tasks/:taskId")
+  inspectionTask(@Param("taskId") taskId: string) {
+    return this.inspectionsService.getAdminTaskDetail(taskId);
   }
 
   @Get("listings")

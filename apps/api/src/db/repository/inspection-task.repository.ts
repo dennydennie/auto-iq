@@ -50,4 +50,22 @@ export class InspectionTaskRepository extends AbstractRepository<InspectionTaskE
       .take(limit)
       .getManyAndCount();
   }
+
+  findAdminPage(
+    status?: InspectionTaskEntity["status"],
+    page = 1,
+    limit = 20,
+  ): Promise<[InspectionTaskEntity[], number]> {
+    const query = this.repository.createQueryBuilder("task")
+      .leftJoinAndSelect("task.assignedInspector", "assignedInspector");
+    if (status) {
+      query.where("task.status = :status", { status });
+    }
+    return query
+      .orderBy("task.scheduled_at", "ASC", "NULLS LAST")
+      .addOrderBy("task.created_at", "DESC")
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+  }
 }
