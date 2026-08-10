@@ -444,13 +444,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   Future<ListingViewState> _loadBrowse() async {
     final repository = context.read<BuyerRepository>();
     final page = await repository.browse(
-      make: _appliedFilters.make,
-      model: _appliedFilters.model,
-      yearMin: _appliedFilters.year,
-      yearMax: _appliedFilters.year,
-      bodyType: _appliedFilters.bodyType,
-      city: _appliedFilters.city,
-      verifiedOnly: _appliedFilters.verifiedOnly ? true : null,
+      filters: _appliedFilters,
     );
     final savedItems = await repository.savedVehicles();
     final savedIds = savedItems.map((item) => item.listing.id).toSet();
@@ -694,16 +688,14 @@ class BrowseFilters extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String?>(
-          initialValue: filters.make,
-          decoration: const InputDecoration(labelText: 'Make'),
+        _FilterDropdown<String?>(
+          controlKey: 'browse-filter-make',
+          label: 'Make',
+          selectedValue: filters.make,
           items: [
-            const DropdownMenuItem<String?>(
-              value: null,
-              child: Text('All makes'),
-            ),
+            const DropdownMenuItem(value: null, child: Text('All makes')),
             ...makes.map(
-              (make) => DropdownMenuItem<String?>(
+              (make) => DropdownMenuItem(
                 value: make.name,
                 child: Text(make.name),
               ),
@@ -715,16 +707,17 @@ class BrowseFilters extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<String?>(
-                initialValue: filters.model,
-                decoration: const InputDecoration(labelText: 'Model'),
+              child: _FilterDropdown<String?>(
+                controlKey: 'browse-filter-model',
+                label: 'Model',
+                selectedValue: filters.model,
                 items: [
-                  const DropdownMenuItem<String?>(
+                  const DropdownMenuItem(
                     value: null,
                     child: Text('All models'),
                   ),
                   ...models.map(
-                    (model) => DropdownMenuItem<String?>(
+                    (model) => DropdownMenuItem(
                       value: model,
                       child: Text(model),
                     ),
@@ -735,16 +728,17 @@ class BrowseFilters extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: DropdownButtonFormField<int?>(
-                initialValue: filters.year,
-                decoration: const InputDecoration(labelText: 'Year'),
+              child: _FilterDropdown<int?>(
+                controlKey: 'browse-filter-year',
+                label: 'Year',
+                selectedValue: filters.year,
                 items: [
-                  const DropdownMenuItem<int?>(
+                  const DropdownMenuItem(
                     value: null,
                     child: Text('Any year'),
                   ),
                   ...years.map(
-                    (year) => DropdownMenuItem<int?>(
+                    (year) => DropdownMenuItem(
                       value: year,
                       child: Text('$year'),
                     ),
@@ -756,17 +750,17 @@ class BrowseFilters extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String?>(
-          initialValue: filters.city,
-          decoration: const InputDecoration(labelText: 'Location'),
+        _FilterDropdown<String?>(
+          controlKey: 'browse-filter-location',
+          label: 'Location',
+          selectedValue: filters.city,
           items: [
-            const DropdownMenuItem<String?>(
+            const DropdownMenuItem(
               value: null,
               child: Text('All locations'),
             ),
             ...cities.map(
-              (city) =>
-                  DropdownMenuItem<String?>(value: city, child: Text(city)),
+              (city) => DropdownMenuItem(value: city, child: Text(city)),
             ),
           ],
           onChanged: onCityChanged,
@@ -775,16 +769,17 @@ class BrowseFilters extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<String?>(
-                initialValue: filters.bodyType,
-                decoration: const InputDecoration(labelText: 'Body type'),
+              child: _FilterDropdown<String?>(
+                controlKey: 'browse-filter-body-type',
+                label: 'Body type',
+                selectedValue: filters.bodyType,
                 items: [
-                  const DropdownMenuItem<String?>(
+                  const DropdownMenuItem(
                     value: null,
                     child: Text('All body types'),
                   ),
                   ...bodyTypes.map(
-                    (type) => DropdownMenuItem<String?>(
+                    (type) => DropdownMenuItem(
                       value: type.value,
                       child: Text(type.label),
                     ),
@@ -795,6 +790,7 @@ class BrowseFilters extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             FilterChip(
+              key: const Key('browse-filter-verified'),
               label: const Text('Verified'),
               selected: filters.verifiedOnly,
               onSelected: (_) => onToggleVerified(),
@@ -835,6 +831,36 @@ class BrowseFilters extends StatelessWidget {
   List<int> _years() {
     final currentYear = DateTime.now().year;
     return [for (var year = currentYear; year >= 1990; year--) year];
+  }
+}
+
+class _FilterDropdown<T> extends StatelessWidget {
+  const _FilterDropdown({
+    required this.controlKey,
+    required this.label,
+    required this.selectedValue,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String controlKey;
+  final String label;
+  final T selectedValue;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: Key(controlKey),
+      child: DropdownButtonFormField<T>(
+        key: ValueKey(selectedValue),
+        initialValue: selectedValue,
+        decoration: InputDecoration(labelText: label),
+        items: items,
+        onChanged: onChanged,
+      ),
+    );
   }
 }
 

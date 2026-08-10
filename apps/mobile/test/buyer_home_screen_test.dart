@@ -10,6 +10,8 @@ void main() {
     final controller = TextEditingController();
     var draft = const ListingFilterState();
     var applied = const ListingFilterState();
+    var draftSearch = '';
+    var appliedSearch = '';
     var searchCalls = 0;
 
     await tester.pumpWidget(
@@ -37,7 +39,7 @@ void main() {
                   bodyTypes: const [
                     ReferenceOption(value: 'SUV', label: 'SUV'),
                   ],
-                  onSearchChanged: (_) {},
+                  onSearchChanged: (value) => draftSearch = value,
                   onMakeChanged: (value) => setState(() {
                     draft = draft.copyWith(
                       make: value,
@@ -64,11 +66,14 @@ void main() {
                   ),
                   onSearch: () => setState(() {
                     applied = draft;
+                    appliedSearch = draftSearch;
                     searchCalls++;
                   }),
                   onClear: () => setState(() {
                     draft = const ListingFilterState();
                     applied = const ListingFilterState();
+                    draftSearch = '';
+                    appliedSearch = '';
                     controller.clear();
                   }),
                 );
@@ -83,11 +88,23 @@ void main() {
     expect(find.text('Model'), findsOneWidget);
     expect(find.text('Year'), findsOneWidget);
     expect(find.text('Location'), findsOneWidget);
+    expect(
+      _dropdown<String?>(tester, 'browse-filter-model').onChanged,
+      isNull,
+    );
+    expect(
+      _dropdown<int?>(tester, 'browse-filter-year').onChanged,
+      isNull,
+    );
 
     await tester.tap(find.text('All makes'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Toyota').last);
     await tester.pumpAndSettle();
+    expect(
+      _dropdown<String?>(tester, 'browse-filter-model').onChanged,
+      isNotNull,
+    );
 
     await tester.tap(find.text('All models'));
     await tester.pumpAndSettle();
@@ -100,6 +117,43 @@ void main() {
     await tester.tap(find.text('$currentYear').last);
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('browse-filter-location')));
+    await tester.tap(find.text('All locations'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Harare').last);
+    await tester.pumpAndSettle();
+
+    await tester
+        .ensureVisible(find.byKey(const Key('browse-filter-body-type')));
+    await tester.tap(find.text('All body types'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('SUV').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('browse-filter-verified')));
+    await tester.enterText(find.byType(TextField), 'work truck');
+    await tester.pump();
+
+    expect(searchCalls, 0);
+    await tester.ensureVisible(find.text('Search').last);
+    await tester.tap(find.text('Search').last);
+    await tester.pump();
+
+    expect(searchCalls, 1);
+    expect(
+      applied,
+      ListingFilterState(
+        make: 'Toyota',
+        model: 'Hilux',
+        year: currentYear,
+        city: 'Harare',
+        bodyType: 'SUV',
+        verifiedOnly: true,
+      ),
+    );
+    expect(appliedSearch, 'work truck');
+
+    await tester.ensureVisible(find.byKey(const Key('browse-filter-make')));
     await tester.tap(find.text('Toyota'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Honda').last);
@@ -108,20 +162,75 @@ void main() {
     expect(draft.make, 'Honda');
     expect(draft.model, isNull);
     expect(draft.year, isNull);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('browse-filter-model')),
+        matching: find.text('All models'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('browse-filter-year')),
+        matching: find.text('Any year'),
+      ),
+      findsOneWidget,
+    );
 
+    await tester.ensureVisible(find.text('Search').last);
     await tester.tap(find.text('Search').last);
     await tester.pump();
 
-    expect(searchCalls, 1);
+    expect(searchCalls, 2);
     expect(applied.make, 'Honda');
     expect(applied.model, isNull);
     expect(applied.year, isNull);
 
     await tester.tap(find.text('Clear').last);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(draft, const ListingFilterState());
     expect(applied, const ListingFilterState());
+    expect(controller.text, isEmpty);
+    expect(appliedSearch, isEmpty);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('browse-filter-make')),
+        matching: find.text('All makes'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('browse-filter-location')),
+        matching: find.text('All locations'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      _dropdown<String?>(tester, 'browse-filter-model').onChanged,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<FilterChip>(
+            find.byKey(const Key('browse-filter-verified')),
+          )
+          .selected,
+      isFalse,
+    );
 
     controller.dispose();
   });
+}
+
+DropdownButtonFormField<T> _dropdown<T>(
+  WidgetTester tester,
+  String key,
+) {
+  return tester.widget<DropdownButtonFormField<T>>(
+    find.descendant(
+      of: find.byKey(Key(key)),
+      matching: find.byType(DropdownButtonFormField<T>),
+    ),
+  );
 }

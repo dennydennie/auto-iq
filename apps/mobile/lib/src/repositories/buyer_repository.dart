@@ -1,6 +1,7 @@
 import '../core/config/api_routes.dart';
 import '../core/network/api_client.dart';
 import '../models/activity_models.dart';
+import '../models/listing_filters.dart';
 import '../models/listing_models.dart';
 
 class BuyerRepository {
@@ -9,13 +10,7 @@ class BuyerRepository {
   final ApiClient _apiClient;
 
   Future<CataloguePage> browse({
-    String? make,
-    String? model,
-    int? yearMin,
-    int? yearMax,
-    String? bodyType,
-    String? city,
-    bool? verifiedOnly,
+    ListingFilterState filters = const ListingFilterState(),
   }) {
     return _apiClient.getJson<CataloguePage>(
       ApiRoutes.catalogue,
@@ -24,13 +19,7 @@ class BuyerRepository {
         'limit': 20,
         'sortBy': 'publishedAt',
         'sortDir': 'DESC',
-        'make': make == null ? null : [make],
-        'model': model,
-        'yearMin': yearMin,
-        'yearMax': yearMax,
-        'bodyType': bodyType,
-        'city': city,
-        'bisellVerified': verifiedOnly,
+        ...filters.catalogueQuery,
       },
     );
   }
