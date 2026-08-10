@@ -39,6 +39,9 @@ const payload = JSON.parse(fs.readFileSync(0, "utf8"));
 if (!payload.id) {
   process.exit(1);
 }
+process.stdout.write(payload.id);
+'
+}
 
 resolve_sentry_release() {
   if [ -n "${RAILWAY_SENTRY_RELEASE:-}" ]; then
@@ -47,9 +50,6 @@ resolve_sentry_release() {
   fi
 
   git -C "$ROOT_DIR" rev-parse --verify HEAD
-}
-process.stdout.write(payload.id);
-'
 }
 
 stage_file() {
@@ -161,4 +161,6 @@ main() {
   deploy_bundle "$project_id"
 }
 
-main "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi
