@@ -38,8 +38,18 @@ function toBuyerProfile(profile: BuyerProfileEntity) {
   return {
     id: profile.id,
     city: profile.city,
+    vehiclePurpose: profile.vehiclePurpose,
+    searchRadiusKm: profile.searchRadiusKm,
+    deliveryPreference: profile.deliveryPreference,
+    paymentPreference: profile.paymentPreference,
     preferredBodyTypes: profile.preferredBodyTypes,
     preferredMakes: profile.preferredMakes,
+    preferredFuelTypes: profile.preferredFuelTypes,
+    preferredTransmissions: profile.preferredTransmissions,
+    minSeats: profile.minSeats,
+    maxMileageKm: profile.maxMileageKm,
+    yearMin: profile.yearMin,
+    yearMax: profile.yearMax,
     budgetMin: profile.budgetMin === null ? null : Number(profile.budgetMin),
     budgetMax: profile.budgetMax === null ? null : Number(profile.budgetMax),
   };

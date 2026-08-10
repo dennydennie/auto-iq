@@ -2,13 +2,30 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
-  Min,
+  Max,
   MaxLength,
   Matches,
+  Min,
 } from "class-validator";
+import {
+  FUEL_TYPES,
+  TRANSMISSION_TYPES,
+} from "../../../common/constants/listing.constants";
+
+const VEHICLE_PURPOSES = [
+  "PERSONAL",
+  "FAMILY",
+  "BUSINESS",
+  "RIDE_HAILING",
+  "DELIVERY",
+  "OTHER",
+] as const;
+const DELIVERY_PREFERENCES = ["PICKUP", "DELIVERY", "EITHER"] as const;
+const PAYMENT_PREFERENCES = ["CASH", "FINANCE", "EITHER"] as const;
 
 export class UpdateMeDto {
   @IsOptional()
@@ -22,6 +39,24 @@ export class UpdateMeDto {
   city?: string;
 
   @IsOptional()
+  @IsIn(VEHICLE_PURPOSES)
+  vehiclePurpose?: (typeof VEHICLE_PURPOSES)[number] | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  searchRadiusKm?: number | null;
+
+  @IsOptional()
+  @IsIn(DELIVERY_PREFERENCES)
+  deliveryPreference?: (typeof DELIVERY_PREFERENCES)[number] | null;
+
+  @IsOptional()
+  @IsIn(PAYMENT_PREFERENCES)
+  paymentPreference?: (typeof PAYMENT_PREFERENCES)[number] | null;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @MaxLength(80, { each: true })
@@ -32,6 +67,40 @@ export class UpdateMeDto {
   @IsString({ each: true })
   @MaxLength(80, { each: true })
   preferredMakes?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(FUEL_TYPES, { each: true })
+  preferredFuelTypes?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(TRANSMISSION_TYPES, { each: true })
+  preferredTransmissions?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  minSeats?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10_000_000)
+  maxMileageKm?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1886)
+  @Max(2200)
+  yearMin?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1886)
+  @Max(2200)
+  yearMax?: number | null;
 
   @IsOptional()
   @IsNumber()

@@ -23,7 +23,25 @@ assert(layout.includes('href: "/account"') && layout.includes('label: "Account"'
 assert(route.includes("export async function PATCH") && route.includes("issueRemoteCsrfToken"), "PATCH proxy is not CSRF protected");
 assert(route.includes("ROUTES.me.profile") && route.includes("csrfToken"), "PATCH proxy does not forward the session route and CSRF token");
 
-for (const field of ["fullName", "city", "preferredMakes", "preferredBodyTypes", "budgetMin", "budgetMax", "businessName"]) {
+for (const field of [
+  "fullName",
+  "city",
+  "vehiclePurpose",
+  "searchRadiusKm",
+  "deliveryPreference",
+  "paymentPreference",
+  "preferredMakes",
+  "preferredBodyTypes",
+  "preferredFuelTypes",
+  "preferredTransmissions",
+  "minSeats",
+  "maxMileageKm",
+  "yearMin",
+  "yearMax",
+  "budgetMin",
+  "budgetMax",
+  "businessName",
+]) {
   assert(form.includes(field), `form field ${field} is not wired`);
 }
 

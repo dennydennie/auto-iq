@@ -1,4 +1,10 @@
-import type { UserRole, UserStatus, ConsentType } from "./enums.js";
+import type {
+  ConsentType,
+  FuelType,
+  TransmissionType,
+  UserRole,
+  UserStatus,
+} from "./enums.js";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -110,11 +116,32 @@ export type ResetPasswordRequest =
 export interface BuyerProfileDto {
   id: string;
   city: string;
+  vehiclePurpose: VehiclePurpose | null;
+  searchRadiusKm: number | null;
+  deliveryPreference: DeliveryPreference | null;
+  paymentPreference: PaymentPreference | null;
   preferredBodyTypes: string[];
   preferredMakes: string[];
+  preferredFuelTypes: FuelType[];
+  preferredTransmissions: TransmissionType[];
+  minSeats: number | null;
+  maxMileageKm: number | null;
+  yearMin: number | null;
+  yearMax: number | null;
   budgetMin: number | null;
   budgetMax: number | null;
 }
+
+export type VehiclePurpose =
+  | "PERSONAL"
+  | "FAMILY"
+  | "BUSINESS"
+  | "RIDE_HAILING"
+  | "DELIVERY"
+  | "OTHER";
+
+export type DeliveryPreference = "PICKUP" | "DELIVERY" | "EITHER";
+export type PaymentPreference = "CASH" | "FINANCE" | "EITHER";
 
 export interface SellerProfileDto {
   id: string;
@@ -142,8 +169,18 @@ export interface UpdateMeRequest {
   fullName?: string;
   city?: string;
   /** Buyer preferences */
+  vehiclePurpose?: VehiclePurpose | null;
+  searchRadiusKm?: number | null;
+  deliveryPreference?: DeliveryPreference | null;
+  paymentPreference?: PaymentPreference | null;
   preferredBodyTypes?: string[];
   preferredMakes?: string[];
+  preferredFuelTypes?: FuelType[];
+  preferredTransmissions?: TransmissionType[];
+  minSeats?: number | null;
+  maxMileageKm?: number | null;
+  yearMin?: number | null;
+  yearMax?: number | null;
   budgetMin?: number | null;
   budgetMax?: number | null;
   /** Seller info */

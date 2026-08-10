@@ -5,8 +5,18 @@ function createFixture() {
   const buyerProfile = {
     id: "buyer-profile-1",
     city: "Harare",
+    vehiclePurpose: null,
+    searchRadiusKm: null,
+    deliveryPreference: null,
+    paymentPreference: null,
     preferredBodyTypes: ["SUV"],
     preferredMakes: ["Toyota"],
+    preferredFuelTypes: [],
+    preferredTransmissions: [],
+    minSeats: null,
+    maxMileageKm: null,
+    yearMin: null,
+    yearMax: null,
     budgetMin: "1000.00",
     budgetMax: "20000.00",
   };
@@ -56,6 +66,16 @@ describe("AccountsService", () => {
       city: "  Bulawayo ",
       preferredMakes: [" Toyota ", "toyota", " Honda ", ""],
       preferredBodyTypes: [" SUV ", "suv"],
+      vehiclePurpose: "FAMILY",
+      searchRadiusKm: 120,
+      deliveryPreference: "EITHER",
+      paymentPreference: "FINANCE",
+      preferredFuelTypes: ["DIESEL", "DIESEL", "HYBRID"],
+      preferredTransmissions: ["AUTOMATIC"],
+      minSeats: 7,
+      maxMileageKm: 90000,
+      yearMin: 2018,
+      yearMax: 2026,
       budgetMin: 2500,
       budgetMax: 30000,
     });
@@ -66,6 +86,16 @@ describe("AccountsService", () => {
       city: "Bulawayo",
       preferredMakes: ["Toyota", "Honda"],
       preferredBodyTypes: ["SUV"],
+      vehiclePurpose: "FAMILY",
+      searchRadiusKm: 120,
+      deliveryPreference: "EITHER",
+      paymentPreference: "FINANCE",
+      preferredFuelTypes: ["DIESEL", "HYBRID"],
+      preferredTransmissions: ["AUTOMATIC"],
+      minSeats: 7,
+      maxMileageKm: 90000,
+      yearMin: 2018,
+      yearMax: 2026,
       budgetMin: "2500.00",
       budgetMax: "30000.00",
     });
@@ -81,6 +111,16 @@ describe("AccountsService", () => {
       businessName: "   ",
       preferredMakes: [],
       preferredBodyTypes: [],
+      vehiclePurpose: null,
+      searchRadiusKm: null,
+      deliveryPreference: null,
+      paymentPreference: null,
+      preferredFuelTypes: [],
+      preferredTransmissions: [],
+      minSeats: null,
+      maxMileageKm: null,
+      yearMin: null,
+      yearMax: null,
       budgetMin: null,
       budgetMax: null,
     });
@@ -89,12 +129,22 @@ describe("AccountsService", () => {
     expect(user.buyerProfile).toMatchObject({
       preferredMakes: [],
       preferredBodyTypes: [],
+      vehiclePurpose: null,
+      searchRadiusKm: null,
+      deliveryPreference: null,
+      paymentPreference: null,
+      preferredFuelTypes: [],
+      preferredTransmissions: [],
+      minSeats: null,
+      maxMileageKm: null,
+      yearMin: null,
+      yearMax: null,
       budgetMin: null,
       budgetMax: null,
     });
   });
 
-  it("rejects negative and inverted budget ranges before saving", async () => {
+  it("rejects invalid numeric ranges before saving", async () => {
     const first = createFixture();
     await expect(
       first.service.updateMe("user-1", { budgetMin: 30000, budgetMax: 20000 }),
@@ -106,6 +156,18 @@ describe("AccountsService", () => {
       BadRequestException,
     );
     expect(second.userRepository.save).not.toHaveBeenCalled();
+
+    const third = createFixture();
+    await expect(
+      third.service.updateMe("user-1", { yearMin: 2026, yearMax: 2020 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(third.userRepository.save).not.toHaveBeenCalled();
+
+    const fourth = createFixture();
+    await expect(
+      fourth.service.updateMe("user-1", { searchRadiusKm: 0 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(fourth.userRepository.save).not.toHaveBeenCalled();
   });
 
   it("returns a not-found error when the account is missing", async () => {

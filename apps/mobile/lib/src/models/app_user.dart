@@ -3,23 +3,53 @@ import 'json_utils.dart';
 class BuyerProfile {
   BuyerProfile({
     required this.city,
+    required this.vehiclePurpose,
+    required this.searchRadiusKm,
+    required this.deliveryPreference,
+    required this.paymentPreference,
     required this.preferredBodyTypes,
     required this.preferredMakes,
+    required this.preferredFuelTypes,
+    required this.preferredTransmissions,
+    required this.minSeats,
+    required this.maxMileageKm,
+    required this.yearMin,
+    required this.yearMax,
     required this.budgetMin,
     required this.budgetMax,
   });
 
   final String city;
+  final String? vehiclePurpose;
+  final int? searchRadiusKm;
+  final String? deliveryPreference;
+  final String? paymentPreference;
   final List<String> preferredBodyTypes;
   final List<String> preferredMakes;
+  final List<String> preferredFuelTypes;
+  final List<String> preferredTransmissions;
+  final int? minSeats;
+  final int? maxMileageKm;
+  final int? yearMin;
+  final int? yearMax;
   final double? budgetMin;
   final double? budgetMax;
 
   factory BuyerProfile.fromJson(Map<String, dynamic> json) {
     return BuyerProfile(
       city: asString(json, 'city'),
+      vehiclePurpose: asNullableString(json, 'vehiclePurpose'),
+      searchRadiusKm: _integer(json['searchRadiusKm']),
+      deliveryPreference: asNullableString(json, 'deliveryPreference'),
+      paymentPreference: asNullableString(json, 'paymentPreference'),
       preferredBodyTypes: asStringList(json, 'preferredBodyTypes'),
       preferredMakes: asStringList(json, 'preferredMakes'),
+      preferredFuelTypes: asStringList(json, 'preferredFuelTypes'),
+      preferredTransmissions: asStringList(json, 'preferredTransmissions'),
+      minSeats: _integer(json['minSeats']),
+      maxMileageKm: _integer(json['maxMileageKm']),
+      yearMin: _integer(json['yearMin']),
+      yearMax: _integer(json['yearMax']),
       budgetMin: _money(json['budgetMin']),
       budgetMax: _money(json['budgetMax']),
     );
@@ -109,19 +139,18 @@ class AppUser {
       city: sellerProfileJson is Map
           ? asString((sellerProfileJson).cast<String, dynamic>(), 'city')
           : buyerProfileJson is Map
-              ? asString((buyerProfileJson).cast<String, dynamic>(), 'city')
-              : '',
+          ? asString((buyerProfileJson).cast<String, dynamic>(), 'city')
+          : '',
       buyerProfile: buyerProfileJson is Map<String, dynamic>
           ? BuyerProfile.fromJson(buyerProfileJson)
           : buyerProfileJson is Map
-              ? BuyerProfile.fromJson(buyerProfileJson.cast<String, dynamic>())
-              : null,
+          ? BuyerProfile.fromJson(buyerProfileJson.cast<String, dynamic>())
+          : null,
       sellerProfile: sellerProfileJson is Map<String, dynamic>
           ? SellerProfile.fromJson(sellerProfileJson)
           : sellerProfileJson is Map
-              ? SellerProfile.fromJson(
-                  sellerProfileJson.cast<String, dynamic>())
-              : null,
+          ? SellerProfile.fromJson(sellerProfileJson.cast<String, dynamic>())
+          : null,
     );
   }
 }
@@ -134,4 +163,14 @@ double? _money(dynamic value) {
     return value.toDouble();
   }
   return double.tryParse(value.toString());
+}
+
+int? _integer(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return int.tryParse(value.toString());
 }

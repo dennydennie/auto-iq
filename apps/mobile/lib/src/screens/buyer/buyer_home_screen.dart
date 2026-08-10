@@ -122,16 +122,27 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           requestFuture: _requestFuture,
           onCreateRequest: _openRequestDialog,
         ),
-        _ViewingsTab(
-          future: _viewingsFuture,
-          onRefresh: _refreshViewings,
-        ),
+        _ViewingsTab(future: _viewingsFuture, onRefresh: _refreshViewings),
         _BuyerAccountTab(
           userName: user.fullName,
           email: user.email,
           city: user.city,
+          vehiclePurpose: user.buyerProfile?.vehiclePurpose,
+          searchRadiusKm: user.buyerProfile?.searchRadiusKm,
+          deliveryPreference: user.buyerProfile?.deliveryPreference,
+          paymentPreference: user.buyerProfile?.paymentPreference,
+          preferredFuelTypes: user.buyerProfile?.preferredFuelTypes ?? const [],
+          preferredTransmissions:
+              user.buyerProfile?.preferredTransmissions ?? const [],
+          minSeats: user.buyerProfile?.minSeats,
+          maxMileageKm: user.buyerProfile?.maxMileageKm,
+          yearMin: user.buyerProfile?.yearMin,
+          yearMax: user.buyerProfile?.yearMax,
           budgetMin: user.buyerProfile?.budgetMin,
           budgetMax: user.buyerProfile?.budgetMax,
+          fuelTypes: session.referenceData?.fuelTypes ?? const [],
+          transmissionTypes:
+              session.referenceData?.transmissionTypes ?? const [],
         ),
       ],
     );
@@ -274,8 +285,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                             child: TextFormField(
                               controller: yearMinController,
                               keyboardType: TextInputType.number,
-                              decoration:
-                                  const InputDecoration(labelText: 'Year min'),
+                              decoration: const InputDecoration(
+                                labelText: 'Year min',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -283,8 +295,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                             child: TextFormField(
                               controller: yearMaxController,
                               keyboardType: TextInputType.number,
-                              decoration:
-                                  const InputDecoration(labelText: 'Year max'),
+                              decoration: const InputDecoration(
+                                labelText: 'Year max',
+                              ),
                             ),
                           ),
                         ],
@@ -292,8 +305,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: bodyTypeId,
-                        decoration:
-                            const InputDecoration(labelText: 'Body type'),
+                        decoration: const InputDecoration(
+                          labelText: 'Body type',
+                        ),
                         items: bodyTypes
                             .map(
                               (item) => DropdownMenuItem(
@@ -307,8 +321,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: fuelTypeId,
-                        decoration:
-                            const InputDecoration(labelText: 'Fuel type'),
+                        decoration: const InputDecoration(
+                          labelText: 'Fuel type',
+                        ),
                         items: fuelTypes
                             .map(
                               (item) => DropdownMenuItem(
@@ -322,8 +337,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: transmissionId,
-                        decoration:
-                            const InputDecoration(labelText: 'Transmission'),
+                        decoration: const InputDecoration(
+                          labelText: 'Transmission',
+                        ),
                         items: transmissions
                             .map(
                               (item) => DropdownMenuItem(
@@ -395,8 +411,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                             bodyTypeId: bodyTypeId,
                             fuelTypeId: fuelTypeId,
                             transmissionTypeId: transmissionId,
-                            maxOdometerKm:
-                                _nullableInt(odometerController.text),
+                            maxOdometerKm: _nullableInt(
+                              odometerController.text,
+                            ),
                             urgency: urgency,
                             notes: notesController.text,
                           );
@@ -405,9 +422,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       }
                     } on ApiException catch (error) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error.message)),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(error.message)));
                       }
                     }
                   },
@@ -437,10 +454,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
     final savedItems = await repository.savedVehicles();
     final savedIds = savedItems.map((item) => item.listing.id).toSet();
-    return ListingViewState(
-      listings: page.data,
-      savedIds: savedIds,
-    );
+    return ListingViewState(listings: page.data, savedIds: savedIds);
   }
 
   Future<List<SavedVehicleItem>> _loadSaved() {
@@ -500,10 +514,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 }
 
 class ListingViewState {
-  ListingViewState({
-    required this.listings,
-    required this.savedIds,
-  });
+  ListingViewState({required this.listings, required this.savedIds});
 
   final List<ListingCard> listings;
   final Set<String> savedIds;
@@ -754,10 +765,8 @@ class BrowseFilters extends StatelessWidget {
               child: Text('All locations'),
             ),
             ...cities.map(
-              (city) => DropdownMenuItem<String?>(
-                value: city,
-                child: Text(city),
-              ),
+              (city) =>
+                  DropdownMenuItem<String?>(value: city, child: Text(city)),
             ),
           ],
           onChanged: onCityChanged,
@@ -867,10 +876,7 @@ class _ListingCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${listing.city} · ${listing.bodyType}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.ink500,
-                  ),
+                  style: const TextStyle(fontSize: 13, color: AppColors.ink500),
                 ),
                 const SizedBox(height: 8),
                 PriceDisplay(
@@ -1166,10 +1172,7 @@ class _RequestsTab extends StatelessWidget {
 }
 
 class _ViewingsTab extends StatelessWidget {
-  const _ViewingsTab({
-    required this.future,
-    required this.onRefresh,
-  });
+  const _ViewingsTab({required this.future, required this.onRefresh});
 
   final Future<List<ViewingItem>> future;
   final Future<void> Function() onRefresh;
@@ -1219,9 +1222,9 @@ class _ViewingsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      DateFormat.yMMMd()
-                          .add_jm()
-                          .format(DateTime.parse(displaySlot).toLocal()),
+                      DateFormat.yMMMd().add_jm().format(
+                            DateTime.parse(displaySlot).toLocal(),
+                          ),
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.ink500,
@@ -1257,15 +1260,39 @@ class _BuyerAccountTab extends StatefulWidget {
     required this.userName,
     required this.email,
     required this.city,
+    required this.vehiclePurpose,
+    required this.searchRadiusKm,
+    required this.deliveryPreference,
+    required this.paymentPreference,
+    required this.preferredFuelTypes,
+    required this.preferredTransmissions,
+    required this.minSeats,
+    required this.maxMileageKm,
+    required this.yearMin,
+    required this.yearMax,
     required this.budgetMin,
     required this.budgetMax,
+    required this.fuelTypes,
+    required this.transmissionTypes,
   });
 
   final String userName;
   final String email;
   final String city;
+  final String? vehiclePurpose;
+  final int? searchRadiusKm;
+  final String? deliveryPreference;
+  final String? paymentPreference;
+  final List<String> preferredFuelTypes;
+  final List<String> preferredTransmissions;
+  final int? minSeats;
+  final int? maxMileageKm;
+  final int? yearMin;
+  final int? yearMax;
   final double? budgetMin;
   final double? budgetMax;
+  final List<ReferenceOption> fuelTypes;
+  final List<ReferenceOption> transmissionTypes;
 
   @override
   State<_BuyerAccountTab> createState() => _BuyerAccountTabState();
@@ -1274,28 +1301,63 @@ class _BuyerAccountTab extends StatefulWidget {
 class _BuyerAccountTabState extends State<_BuyerAccountTab> {
   late final TextEditingController _nameController;
   late final TextEditingController _cityController;
+  late final TextEditingController _searchRadiusController;
   late final TextEditingController _budgetMinController;
   late final TextEditingController _budgetMaxController;
+  late final TextEditingController _minSeatsController;
+  late final TextEditingController _maxMileageController;
+  late final TextEditingController _yearMinController;
+  late final TextEditingController _yearMaxController;
+  late String _vehiclePurpose;
+  late String _deliveryPreference;
+  late String _paymentPreference;
+  late Set<String> _preferredFuelTypes;
+  late Set<String> _preferredTransmissions;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.userName);
     _cityController = TextEditingController(text: widget.city);
+    _searchRadiusController = TextEditingController(
+      text: widget.searchRadiusKm?.toString() ?? '',
+    );
     _budgetMinController = TextEditingController(
       text: widget.budgetMin?.toStringAsFixed(0) ?? '',
     );
     _budgetMaxController = TextEditingController(
       text: widget.budgetMax?.toStringAsFixed(0) ?? '',
     );
+    _minSeatsController = TextEditingController(
+      text: widget.minSeats?.toString() ?? '',
+    );
+    _maxMileageController = TextEditingController(
+      text: widget.maxMileageKm?.toString() ?? '',
+    );
+    _yearMinController = TextEditingController(
+      text: widget.yearMin?.toString() ?? '',
+    );
+    _yearMaxController = TextEditingController(
+      text: widget.yearMax?.toString() ?? '',
+    );
+    _vehiclePurpose = widget.vehiclePurpose ?? '';
+    _deliveryPreference = widget.deliveryPreference ?? '';
+    _paymentPreference = widget.paymentPreference ?? '';
+    _preferredFuelTypes = widget.preferredFuelTypes.toSet();
+    _preferredTransmissions = widget.preferredTransmissions.toSet();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _cityController.dispose();
+    _searchRadiusController.dispose();
     _budgetMinController.dispose();
     _budgetMaxController.dispose();
+    _minSeatsController.dispose();
+    _maxMileageController.dispose();
+    _yearMinController.dispose();
+    _yearMaxController.dispose();
     super.dispose();
   }
 
@@ -1311,10 +1373,7 @@ class _BuyerAccountTabState extends State<_BuyerAccountTab> {
             children: [
               Text(
                 widget.email,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.ink500,
-                ),
+                style: const TextStyle(fontSize: 13, color: AppColors.ink500),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -1325,6 +1384,26 @@ class _BuyerAccountTabState extends State<_BuyerAccountTab> {
               TextField(
                 controller: _cityController,
                 decoration: const InputDecoration(labelText: 'City'),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Buying plan',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              _dropdown(
+                label: 'Vehicle purpose',
+                value: _vehiclePurpose,
+                options: _vehiclePurposeOptions,
+                onChanged: (value) => setState(() => _vehiclePurpose = value),
+              ),
+              const SizedBox(height: 12),
+              _dropdown(
+                label: 'Payment preference',
+                value: _paymentPreference,
+                options: _paymentPreferenceOptions,
+                onChanged: (value) =>
+                    setState(() => _paymentPreference = value),
               ),
               const SizedBox(height: 12),
               Row(
@@ -1346,6 +1425,97 @@ class _BuyerAccountTabState extends State<_BuyerAccountTab> {
                       decoration: const InputDecoration(
                         labelText: 'Budget max',
                       ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _searchRadiusController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Search radius (km)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              _dropdown(
+                label: 'Delivery preference',
+                value: _deliveryPreference,
+                options: _deliveryPreferenceOptions,
+                onChanged: (value) =>
+                    setState(() => _deliveryPreference = value),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Vehicle requirements',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              _choiceChips(
+                label: 'Fuel types',
+                options: widget.fuelTypes.isEmpty
+                    ? _defaultFuelTypes
+                    : widget.fuelTypes,
+                selected: _preferredFuelTypes,
+                onToggle: (value, selected) => setState(() {
+                  selected
+                      ? _preferredFuelTypes.add(value)
+                      : _preferredFuelTypes.remove(value);
+                }),
+              ),
+              const SizedBox(height: 12),
+              _choiceChips(
+                label: 'Transmissions',
+                options: widget.transmissionTypes.isEmpty
+                    ? _defaultTransmissionTypes
+                    : widget.transmissionTypes,
+                selected: _preferredTransmissions,
+                onToggle: (value, selected) => setState(() {
+                  selected
+                      ? _preferredTransmissions.add(value)
+                      : _preferredTransmissions.remove(value);
+                }),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _minSeatsController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Minimum seats',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _maxMileageController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Max mileage (km)',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _yearMinController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Year min'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _yearMaxController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Year max'),
                     ),
                   ),
                 ],
@@ -1374,27 +1544,216 @@ class _BuyerAccountTabState extends State<_BuyerAccountTab> {
     );
   }
 
+  Widget _dropdown({
+    required String label,
+    required String value,
+    required Map<String, String> options,
+    required ValueChanged<String> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('No preference')),
+        ...options.entries.map(
+          (option) =>
+              DropdownMenuItem(value: option.key, child: Text(option.value)),
+        ),
+      ],
+      onChanged: (next) => onChanged(next ?? ''),
+    );
+  }
+
+  Widget _choiceChips({
+    required String label,
+    required List<ReferenceOption> options,
+    required Set<String> selected,
+    required void Function(String value, bool selected) onToggle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((option) {
+            return FilterChip(
+              label: Text(option.label),
+              selected: selected.contains(option.value),
+              onSelected: (active) => onToggle(option.value, active),
+            );
+          }).toList(growable: false),
+        ),
+      ],
+    );
+  }
+
   Future<void> _save(BuildContext context, SessionController session) async {
+    final validation = _validate();
+    if (validation != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validation)));
+      return;
+    }
+    final fuelTypes = _preferredFuelTypes.toList()..sort();
+    final transmissions = _preferredTransmissions.toList()..sort();
     try {
       await session.updateProfile({
         'fullName': _nameController.text.trim(),
         'city': _cityController.text.trim(),
+        'vehiclePurpose': _nullableChoice(_vehiclePurpose),
+        'searchRadiusKm': _optionalInt(_searchRadiusController),
+        'deliveryPreference': _nullableChoice(_deliveryPreference),
+        'paymentPreference': _nullableChoice(_paymentPreference),
+        'preferredFuelTypes': fuelTypes,
+        'preferredTransmissions': transmissions,
+        'minSeats': _optionalInt(_minSeatsController),
+        'maxMileageKm': _optionalInt(_maxMileageController),
+        'yearMin': _optionalInt(_yearMinController),
+        'yearMax': _optionalInt(_yearMaxController),
         'budgetMin': double.tryParse(_budgetMinController.text.trim()),
         'budgetMax': double.tryParse(_budgetMaxController.text.trim()),
       });
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated.')));
     } on ApiException catch (error) {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
+
+  String? _validate() {
+    if (_nameController.text.trim().isEmpty) {
+      return 'Full name is required.';
+    }
+    if (_cityController.text.trim().isEmpty) {
+      return 'City is required.';
+    }
+    final budgetMinText = _budgetMinController.text.trim();
+    final budgetMaxText = _budgetMaxController.text.trim();
+    final budgetMin = double.tryParse(budgetMinText);
+    final budgetMax = double.tryParse(budgetMaxText);
+    if (budgetMinText.isNotEmpty && budgetMin == null) {
+      return 'Minimum budget must be a number.';
+    }
+    if (budgetMaxText.isNotEmpty && budgetMax == null) {
+      return 'Maximum budget must be a number.';
+    }
+    if (budgetMin != null && budgetMin < 0) {
+      return 'Minimum budget cannot be negative.';
+    }
+    if (budgetMax != null && budgetMax < 0) {
+      return 'Maximum budget cannot be negative.';
+    }
+    if (budgetMin != null && budgetMax != null && budgetMin > budgetMax) {
+      return 'Minimum budget cannot be greater than maximum budget.';
+    }
+    final radiusError = _integerError(
+      _searchRadiusController,
+      'Search radius',
+      1,
+      1000,
+    );
+    if (radiusError != null) return radiusError;
+    final seatsError = _integerError(
+      _minSeatsController,
+      'Minimum seats',
+      1,
+      100,
+    );
+    if (seatsError != null) return seatsError;
+    final mileageError = _integerError(
+      _maxMileageController,
+      'Maximum mileage',
+      0,
+      10000000,
+    );
+    if (mileageError != null) return mileageError;
+    final yearMinError = _integerError(
+      _yearMinController,
+      'Minimum year',
+      1886,
+      2200,
+    );
+    if (yearMinError != null) return yearMinError;
+    final yearMaxError = _integerError(
+      _yearMaxController,
+      'Maximum year',
+      1886,
+      2200,
+    );
+    if (yearMaxError != null) return yearMaxError;
+    final yearMin = _optionalInt(_yearMinController);
+    final yearMax = _optionalInt(_yearMaxController);
+    return yearMin != null && yearMax != null && yearMin > yearMax
+        ? 'Minimum year cannot be greater than maximum year.'
+        : null;
+  }
+
+  String? _integerError(
+    TextEditingController controller,
+    String label,
+    int min,
+    int max,
+  ) {
+    final text = controller.text.trim();
+    if (text.isEmpty) return null;
+    final value = int.tryParse(text);
+    return value != null && value >= min && value <= max
+        ? null
+        : '$label must be between $min and $max.';
+  }
+
+  int? _optionalInt(TextEditingController controller) {
+    return int.tryParse(controller.text.trim());
+  }
+
+  String? _nullableChoice(String value) => value.isEmpty ? null : value;
 }
+
+const _vehiclePurposeOptions = {
+  'PERSONAL': 'Personal use',
+  'FAMILY': 'Family use',
+  'BUSINESS': 'Business use',
+  'RIDE_HAILING': 'Taxi or ride hailing',
+  'DELIVERY': 'Delivery work',
+  'OTHER': 'Other',
+};
+
+const _deliveryPreferenceOptions = {
+  'PICKUP': 'I can collect',
+  'DELIVERY': 'Delivery required',
+  'EITHER': 'Either',
+};
+
+const _paymentPreferenceOptions = {
+  'CASH': 'Cash',
+  'FINANCE': 'Finance',
+  'EITHER': 'Cash or finance',
+};
+
+const _defaultFuelTypes = [
+  ReferenceOption(value: 'PETROL', label: 'Petrol'),
+  ReferenceOption(value: 'DIESEL', label: 'Diesel'),
+  ReferenceOption(value: 'HYBRID', label: 'Hybrid'),
+  ReferenceOption(value: 'ELECTRIC', label: 'Electric'),
+  ReferenceOption(value: 'OTHER', label: 'Other'),
+];
+
+const _defaultTransmissionTypes = [
+  ReferenceOption(value: 'AUTOMATIC', label: 'Automatic'),
+  ReferenceOption(value: 'MANUAL', label: 'Manual'),
+  ReferenceOption(value: 'CVT', label: 'CVT'),
+  ReferenceOption(value: 'DSG', label: 'DSG'),
+];
