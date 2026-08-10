@@ -1,4 +1,13 @@
-export function BiSellLogo({ size = 32 }: { size?: number }) {
+export function BiSellLogo({
+  size = 32,
+  inverse = false,
+}: {
+  size?: number;
+  inverse?: boolean;
+}) {
+  const wordmarkColor = inverse ? "#FFFFFF" : "#0A1E4D";
+  const straplineColor = inverse ? "#FFC72C" : "#8A6200";
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       {/* Hexagonal mark */}
@@ -19,14 +28,14 @@ export function BiSellLogo({ size = 32 }: { size?: number }) {
           fontFamily: "Bricolage Grotesque, sans-serif",
           fontWeight: 800,
           fontSize: size * 0.65,
-          color: "#0A1E4D",
+          color: wordmarkColor,
           letterSpacing: "-0.02em",
         }}>BiSell.</div>
         <div style={{
           fontFamily: "Geist Mono, monospace",
           fontWeight: 600,
           fontSize: size * 0.3,
-          color: "#FFC72C",
+          color: straplineColor,
           letterSpacing: "0.12em",
         }}>AUTO·IQ</div>
       </div>

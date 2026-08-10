@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../src/core/i18n/app_formatters.dart';
 
 class PriceDisplay extends StatelessWidget {
   final String amount;
@@ -15,6 +16,7 @@ class PriceDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final value = double.tryParse(amount.replaceAll(',', '')) ?? 0;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -30,7 +32,7 @@ class PriceDisplay extends StatelessWidget {
           ),
         ),
         Text(
-          amount,
+          AppFormatters.decimal(context, value),
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: fontSize,

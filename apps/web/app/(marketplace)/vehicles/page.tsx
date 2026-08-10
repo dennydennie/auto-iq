@@ -364,6 +364,7 @@ export default async function VehiclesPage({
         <div className="hidden lg:block">
           <div className="sticky top-20">
             <FilterSidebar
+              idPrefix="desktop-filter"
               filters={filters}
               clearHref="/vehicles"
               makes={makes}
@@ -391,6 +392,7 @@ export default async function VehiclesPage({
                 </summary>
                 <div className="absolute left-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))]">
                   <FilterSidebar
+                    idPrefix="mobile-filter"
                     filters={filters}
                     clearHref="/vehicles"
                     makes={makes}

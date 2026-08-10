@@ -271,6 +271,12 @@ async function handle(request, response) {
     return send(response, 200, { token: "e2e-csrf-token" });
   if (url.pathname === "/api/v1/admin/dashboard")
     return send(response, 200, dashboard());
+  if (url.pathname === "/api/v1/admin/viewings") {
+    return send(response, 200, {
+      data: [],
+      meta: { page: 1, limit: 12, total: 0, totalPages: 1 },
+    });
+  }
   if (url.pathname === "/api/v1/admin/inspectors") {
     return send(response, 200, [
       { id: "inspector-1", fullName: "Inspector One", city: "Harare" },

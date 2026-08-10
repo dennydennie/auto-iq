@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import { useLocale } from "@/components/shared/locale-provider";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
 import { isApiFailure, postJson } from "@/lib/web-api";
@@ -17,7 +18,7 @@ export function LogoutButton({
   size = "sm",
   className,
   redirectTo = "/auth/login",
-  label = "Sign out",
+  label,
 }: {
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
@@ -27,6 +28,7 @@ export function LogoutButton({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLocale();
   const [isPending, startTransition] = useTransition();
 
   function handleLogout() {
@@ -34,7 +36,7 @@ export function LogoutButton({
       const result = await postJson<{ ok?: true }>("/api/auth/logout");
       if (isApiFailure(result)) {
         toast({
-          title: "Couldn't sign out",
+          title: t("auth.signOutError"),
           description: result.error.message,
           variant: "error",
         });
@@ -56,7 +58,7 @@ export function LogoutButton({
       disabled={isPending}
     >
       <LogOut className="h-4 w-4" aria-hidden="true" />
-      {isPending ? "Signing out..." : label}
+      {isPending ? t("auth.signingOut") : (label ?? t("auth.signOut"))}
     </Button>
   );
 }

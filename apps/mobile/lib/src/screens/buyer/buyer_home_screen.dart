@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
 import '../../../widgets/price_display.dart';
 import '../../../widgets/verified_badge.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/i18n/app_formatters.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../models/activity_models.dart';
 import '../../models/listing_models.dart';
 import '../../models/listing_filters.dart';
@@ -58,6 +59,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final user = session.user!;
+    final copy = AutoIqLocalizations.of(context);
     final body = IndexedStack(
       index: _tabIndex,
       children: [
@@ -149,10 +151,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mhoro, ${user.fullName.split(' ').first}'),
+        title: Text(copy.greeting(user.fullName.split(' ').first)),
         actions: [
           IconButton(
-            tooltip: 'Refresh profile',
+            tooltip: copy.refreshProfile,
             onPressed: session.isBusy ? null : session.refreshProfile,
             icon: const Icon(Icons.sync_outlined),
           ),
@@ -162,31 +164,31 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (index) => setState(() => _tabIndex = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Browse',
+            icon: const Icon(Icons.search_outlined),
+            selectedIcon: const Icon(Icons.search),
+            label: copy.browse,
           ),
           NavigationDestination(
-            icon: Icon(Icons.bookmark_border_outlined),
-            selectedIcon: Icon(Icons.bookmark),
-            label: 'Saved',
+            icon: const Icon(Icons.bookmark_border_outlined),
+            selectedIcon: const Icon(Icons.bookmark),
+            label: copy.saved,
           ),
           NavigationDestination(
-            icon: Icon(Icons.request_page_outlined),
-            selectedIcon: Icon(Icons.request_page),
-            label: 'Requests',
+            icon: const Icon(Icons.request_page_outlined),
+            selectedIcon: const Icon(Icons.request_page),
+            label: copy.requests,
           ),
           NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note),
-            label: 'Viewings',
+            icon: const Icon(Icons.event_note_outlined),
+            selectedIcon: const Icon(Icons.event_note),
+            label: copy.viewings,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Account',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: copy.account,
           ),
         ],
       ),
@@ -557,6 +559,7 @@ class _BrowseTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
     return FutureBuilder<ListingViewState>(
       future: future,
       builder: (context, snapshot) {
@@ -565,11 +568,11 @@ class _BrowseTab extends StatelessWidget {
         }
         if (snapshot.hasError) {
           return EmptyState(
-            title: 'Catalogue unavailable',
-            message: 'Check the local API and refresh the app.',
+            title: copy.catalogueUnavailable,
+            message: copy.catalogueUnavailableMessage,
             action: ElevatedButton(
               onPressed: onRefresh,
-              child: const Text('Retry'),
+              child: Text(copy.retry),
             ),
           );
         }
@@ -606,12 +609,11 @@ class _BrowseTab extends StatelessWidget {
               const SizedBox(height: 12),
               if (filtered.isEmpty)
                 EmptyState(
-                  title: 'No published vehicles',
-                  message:
-                      'Seed a published listing or widen the current filters.',
+                  title: copy.noPublishedVehicles,
+                  message: copy.noPublishedVehiclesMessage,
                   action: OutlinedButton(
                     onPressed: onClear,
-                    child: const Text('Clear filters'),
+                    child: Text(copy.clearFilters),
                   ),
                 )
               else
@@ -674,6 +676,7 @@ class BrowseFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
     final selectedMake = _makeFor(filters.make);
     final models = selectedMake?.popularModels ?? const <String>[];
     final years = _years();
@@ -682,18 +685,18 @@ class BrowseFilters extends StatelessWidget {
         TextField(
           controller: searchController,
           onChanged: onSearchChanged,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search_outlined),
-            labelText: 'Search by make, model, or city',
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_outlined),
+            labelText: copy.searchHint,
           ),
         ),
         const SizedBox(height: 12),
         _FilterDropdown<String?>(
           controlKey: 'browse-filter-make',
-          label: 'Make',
+          label: copy.make,
           selectedValue: filters.make,
           items: [
-            const DropdownMenuItem(value: null, child: Text('All makes')),
+            DropdownMenuItem(value: null, child: Text(copy.allMakes)),
             ...makes.map(
               (make) => DropdownMenuItem(
                 value: make.name,
@@ -709,12 +712,12 @@ class BrowseFilters extends StatelessWidget {
             Expanded(
               child: _FilterDropdown<String?>(
                 controlKey: 'browse-filter-model',
-                label: 'Model',
+                label: copy.model,
                 selectedValue: filters.model,
                 items: [
-                  const DropdownMenuItem(
+                  DropdownMenuItem(
                     value: null,
-                    child: Text('All models'),
+                    child: Text(copy.allModels),
                   ),
                   ...models.map(
                     (model) => DropdownMenuItem(
@@ -730,12 +733,12 @@ class BrowseFilters extends StatelessWidget {
             Expanded(
               child: _FilterDropdown<int?>(
                 controlKey: 'browse-filter-year',
-                label: 'Year',
+                label: copy.year,
                 selectedValue: filters.year,
                 items: [
-                  const DropdownMenuItem(
+                  DropdownMenuItem(
                     value: null,
-                    child: Text('Any year'),
+                    child: Text(copy.anyYear),
                   ),
                   ...years.map(
                     (year) => DropdownMenuItem(
@@ -752,12 +755,12 @@ class BrowseFilters extends StatelessWidget {
         const SizedBox(height: 12),
         _FilterDropdown<String?>(
           controlKey: 'browse-filter-location',
-          label: 'Location',
+          label: copy.location,
           selectedValue: filters.city,
           items: [
-            const DropdownMenuItem(
+            DropdownMenuItem(
               value: null,
-              child: Text('All locations'),
+              child: Text(copy.allLocations),
             ),
             ...cities.map(
               (city) => DropdownMenuItem(value: city, child: Text(city)),
@@ -771,12 +774,12 @@ class BrowseFilters extends StatelessWidget {
             Expanded(
               child: _FilterDropdown<String?>(
                 controlKey: 'browse-filter-body-type',
-                label: 'Body type',
+                label: copy.bodyType,
                 selectedValue: filters.bodyType,
                 items: [
-                  const DropdownMenuItem(
+                  DropdownMenuItem(
                     value: null,
-                    child: Text('All body types'),
+                    child: Text(copy.allBodyTypes),
                   ),
                   ...bodyTypes.map(
                     (type) => DropdownMenuItem(
@@ -791,7 +794,7 @@ class BrowseFilters extends StatelessWidget {
             const SizedBox(width: 12),
             FilterChip(
               key: const Key('browse-filter-verified'),
-              label: const Text('Verified'),
+              label: Text(copy.verified),
               selected: filters.verifiedOnly,
               onSelected: (_) => onToggleVerified(),
             ),
@@ -803,14 +806,14 @@ class BrowseFilters extends StatelessWidget {
             Expanded(
               child: OutlinedButton(
                 onPressed: onClear,
-                child: const Text('Clear'),
+                child: Text(copy.clear),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: onSearch,
-                child: const Text('Search'),
+                child: Text(copy.search),
               ),
             ),
           ],
@@ -991,7 +994,7 @@ class _SavedTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Saved ${DateFormat.yMMMd().format(DateTime.parse(item.savedAt).toLocal())}',
+                              'Saved ${AppFormatters.shortDate(context, DateTime.parse(item.savedAt).toLocal())}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.ink500,
@@ -1248,9 +1251,10 @@ class _ViewingsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      DateFormat.yMMMd().add_jm().format(
-                            DateTime.parse(displaySlot).toLocal(),
-                          ),
+                      AppFormatters.dateTime(
+                        context,
+                        DateTime.parse(displaySlot).toLocal(),
+                      ),
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.ink500,

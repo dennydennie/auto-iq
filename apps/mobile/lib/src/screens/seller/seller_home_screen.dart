@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
 import '../../../widgets/price_display.dart';
+import '../../core/i18n/app_formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../models/seller_models.dart';
 import '../../repositories/seller_repository.dart';
@@ -244,7 +244,7 @@ class _SellerDashboardTab extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Updated ${DateFormat.yMMMd().format(DateTime.parse(listing.updatedAt).toLocal())}',
+                                    'Updated ${AppFormatters.shortDate(context, DateTime.parse(listing.updatedAt).toLocal())}',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.ink500,

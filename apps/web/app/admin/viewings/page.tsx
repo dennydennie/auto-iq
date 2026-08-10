@@ -144,6 +144,7 @@ export default async function AdminViewingsPage({
           <Input
             type="text"
             name="search"
+            aria-label="Search buyer, make, or model"
             defaultValue={search}
             placeholder="Search buyer, make, or model"
             className="border-transparent pl-11 shadow-none focus:border-[var(--ink-900)]"
@@ -152,10 +153,12 @@ export default async function AdminViewingsPage({
         <Input
           type="date"
           name="date"
+          aria-label="Viewing date"
           defaultValue={date}
         />
         <Select
           name="status"
+          aria-label="Viewing status"
           defaultValue={status}
         >
           <option value="">All statuses</option>
@@ -192,15 +195,15 @@ export default async function AdminViewingsPage({
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-[var(--amber-dark)]" />
+                  <Users className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
                   {participants(event)}
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPinned className="h-4 w-4 text-[var(--amber-dark)]" />
+                  <MapPinned className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
                   {event.location ? `${event.location.name}, ${event.location.city}` : "Location pending"}
                 </div>
                 <div className="flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-[var(--amber-dark)]" />
+                  <CalendarClock className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
                   Buyer: {event.buyerName}
                 </div>
               </CardContent>

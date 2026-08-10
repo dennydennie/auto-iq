@@ -67,6 +67,7 @@ export function FilterSidebar({
   makes,
   models,
   buildMakeHref,
+  idPrefix = "filter",
 }: {
   filters: CatalogueFilterState;
   className?: string;
@@ -77,7 +78,11 @@ export function FilterSidebar({
   models?: CatalogueModelFacet[];
   /** Builds the Shop-by-make link for a given make value. */
   buildMakeHref?: (make: string) => string;
+  /** Keeps label/control IDs unique when desktop and mobile filters share the DOM. */
+  idPrefix?: string;
 }) {
+  const fieldId = (name: string) => `${idPrefix}-${name}`;
+
   return (
     <aside
       className={cn(
@@ -99,7 +104,7 @@ export function FilterSidebar({
             href={clearHref}
             className="inline-flex items-center gap-1 text-xs font-medium text-[var(--ink-400)] transition hover:text-[var(--ink-900)]"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3 w-3" aria-hidden="true" />
             Reset
           </a>
         </div>
@@ -107,31 +112,31 @@ export function FilterSidebar({
         <Section title="Make and model">
           <div className="space-y-2">
             <Label
-              htmlFor="filter-make"
+              htmlFor={fieldId("make")}
               className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
             >
               Make
             </Label>
             <Input
-              id="filter-make"
+              id={fieldId("make")}
               name="make"
               defaultValue={filters.make}
               placeholder="e.g. Toyota"
-              className="h-10"
+              className="h-11"
             />
           </div>
           <div className="space-y-2">
             <Label
-              htmlFor="filter-model"
+              htmlFor={fieldId("model")}
               className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
             >
               Model
             </Label>
             <Select
-              id="filter-model"
+              id={fieldId("model")}
               name="model"
               defaultValue={filters.model}
-              className="h-10"
+              className="h-11"
               disabled={!filters.make}
             >
               <option value="">Any model</option>
@@ -190,27 +195,28 @@ export function FilterSidebar({
         <Section title="Location">
           <div className="space-y-2">
             <Label
-              htmlFor="filter-city"
+              htmlFor={fieldId("city")}
               className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
             >
               City
             </Label>
             <Input
-              id="filter-city"
+              id={fieldId("city")}
               name="city"
               defaultValue={filters.city}
               placeholder="e.g. Harare"
-              className="h-10"
+              className="h-11"
             />
           </div>
         </Section>
 
         <Section title="Body type">
           <Select
-            id="filter-body-type"
+            id={fieldId("body-type")}
             name="bodyType"
+            aria-label="Body type"
             defaultValue={filters.bodyType}
-            className="h-10"
+            className="h-11"
           >
             <option value="">Any body type</option>
             {BODY_TYPES.map((value) => (
@@ -230,7 +236,7 @@ export function FilterSidebar({
               defaultValue={filters.priceMin}
               placeholder="Min"
               aria-label="Minimum price"
-              className="h-10"
+              className="h-11"
             />
             <Input
               name="priceMax"
@@ -239,7 +245,7 @@ export function FilterSidebar({
               defaultValue={filters.priceMax}
               placeholder="Max"
               aria-label="Maximum price"
-              className="h-10"
+              className="h-11"
             />
           </div>
         </Section>
@@ -254,7 +260,7 @@ export function FilterSidebar({
               defaultValue={filters.yearMin}
               placeholder="From"
               aria-label="Year from"
-              className="h-10"
+              className="h-11"
             />
             <Input
               name="yearMax"
@@ -264,7 +270,7 @@ export function FilterSidebar({
               defaultValue={filters.yearMax}
               placeholder="To"
               aria-label="Year to"
-              className="h-10"
+              className="h-11"
             />
           </div>
         </Section>
@@ -272,29 +278,30 @@ export function FilterSidebar({
         <Section title="Mileage" defaultOpen={false}>
           <div className="space-y-2">
             <Label
-              htmlFor="filter-mileage"
+              htmlFor={fieldId("mileage")}
               className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
             >
               Max km
             </Label>
             <Input
-              id="filter-mileage"
+              id={fieldId("mileage")}
               name="mileageMax"
               type="number"
               min={0}
               defaultValue={filters.mileageMax}
               placeholder="e.g. 150000"
-              className="h-10"
+              className="h-11"
             />
           </div>
         </Section>
 
         <Section title="Transmission" defaultOpen={false}>
           <Select
-            id="filter-transmission"
+            id={fieldId("transmission")}
             name="transmission"
+            aria-label="Transmission"
             defaultValue={filters.transmission}
-            className="h-10"
+            className="h-11"
           >
             <option value="">Any transmission</option>
             {TRANSMISSION_TYPES.map((value) => (
@@ -307,10 +314,11 @@ export function FilterSidebar({
 
         <Section title="Fuel" defaultOpen={false}>
           <Select
-            id="filter-fuel"
+            id={fieldId("fuel")}
             name="fuelType"
+            aria-label="Fuel type"
             defaultValue={filters.fuelType}
-            className="h-10"
+            className="h-11"
           >
             <option value="">Any fuel type</option>
             {FUEL_TYPES.map((value) => (
@@ -323,10 +331,11 @@ export function FilterSidebar({
 
         <Section title="Verification">
           <Select
-            id="filter-verified"
+            id={fieldId("verified")}
             name="verified"
+            aria-label="Verification"
             defaultValue={filters.verified}
-            className="h-10"
+            className="h-11"
           >
             <option value="">Any verification</option>
             <option value="true">BiSell verified only</option>

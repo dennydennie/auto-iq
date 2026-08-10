@@ -85,11 +85,11 @@ assert(
 
 const marketplaceLayout = read("apps/web/app/(marketplace)/layout.tsx");
 assert(
-  marketplaceLayout.includes("Buy a car"),
+  marketplaceLayout.includes('href: "/buy-a-car", messageKey: "nav.buy"'),
   "Marketplace nav must expose Buy a car.",
 );
 assert(
-  marketplaceLayout.includes("Sell my car"),
+  marketplaceLayout.includes('href: "/sell-my-car", messageKey: "nav.sell"'),
   "Marketplace nav must expose Sell my car.",
 );
 
@@ -146,7 +146,7 @@ assert(
   "Marketplace routes must include the workspace menu.",
 );
 assert(
-  marketplaceLayout.includes("Sell my car"),
+  marketplaceLayout.includes('href: "/sell-my-car", messageKey: "nav.sell"'),
   "Marketplace menu must include Sell my car.",
 );
 

@@ -179,6 +179,9 @@ jobs:
       - name: Run buyer marketplace browser regression
         run: pnpm --filter @autoiq/web test:e2e:buyer
 
+      - name: Run accessibility and RTL browser regression
+        run: pnpm --filter @autoiq/web test:e2e:accessibility
+
       - name: Run web production readiness checks
         run: |
           node scripts/check-web-production-readiness.mjs
@@ -188,6 +191,7 @@ jobs:
           node scripts/check-web-admin-review-contract.mjs
           node scripts/check-buyer-marketplace.mjs
           node scripts/check-inspection-workflow.mjs
+          node scripts/check-internationalization.mjs
           node scripts/check-web-seo-and-vehicle-detail.mjs
 
       - name: Build web production artifact

@@ -227,6 +227,7 @@ function handleRead(url, response) {
   if (url.pathname === "/api/v1/me/quotes") return send(response, 200, page(state.quotes));
   if (url.pathname === "/api/v1/admin/quotes") return send(response, 200, page(state.quotes));
   if (url.pathname === "/api/v1/me/vehicle-requests") return send(response, 200, page(state.requests));
+  if (url.pathname === "/api/v1/me/viewings") return send(response, 200, page([]));
   if (url.pathname === "/api/v1/admin/vehicle-requests") return send(response, 200, page(state.requests));
   return false;
 }

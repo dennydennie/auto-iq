@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/shared/site-header";
 
 const LINKS = [
-  { href: "/seller", label: "Workspace" },
-  { href: "/seller/listings", label: "All listings" },
-  { href: "/seller/listings/new", label: "New listing" },
-  { href: "/seller/viewings", label: "Viewings" },
-  { href: "/vehicles", label: "Browse buyers' view" },
+  { href: "/seller", messageKey: "nav.workspace" as const },
+  { href: "/seller/listings", messageKey: "nav.allListings" as const },
+  { href: "/seller/listings/new", messageKey: "nav.newListing" as const },
+  { href: "/seller/viewings", messageKey: "nav.viewings" as const },
+  { href: "/vehicles", messageKey: "nav.buyerView" as const },
 ];
 
 // Seller routes are session-gated at the page level (each fetch returns 401

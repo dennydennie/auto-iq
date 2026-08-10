@@ -7,6 +7,7 @@ import '../../../widgets/price_display.dart';
 import '../../../widgets/score_gauge.dart';
 import '../../../widgets/spec_chip.dart';
 import '../../../widgets/verified_badge.dart';
+import '../../core/i18n/app_formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../models/listing_models.dart';
 import '../../models/reference_data.dart';
@@ -432,7 +433,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Preferred date'),
-                    subtitle: Text(DateFormat.yMMMd().format(selectedDate)),
+                    subtitle:
+                        Text(AppFormatters.shortDate(context, selectedDate)),
                     trailing: const Icon(Icons.calendar_today_outlined),
                     onTap: () async {
                       final picked = await showDatePicker(

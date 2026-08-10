@@ -5,19 +5,19 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { getOptionalSessionJson } from "@/lib/server-api";
 
 const GUEST_LINKS = [
-  { href: "/buy-a-car", label: "Buy a car" },
-  { href: "/sell-my-car", label: "Sell my car" },
-  { href: "/vehicles", label: "Browse" },
+  { href: "/buy-a-car", messageKey: "nav.buy" as const },
+  { href: "/sell-my-car", messageKey: "nav.sell" as const },
+  { href: "/vehicles", messageKey: "nav.browse" as const },
 ];
 
 const AUTHED_LINKS = [
-  { href: "/vehicles", label: "Buy a car" },
-  { href: "/saved", label: "Saved" },
-  { href: "/quotes", label: "Quotes" },
-  { href: "/requests", label: "Requests" },
-  { href: "/viewings", label: "Viewings" },
-  { href: "/account", label: "Account" },
-  { href: "/seller", label: "Sell my car" },
+  { href: "/vehicles", messageKey: "nav.buy" as const },
+  { href: "/saved", messageKey: "nav.saved" as const },
+  { href: "/quotes", messageKey: "nav.quotes" as const },
+  { href: "/requests", messageKey: "nav.requests" as const },
+  { href: "/viewings", messageKey: "nav.viewings" as const },
+  { href: "/account", messageKey: "nav.account" as const },
+  { href: "/seller", messageKey: "nav.sell" as const },
 ];
 
 export default async function MarketplaceLayout({
@@ -34,7 +34,7 @@ export default async function MarketplaceLayout({
         links={signedIn ? AUTHED_LINKS : GUEST_LINKS}
         homeHref={signedIn ? "/vehicles" : "/"}
         primaryCta={
-          signedIn ? undefined : { href: "/auth/login", label: "Sign in" }
+          signedIn ? undefined : { href: "/auth/login", messageKey: "auth.signIn" }
         }
         signedIn={signedIn}
       />

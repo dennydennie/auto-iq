@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../theme/app_theme.dart';
+import 'core/i18n/app_localizations.dart';
 import 'core/navigation/password_reset_link.dart';
 import 'core/network/api_client.dart';
 import 'repositories/auth_repository.dart';
@@ -17,9 +20,11 @@ class AutoIqApp extends StatefulWidget {
   const AutoIqApp({
     super.key,
     required this.apiClient,
+    this.locale,
   });
 
   final ApiClient apiClient;
+  final Locale? locale;
 
   @override
   State<AutoIqApp> createState() => _AutoIqAppState();
@@ -61,7 +66,16 @@ class _AutoIqAppState extends State<AutoIqApp> {
       ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: 'BiSell AutoIQ',
+        locale: widget.locale,
+        supportedLocales: AutoIqLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AutoIqLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        onGenerateTitle: (context) => AutoIqLocalizations.of(context).appName,
+        navigatorObservers: [SentryNavigatorObserver()],
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         builder: (context, child) => PasswordResetLinkListener(
@@ -80,6 +94,7 @@ class _SessionGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
     return Consumer<SessionController>(
       builder: (context, session, _) {
         if (session.isBooting) {
@@ -98,12 +113,12 @@ class _SessionGate extends StatelessWidget {
           return const BuyerHomeScreen();
         }
         return Scaffold(
-          appBar: AppBar(title: const Text('Auto IQ')),
-          body: const Center(
+          appBar: AppBar(title: Text(copy.appName)),
+          body: Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Text(
-                'This mobile build is wired for buyer and seller workflows.',
+                copy.unsupportedRole,
                 textAlign: TextAlign.center,
               ),
             ),

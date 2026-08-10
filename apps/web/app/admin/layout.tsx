@@ -111,7 +111,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             href="/admin"
             className="rounded-[1.5rem] bg-[var(--ink-900)] px-5 py-4 text-white"
           >
-            <BiSellLogo size={28} />
+            <BiSellLogo size={28} inverse />
             <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
               Admin console
             </p>

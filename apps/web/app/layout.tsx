@@ -2,8 +2,11 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { LocaleProvider } from "@/components/shared/locale-provider";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { ToasterProvider } from "@/components/ui/toaster";
+import { localeDirection } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/i18n-request";
 import { getSiteUrl } from "@/lib/site-url";
 
 const bodyFont = Geist({
@@ -43,16 +46,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getRequestLocale();
+  const direction = localeDirection(locale);
+
   return (
-    <html lang="en">
+    <html lang={locale} dir={direction}>
       <body className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
-        <ToasterProvider>
-          <Suspense fallback={null}>
-            <FlashToast />
-          </Suspense>
-          {children}
-        </ToasterProvider>
+        <LocaleProvider locale={locale}>
+          <ToasterProvider>
+            <Suspense fallback={null}>
+              <FlashToast />
+            </Suspense>
+            {children}
+          </ToasterProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

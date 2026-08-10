@@ -9,6 +9,10 @@ APK_CHECK="$ROOT_DIR/scripts/mobile/assert-release-apk.mjs"
 APK="$MOBILE_DIR/build/app/outputs/flutter-apk/app-release.apk"
 PACKAGE_NAME="zw.co.bisell.autoiq.mobile"
 VERSION_NAME="$(awk '/^version:/ {print $2}' "$MOBILE_DIR/pubspec.yaml" | cut -d+ -f1)"
+COMMIT_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+SENTRY_DSN="${AUTO_IQ_SENTRY_DSN:-}"
+SENTRY_ENVIRONMENT="${AUTO_IQ_SENTRY_ENVIRONMENT:-production}"
+SENTRY_RELEASE="${AUTO_IQ_SENTRY_RELEASE:-mobile@$COMMIT_SHA}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -42,17 +46,26 @@ cd "$MOBILE_DIR"
 flutter pub get --enforce-lockfile
 node "$SOURCE_CHECK"
 rm -f "$APK"
-flutter build apk \
-  --release \
+BUILD_ARGS=(
+  --release
   --dart-define=AUTO_IQ_API_BASE_URL="$API_ORIGIN"
+)
+if [ -n "$SENTRY_DSN" ]; then
+  BUILD_ARGS+=(
+    --dart-define=AUTO_IQ_SENTRY_DSN="$SENTRY_DSN"
+    --dart-define=AUTO_IQ_SENTRY_ENVIRONMENT="$SENTRY_ENVIRONMENT"
+    --dart-define=AUTO_IQ_SENTRY_RELEASE="$SENTRY_RELEASE"
+  )
+fi
+flutter build apk "${BUILD_ARGS[@]}"
 node "$APK_CHECK" "$APK" "$PACKAGE_NAME" "$VERSION_NAME" "$API_ORIGIN"
 
-COMMIT_SHA="$(git -C "$ROOT_DIR" rev-parse HEAD)"
 BRANCH="$(git -C "$ROOT_DIR" symbolic-ref --short HEAD)"
 APK_SHA256="$(shasum -a 256 "$APK" | awk '{print $1}')"
 
 echo
 echo "Release APK built for $API_ORIGIN"
 echo "Source: $BRANCH $COMMIT_SHA"
+echo "Sentry: $([ -n "$SENTRY_DSN" ] && printf 'enabled (%s, %s)' "$SENTRY_ENVIRONMENT" "$SENTRY_RELEASE" || printf 'disabled (AUTO_IQ_SENTRY_DSN not supplied)')"
 echo "Artifact: $APK"
 echo "SHA-256: $APK_SHA256"

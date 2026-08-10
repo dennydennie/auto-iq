@@ -3,12 +3,12 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
 import '../../../widgets/price_display.dart';
 import '../../core/files/file_type_sniffer.dart';
+import '../../core/i18n/app_formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../models/reference_data.dart';
 import '../../models/seller_models.dart';
@@ -536,9 +536,10 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              DateFormat.yMMMd().add_jm().format(
-                                    DateTime.parse(entry.occurredAt).toLocal(),
-                                  ),
+                              AppFormatters.dateTime(
+                                context,
+                                DateTime.parse(entry.occurredAt).toLocal(),
+                              ),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.ink500,

@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { absoluteSiteUrl } from "@/lib/site-url";
 
 const links = [
-  { href: "/buy-a-car", label: "Buy a car" },
-  { href: "/sell-my-car", label: "Sell my car" },
-  { href: "/vehicles", label: "Browse" },
+  { href: "/buy-a-car", messageKey: "nav.buy" as const },
+  { href: "/sell-my-car", messageKey: "nav.sell" as const },
+  { href: "/vehicles", messageKey: "nav.browse" as const },
 ];
 
 const pillars = [
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <>
-      <SiteHeader links={links} homeHref="/" primaryCta={{ href: "/auth/login", label: "Sign in" }} />
+      <SiteHeader links={links} homeHref="/" primaryCta={{ href: "/auth/login", messageKey: "auth.signIn" }} />
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="overflow-hidden rounded-[2.25rem] bg-white p-6 shadow-[0_32px_110px_-58px_rgba(10,30,77,0.6)] sm:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">

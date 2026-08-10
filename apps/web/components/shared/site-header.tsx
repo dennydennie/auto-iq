@@ -5,18 +5,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { useLocale } from "@/components/shared/locale-provider";
+import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { BiSellLogo } from "@/components/ui/bisell-logo";
 import { buttonVariants } from "@/components/ui/button";
+import type { MessageKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type SiteHeaderLink = {
   href: string;
-  label: string;
+  label?: string;
+  messageKey?: MessageKey;
 };
 
 export type SiteHeaderProps = {
   links: SiteHeaderLink[];
-  primaryCta?: { href: string; label: string };
+  primaryCta?: { href: string; label?: string; messageKey?: MessageKey };
   homeHref?: string;
   /** When true, show a Sign out button instead of the sign-in CTA. */
   signedIn?: boolean;
@@ -39,6 +43,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useLocale();
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/70 bg-[var(--paper)]/92 backdrop-blur">
@@ -50,7 +55,7 @@ export function SiteHeader({
           <BiSellLogo size={24} />
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label={t("nav.primary")}>
           {links.map((link) => {
             const active = isActive(pathname, link.href);
             return (
@@ -70,13 +75,16 @@ export function SiteHeader({
                         : "text-[var(--ink-500)] hover:bg-white hover:text-[var(--ink-900)]",
                 )}
               >
-                {link.label}
+                {link.messageKey ? t(link.messageKey) : link.label}
               </Link>
             );
           })}
         </nav>
 
         <div className="flex items-center gap-2">
+          <div className="hidden xl:block">
+            <LocaleSwitcher compact />
+          </div>
           {signedIn ? (
             <LogoutButton
               variant="outline"
@@ -92,7 +100,7 @@ export function SiteHeader({
                 className: "hidden sm:inline-flex",
               })}
             >
-              {primaryCta.label}
+              {primaryCta.messageKey ? t(primaryCta.messageKey) : primaryCta.label}
             </Link>
           ) : null}
 
@@ -100,7 +108,7 @@ export function SiteHeader({
             type="button"
             aria-controls="site-header-mobile-nav"
             aria-expanded={isOpen}
-            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-label={isOpen ? t("menu.close") : t("menu.open")}
             onClick={() => setIsOpen((current) => !current)}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--ink-200)] bg-white text-[var(--ink-900)] shadow-sm transition hover:bg-[var(--ink-50)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45 lg:hidden"
           >
@@ -119,7 +127,10 @@ export function SiteHeader({
             className="absolute inset-x-4 top-20 rounded-[1.75rem] border border-white/70 bg-white p-4 shadow-[0_32px_80px_-40px_rgba(22,31,58,0.45)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <nav className="grid gap-2" aria-label="Mobile primary">
+            <nav className="grid gap-2" aria-label={t("nav.mobilePrimary")}>
+              <div className="mb-2 border-b border-[var(--ink-100)] pb-3">
+                <LocaleSwitcher />
+              </div>
               {links.map((link) => {
                 const active = isActive(pathname, link.href);
                 return (
@@ -135,7 +146,7 @@ export function SiteHeader({
                         : "text-[var(--ink-500)] hover:bg-[var(--ink-50)] hover:text-[var(--ink-900)]",
                     )}
                   >
-                    {link.label}
+                    {link.messageKey ? t(link.messageKey) : link.label}
                   </Link>
                 );
               })}
@@ -153,7 +164,7 @@ export function SiteHeader({
                     className: "mt-2 justify-center",
                   })}
                 >
-                  {primaryCta.label}
+                  {primaryCta.messageKey ? t(primaryCta.messageKey) : primaryCta.label}
                 </Link>
               ) : null}
             </nav>

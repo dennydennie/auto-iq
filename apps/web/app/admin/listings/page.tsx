@@ -168,19 +168,24 @@ export default async function AdminListingsPage({
 
         <form className="grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_13rem_13rem_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
+            <Search
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]"
+              aria-hidden="true"
+            />
             <Input
               type="text"
               name="search"
+              aria-label="Search listings"
               defaultValue={search}
               placeholder="Search slug, make, or model"
               className="border-transparent pl-11 shadow-none focus:border-[var(--ink-900)]"
             />
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-[var(--ink-200)] bg-white px-3">
-            <Filter className="h-4 w-4 text-[var(--ink-400)]" />
+            <Filter className="h-4 w-4 text-[var(--ink-400)]" aria-hidden="true" />
             <Select
               name="status"
+              aria-label="Listing status"
               defaultValue={status}
               className="border-0 bg-transparent px-0 shadow-none focus:ring-0"
             >

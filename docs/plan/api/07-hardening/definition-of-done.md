@@ -17,8 +17,8 @@
 
 ## Frontend quality
 
-- [ ] Accessibility checks pass for auth, seller wizard, admin queue, marketplace filters, and viewing scheduler
-- [ ] i18n checks pass for externalized strings and locale-aware date/number formatting
+- [x] Accessibility checks pass for auth, seller wizard, admin queue, marketplace filters, and viewing scheduler
+- [x] i18n checks pass for the approved launch scope, locale-aware date/number formatting, plurals, and RTL layout
 
 ## Observability
 
@@ -50,6 +50,8 @@ No open **P0/P1** security defects.
 | Local hardening smoke | `scripts/dev/phase7-hardening-smoke.sh` |
 | Contract tests | `apps/api/src/contracts/contracts.phase7.spec.ts`, `apps/api/src/contracts/api-client.spec.ts` |
 | Sentry scrub/filter tests | `apps/api/src/common/sentry/sentry-scrubber.spec.ts`, `apps/api/src/common/filters/http-exception.filter.spec.ts` |
+| Accessibility browser gate | `apps/web/e2e/accessibility-buyer.spec.ts`, `apps/web/e2e/accessibility-admin.spec.ts`, [accessibility-verification.md](../../../accessibility-verification.md) |
+| Internationalization contract | `scripts/check-internationalization.mjs`, `apps/web/lib/i18n.test.mjs`, `apps/mobile/test/internationalization_test.dart`, [internationalization-scope.md](../../../internationalization-scope.md) |
 | Capacity reference | [capacity-reference.md](../../../operations/capacity-reference.md) |
 | Runbooks | [operations](../../../operations/README.md) |
 

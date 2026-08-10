@@ -1,34 +1,35 @@
-const currencyFormatter = new Intl.NumberFormat("en-ZW", {
-  maximumFractionDigits: 0,
-});
+import { DEFAULT_LOCALE, type AppLocale } from "./i18n.ts";
 
-const kmFormatter = new Intl.NumberFormat("en-ZW", {
-  maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat("en-ZW", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
-export function formatPrice(amount: number | string, currency = "ZWG") {
+export function formatPrice(
+  amount: number | string,
+  currency = "ZWG",
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   const value = typeof amount === "string" ? Number(amount) : amount;
-  return `${currency} ${currencyFormatter.format(Number.isFinite(value) ? value : 0)}`;
+  return `${currency} ${formatNumber(value, locale)}`;
 }
 
-export function formatKm(km: number | string) {
+export function formatKm(km: number | string, locale: AppLocale = DEFAULT_LOCALE) {
   const value = typeof km === "string" ? Number(km) : km;
-  return `${kmFormatter.format(Number.isFinite(value) ? value : 0)} km`;
+  return `${formatNumber(value, locale)} km`;
 }
 
-export function formatDate(isoDate: string) {
+export function formatDate(isoDate: string, locale: AppLocale = DEFAULT_LOCALE) {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) {
     return isoDate;
   }
 
-  return dateFormatter.format(date);
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+export function formatNumber(value: number, locale: AppLocale = DEFAULT_LOCALE) {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(safeValue);
 }
 
 export function formatPhone(e164: string) {

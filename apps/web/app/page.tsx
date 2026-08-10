@@ -4,9 +4,9 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { absoluteSiteUrl } from "@/lib/site-url";
 
 const links = [
-  { href: "/buy-a-car", label: "Buy a car" },
-  { href: "/sell-my-car", label: "Sell my car" },
-  { href: "/vehicles", label: "Browse" },
+  { href: "/buy-a-car", messageKey: "nav.buy" as const },
+  { href: "/sell-my-car", messageKey: "nav.sell" as const },
+  { href: "/vehicles", messageKey: "nav.browse" as const },
 ];
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationJsonLd) }}
       />
-      <SiteHeader links={links} homeHref="/" primaryCta={{ href: "/auth/login", label: "Sign in" }} variant="underline" />
+      <SiteHeader links={links} homeHref="/" primaryCta={{ href: "/auth/login", messageKey: "auth.signIn" }} variant="underline" />
       <HomeLanding />
     </>
   );

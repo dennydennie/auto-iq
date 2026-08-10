@@ -28,3 +28,17 @@ flutter run --dart-define=AUTO_IQ_API_BASE_URL=http://10.0.2.2:4000 -d emulator-
 If `AUTO_IQ_API_PORT` was overridden when starting Docker, use that port in the `AUTO_IQ_API_BASE_URL` define.
 
 `AUTO_IQ_API_BASE_URL` should be the API origin, not the versioned path. For example use `https://auto-iq-api.up.railway.app`, not `https://auto-iq-api.up.railway.app/api/v1`.
+
+## Sentry crash reporting
+
+The mobile app uses `sentry_flutter` for Dart, Flutter, Android, and iOS crashes. It is disabled when no DSN is supplied. Pass configuration at build time so credentials never enter source control:
+
+```bash
+flutter run \
+  --dart-define=AUTO_IQ_API_BASE_URL=http://10.0.2.2:4000 \
+  --dart-define=AUTO_IQ_SENTRY_DSN="$AUTO_IQ_SENTRY_DSN" \
+  --dart-define=AUTO_IQ_SENTRY_ENVIRONMENT=development \
+  --dart-define=AUTO_IQ_SENTRY_RELEASE=mobile@local
+```
+
+The release helper forwards the same three `AUTO_IQ_SENTRY_*` environment variables when `AUTO_IQ_SENTRY_DSN` is present. Default PII and request bodies are disabled. A real staging event and native symbol upload remain deployment evidence; do not record a successful Sentry smoke until the event appears in the configured project.

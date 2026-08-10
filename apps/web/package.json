@@ -8,12 +8,14 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run test:admin-listing-workflow && pnpm run test:inspection-workflow && pnpm run test:api-origin && pnpm run test:listing-readiness && pnpm run test:saved-vehicles && pnpm run test:storage-config",
+    "test": "pnpm run test:admin-listing-workflow && pnpm run test:inspection-workflow && pnpm run test:api-origin && pnpm run test:i18n && pnpm run test:listing-readiness && pnpm run test:saved-vehicles && pnpm run test:storage-config",
     "test:admin-listing-workflow": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/admin-listing-workflow.test.mjs",
     "test:api-origin": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/api-origin.test.mjs",
     "test:listing-readiness": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/listing-readiness.test.mjs",
     "test:inspection-workflow": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/inspection-workflow.test.mjs",
+    "test:i18n": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/i18n.test.mjs",
     "test:e2e:admin": "playwright test e2e/admin-review.spec.ts",
+    "test:e2e:accessibility": "playwright test e2e/accessibility-buyer.spec.ts --config=playwright.buyer.config.ts && playwright test e2e/accessibility-admin.spec.ts",
     "test:e2e:buyer": "playwright test e2e/buyer-marketplace.spec.ts --config=playwright.buyer.config.ts",
     "test:e2e:inspections": "playwright test e2e/inspection-workflow.spec.ts",
     "test:saved-vehicles": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/saved-vehicles.test.mjs",
@@ -31,6 +33,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@playwright/test": "1.55.0",
     "@types/node": "^20",
     "@types/react": "^19",
