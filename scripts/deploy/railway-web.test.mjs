@@ -13,3 +13,12 @@ test("web variables and deploys use the resolved Railway project", () => {
   assert.match(script, /configure_observability_variables "\$project_id"/);
   assert.match(script, /deploy_bundle "\$project_id"/);
 });
+
+test("CLI deploys use the committed source SHA as the Sentry release", () => {
+  assert.match(script, /git -C "\$ROOT_DIR" rev-parse --verify HEAD/);
+  assert.match(
+    script,
+    /configure_observability_variables "\$project_id" "\$sentry_release"/,
+  );
+  assert.doesNotMatch(script, /SENTRY_RELEASE=\\\$\{\{RAILWAY_GIT_COMMIT_SHA\}\}/);
+});

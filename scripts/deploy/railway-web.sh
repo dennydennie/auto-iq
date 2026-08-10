@@ -39,6 +39,15 @@ const payload = JSON.parse(fs.readFileSync(0, "utf8"));
 if (!payload.id) {
   process.exit(1);
 }
+
+resolve_sentry_release() {
+  if [ -n "${RAILWAY_SENTRY_RELEASE:-}" ]; then
+    printf '%s\n' "$RAILWAY_SENTRY_RELEASE"
+    return
+  fi
+
+  git -C "$ROOT_DIR" rev-parse --verify HEAD
+}
 process.stdout.write(payload.id);
 '
 }
@@ -119,16 +128,18 @@ configure_storage_variables() {
 
 configure_observability_variables() {
   local project_id=$1
+  local sentry_release=$2
   set_web_variable "$project_id" "NODE_ENV=production"
   set_web_variable "$project_id" "SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}"
   set_web_variable "$project_id" "NEXT_PUBLIC_SENTRY_DSN=\${{${API_SERVICE}.SENTRY_DSN}}"
   set_web_variable "$project_id" "SENTRY_ENVIRONMENT=$ENVIRONMENT_NAME"
-  set_web_variable "$project_id" "SENTRY_RELEASE=\${{RAILWAY_GIT_COMMIT_SHA}}"
+  set_web_variable "$project_id" "SENTRY_RELEASE=$sentry_release"
 }
 
 main() {
   require_command railway
   require_command tar
+  require_command git
 
   log_step "Checking Railway authentication"
   railway whoami >/dev/null
@@ -137,12 +148,14 @@ main() {
   create_bundle
   local project_id
   project_id="$(resolve_project_id)"
+  local sentry_release
+  sentry_release="$(resolve_sentry_release)"
 
   log_step "Configuring private storage image host"
   configure_storage_variables "$project_id"
 
   log_step "Configuring web observability"
-  configure_observability_variables "$project_id"
+  configure_observability_variables "$project_id" "$sentry_release"
 
   log_step "Deploying web service"
   deploy_bundle "$project_id"
