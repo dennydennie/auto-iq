@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run test:api-origin && pnpm run test:listing-readiness && pnpm run test:saved-vehicles && pnpm run test:storage-config",
+    "test": "pnpm run test:admin-listing-workflow && pnpm run test:api-origin && pnpm run test:listing-readiness && pnpm run test:saved-vehicles && pnpm run test:storage-config",
+    "test:admin-listing-workflow": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/admin-listing-workflow.test.mjs",
     "test:api-origin": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/api-origin.test.mjs",
     "test:listing-readiness": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/listing-readiness.test.mjs",
+    "test:e2e:admin": "playwright test e2e/admin-review.spec.ts",
     "test:saved-vehicles": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/saved-vehicles.test.mjs",
     "test:storage-config": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/next-config-storage.test.mjs",
     "clean": "rm -rf .next"
@@ -26,6 +28,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.55.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

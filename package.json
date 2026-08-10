@@ -9,6 +9,7 @@
     "check:web-buy-sell-funnels": "node scripts/check-web-buy-sell-funnels.mjs",
     "check:web-saved-vehicles-contract": "node scripts/check-web-saved-vehicles-contract.mjs",
     "check:web-account-contract": "node scripts/check-web-account-contract.mjs",
+    "check:web-admin-review-contract": "node scripts/check-web-admin-review-contract.mjs",
     "check:seller-listing-workflow": "node scripts/check-seller-listing-workflow.mjs",
     "check:web-production-readiness": "node scripts/check-web-production-readiness.mjs",
     "dev": "turbo run dev --parallel",

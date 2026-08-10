@@ -24,33 +24,9 @@ import { ScoreGauge } from "@/components/ui/score-gauge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatKm, formatPrice } from "@/lib/format";
 import { shouldBypassNextImageOptimization } from "@/lib/image-url";
+import { adminReviewChecklist } from "@/lib/admin-listing-workflow";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 import { labelizeEnum, mapBodyType, mapListingStatus } from "@/lib/vehicle-ui";
-
-function checklist(listing: AdminListingDto) {
-  return [
-    {
-      label: "Seller disclosure submitted",
-      complete: Boolean(listing.sellerDisclosure),
-    },
-    {
-      label: "At least one photo uploaded",
-      complete: listing.images.length > 0,
-    },
-    {
-      label: "Ownership verification approved",
-      complete: listing.ownershipVerification?.status === "APPROVED",
-    },
-    {
-      label: "Inspection task assigned",
-      complete: Boolean(listing.inspectionTask),
-    },
-    {
-      label: "Buyer summary approved",
-      complete: Boolean(listing.inspectionReport?.buyerSummaryApproved),
-    },
-  ];
-}
 
 function readReturnHref(
   value: string | string[] | undefined,
@@ -98,7 +74,7 @@ export default async function AdminListingReviewPage({
 
   const listing = result.data;
   const coverImage = listing.images[0]?.url ?? null;
-  const items = checklist(listing);
+  const items = adminReviewChecklist(listing);
   const completedItems = items.filter((item) => item.complete).length;
 
   const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
@@ -278,10 +254,7 @@ export default async function AdminListingReviewPage({
               <CardTitle>Moderation actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <AdminListingActions
-                listingId={listing.id}
-                status={listing.status}
-              />
+              <AdminListingActions listing={listing} />
             </CardContent>
           </Card>
 

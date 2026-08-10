@@ -15,6 +15,11 @@ import { isApiFailure, postJson } from "@/lib/web-api";
 
 type OwnershipDecision = Exclude<OwnershipVerificationStatus, "NOT_STARTED">;
 
+function initialOwnershipDecision(listing: AdminListingDto): OwnershipDecision {
+  const status = listing.ownershipVerification?.status;
+  return status && status !== "NOT_STARTED" ? status : "IN_REVIEW";
+}
+
 export function AdminVerificationActions({
   listing,
 }: {
@@ -22,9 +27,10 @@ export function AdminVerificationActions({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [ownershipStatus, setOwnershipStatus] =
-    useState<OwnershipDecision>("IN_REVIEW");
-  const [note, setNote] = useState("");
+  const [ownershipStatus, setOwnershipStatus] = useState<OwnershipDecision>(
+    () => initialOwnershipDecision(listing),
+  );
+  const [note, setNote] = useState(listing.ownershipVerification?.note ?? "");
   const [inspectorId, setInspectorId] = useState("");
   const [scheduledAt, setScheduledAt] = useState(defaultSchedule());
   const [error, setError] = useState<{
@@ -66,6 +72,7 @@ export function AdminVerificationActions({
           Ownership review
         </h3>
         <Select
+          aria-label="Ownership decision"
           value={ownershipStatus}
           onChange={(event) =>
             setOwnershipStatus(event.target.value as OwnershipDecision)
@@ -76,7 +83,9 @@ export function AdminVerificationActions({
           <option value="NEEDS_CLARIFICATION">Needs clarification</option>
           <option value="REJECTED">Rejected</option>
         </Select>
+        <Label htmlFor="ownership-review-note">Ownership review note</Label>
         <Textarea
+          id="ownership-review-note"
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder="Review note"

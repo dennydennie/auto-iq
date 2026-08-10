@@ -167,12 +167,19 @@ jobs:
       - name: Run web tests
         run: pnpm --filter @autoiq/web test
 
+      - name: Install Playwright Chromium
+        run: pnpm --filter @autoiq/web exec playwright install --with-deps chromium
+
+      - name: Run admin review browser regression
+        run: pnpm --filter @autoiq/web test:e2e:admin
+
       - name: Run web production readiness checks
         run: |
           node scripts/check-web-production-readiness.mjs
           node scripts/check-contract-routes.mjs
           node scripts/check-web-saved-vehicles-contract.mjs
           node scripts/check-web-buy-sell-funnels.mjs
+          node scripts/check-web-admin-review-contract.mjs
           node scripts/check-web-seo-and-vehicle-detail.mjs
 
       - name: Build web production artifact

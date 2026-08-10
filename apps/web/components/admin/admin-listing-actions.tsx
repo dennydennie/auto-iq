@@ -11,6 +11,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
+import {
+  adminApprovalReady,
+  approvalBlockers,
+  canApproveStatus,
+} from "@/lib/admin-listing-workflow";
 import { isApiFailure, postJson } from "@/lib/web-api";
 
 type FeedbackState =
@@ -24,14 +29,6 @@ type FeedbackState =
       correlationId?: string;
     }
   | null;
-
-function canApprove(status: ListingStatus) {
-  return [
-    "SUBMITTED",
-    "INSPECTION_PENDING",
-    "OWNERSHIP_VERIFICATION_PENDING",
-  ].includes(status);
-}
 
 function canPublish(status: ListingStatus) {
   return status === "APPROVED";
@@ -59,19 +56,17 @@ function canCloseListing(status: ListingStatus) {
   return status === "PUBLISHED" || status === "RESERVED";
 }
 
-export function AdminListingActions({
-  listingId,
-  status,
-}: {
-  listingId: string;
-  status: AdminListingDto["status"];
-}) {
+export function AdminListingActions({ listing }: { listing: AdminListingDto }) {
   const router = useRouter();
   const { toast } = useToast();
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmRejectOpen, setConfirmRejectOpen] = useState(false);
+  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
+  const approvalReady = adminApprovalReady(listing);
+  const blockers = approvalBlockers(listing);
+  const { id: listingId, status } = listing;
 
   function submit(action: string, body?: Record<string, string>) {
     setFeedback(null);
@@ -112,6 +107,11 @@ export function AdminListingActions({
     submit("reject", { reason: note.trim() });
   }
 
+  function confirmPublish() {
+    setConfirmPublishOpen(false);
+    submit("publish");
+  }
+
   return (
     <div className="space-y-4">
       {feedback ? (
@@ -136,21 +136,28 @@ export function AdminListingActions({
       </div>
 
       <div className="grid gap-3">
-        {canApprove(status) ? (
-          <Button
-            variant="amber"
-            disabled={isPending}
-            onClick={() => submit("approve")}
-          >
-            {isPending ? "Updating..." : "Approve listing"}
-          </Button>
+        {canApproveStatus(status) ? (
+          <>
+            <Button
+              variant="amber"
+              disabled={isPending || !approvalReady}
+              onClick={() => submit("approve")}
+            >
+              {isPending ? "Updating..." : "Approve listing"}
+            </Button>
+            {!approvalReady ? (
+              <p className="text-xs leading-5 text-[var(--ink-500)]">
+                Approval is locked until: {blockers.join(", ")}.
+              </p>
+            ) : null}
+          </>
         ) : null}
 
         {canPublish(status) ? (
           <Button
             variant="amber"
-            disabled={isPending}
-            onClick={() => submit("publish")}
+            disabled={isPending || !approvalReady}
+            onClick={() => setConfirmPublishOpen(true)}
           >
             {isPending ? "Updating..." : "Publish listing"}
           </Button>
@@ -206,6 +213,17 @@ export function AdminListingActions({
           </Button>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirmPublishOpen}
+        onClose={() => setConfirmPublishOpen(false)}
+        onConfirm={confirmPublish}
+        title="Publish this listing?"
+        description="Publishing makes the vehicle and approved buyer inspection summary visible in the public marketplace."
+        confirmLabel="Publish listing"
+        variant="default"
+        busy={isPending}
+      />
 
       <ConfirmDialog
         open={confirmRejectOpen}

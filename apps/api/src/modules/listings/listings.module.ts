@@ -27,6 +27,6 @@ import { PublicListingMapper } from "./public-listing.mapper";
     OptionalAuthGuard,
     PublicListingMapper,
   ],
-  exports: [CatalogueService, ListingsService, ListingStateService, PublicListingMapper, ListingAccessModule],
+  exports: [CatalogueService, ListingsService, ListingStateService, ListingWizardValidator, PublicListingMapper, ListingAccessModule],
 })
 export class ListingsModule {}

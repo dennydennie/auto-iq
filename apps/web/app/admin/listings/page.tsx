@@ -22,26 +22,52 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "Submitted",
+  OWNERSHIP_VERIFICATION_PENDING: "Ownership pending",
+  INSPECTION_PENDING: "Inspection pending",
   CHANGES_REQUESTED: "Changes requested",
   APPROVED: "Approved",
   PUBLISHED: "Published",
+  REJECTED: "Rejected",
+  RESERVED: "Reserved",
+  SOLD: "Sold",
+  DELISTED: "Delisted",
+};
+
+const SORT_OPTIONS = new Set([
+  "updatedAt:DESC",
+  "updatedAt:ASC",
+  "submittedAt:DESC",
+  "submittedAt:ASC",
+]);
+
+type QueueFilters = {
+  page: number;
+  status: string;
+  search: string;
+  sort: string;
 };
 
 function readValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
 
-function listingsQuery(filters: { page: number; status: string; search: string }) {
+function readSort(value: string | string[] | undefined) {
+  const candidate = readValue(value);
+  return SORT_OPTIONS.has(candidate) ? candidate : "updatedAt:DESC";
+}
+
+function listingsQuery(filters: QueueFilters) {
   const params = new URLSearchParams();
   if (filters.page > 1) params.set("page", String(filters.page));
   if (filters.status) params.set("status", filters.status);
   if (filters.search) params.set("search", filters.search);
+  if (filters.sort !== "updatedAt:DESC") params.set("sort", filters.sort);
   return params.toString();
 }
 
 function listingsHref(
-  overrides: Partial<{ page: number; status: string; search: string }>,
-  current: { page: number; status: string; search: string },
+  overrides: Partial<QueueFilters>,
+  current: QueueFilters,
 ) {
   const query = listingsQuery({ ...current, ...overrides });
   return query ? `/admin/listings?${query}` : "/admin/listings";
@@ -56,7 +82,12 @@ export default async function AdminListingsPage({
   const page = Number(readValue(params.page) || "1") || 1;
   const search = readValue(params.search);
   const status = readValue(params.status);
-  const currentFilters = { page, status, search };
+  const sort = readSort(params.sort);
+  const [sortBy, sortDir] = sort.split(":") as [
+    "submittedAt" | "updatedAt",
+    "ASC" | "DESC",
+  ];
+  const currentFilters = { page, status, search, sort };
   const [dashboardResult, queueResult] = await Promise.all([
     getSessionJson<AdminDashboardDto>(ROUTES.admin.dashboard),
     getSessionJson<OffsetPaginatedResponse<AdminListingDto>>(
@@ -65,6 +96,8 @@ export default async function AdminListingsPage({
         limit: 12,
         status,
         search,
+        sortBy,
+        sortDir,
       }),
     ),
   ]);
@@ -133,7 +166,7 @@ export default async function AdminListingsPage({
           <StatCard label="Ready to publish" value={dashboard.queues.readyToPublish} period="Live count" />
         </div>
 
-        <form className="grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_14rem_auto]">
+        <form className="grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_13rem_13rem_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
             <Input
@@ -153,11 +186,23 @@ export default async function AdminListingsPage({
             >
               <option value="">All statuses</option>
               <option value="SUBMITTED">Submitted</option>
+              <option value="OWNERSHIP_VERIFICATION_PENDING">Ownership pending</option>
+              <option value="INSPECTION_PENDING">Inspection pending</option>
               <option value="CHANGES_REQUESTED">Changes requested</option>
               <option value="APPROVED">Approved</option>
               <option value="PUBLISHED">Published</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="RESERVED">Reserved</option>
+              <option value="SOLD">Sold</option>
+              <option value="DELISTED">Delisted</option>
             </Select>
           </div>
+          <Select name="sort" defaultValue={sort} aria-label="Sort listings">
+            <option value="updatedAt:DESC">Recently updated</option>
+            <option value="updatedAt:ASC">Least recently updated</option>
+            <option value="submittedAt:DESC">Newest submitted</option>
+            <option value="submittedAt:ASC">Oldest submitted</option>
+          </Select>
           <button className={buttonVariants({ variant: "amber" })}>Apply</button>
         </form>
 

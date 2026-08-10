@@ -13,6 +13,7 @@ import { ViewingAppointmentRepository } from "../../db/repository/viewing-appoin
 import { AuditService } from "../audit/audit.service";
 import { ListingsService } from "../listings/listings.service";
 import { ListingStateService } from "../listings/listing-state.service";
+import { ListingWizardValidator } from "../listings/listing-wizard.validator";
 import { StorageService } from "../storage/storage.service";
 import {
   AdminListingListQueryDto,
@@ -29,6 +30,7 @@ export class AdminOpsService {
     private readonly inspectionReportRepository: InspectionReportRepository,
     private readonly inspectionTaskRepository: InspectionTaskRepository,
     private readonly listingStateService: ListingStateService,
+    private readonly listingWizardValidator: ListingWizardValidator,
     private readonly listingsService: ListingsService,
     private readonly ownershipVerificationRepository: OwnershipVerificationRepository,
     private readonly quoteRequestRepository: QuoteRequestRepository,
@@ -128,7 +130,7 @@ export class AdminOpsService {
 
   async approve(adminUserId: string, correlationId: string | undefined, listingId: string) {
     const listing = await this.requireListing(listingId);
-    await this.assertApprovalReady(listing.id);
+    await this.assertApprovalReady(listing);
     const nextStatus = this.listingStateService.approve(listing.status);
 
     await this.applyListingTransition({
@@ -145,6 +147,7 @@ export class AdminOpsService {
 
   async publish(adminUserId: string, correlationId: string | undefined, listingId: string) {
     const listing = await this.requireListing(listingId);
+    await this.assertApprovalReady(listing);
     const nextStatus = this.listingStateService.publish(listing.status);
 
     await this.applyListingTransition({
@@ -283,10 +286,11 @@ export class AdminOpsService {
     };
   }
 
-  private async assertApprovalReady(listingId: string) {
+  private async assertApprovalReady(listing: VehicleEntity) {
+    this.listingWizardValidator.validateForSubmit(listing, listing.sellerDisclosure ?? "");
     const [verification, report] = await Promise.all([
-      this.ownershipVerificationRepository.findByListingId(listingId),
-      this.inspectionReportRepository.findByListingId(listingId),
+      this.ownershipVerificationRepository.findByListingId(listing.id),
+      this.inspectionReportRepository.findByListingId(listing.id),
     ]);
     if (verification?.status !== "APPROVED") {
       throw new ConflictException({
