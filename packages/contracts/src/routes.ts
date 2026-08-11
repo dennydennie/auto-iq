@@ -174,5 +174,16 @@ export const ROUTES = {
     notifications: `${BASE}/admin/notifications`,
     notificationRetry: (notificationId: string) =>
       `${BASE}/admin/notifications/${notificationId}/retry`,
+
+    // Secondary operations
+    users: `${BASE}/admin/users`,
+    userAccess: (userId: string) => `${BASE}/admin/users/${userId}/access`,
+    operationsReport: `${BASE}/admin/reports/operations`,
+    viewingLocations: `${BASE}/admin/settings/viewing-locations`,
+    viewingLocation: (locationId: string) =>
+      `${BASE}/admin/settings/viewing-locations/${locationId}`,
+    referenceOptions: `${BASE}/admin/settings/reference-options`,
+    referenceOption: (optionId: string) =>
+      `${BASE}/admin/settings/reference-options/${optionId}`,
   },
 } as const;

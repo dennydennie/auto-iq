@@ -9,6 +9,10 @@ import { StorageModule } from "../storage/storage.module";
 import { AdminOpsController } from "./admin-ops.controller";
 import { AdminOpsGuard } from "./admin-ops.guard";
 import { AdminOpsService } from "./admin-ops.service";
+import { AdminReportsService } from "./admin-reports.service";
+import { AdminSecondaryController } from "./admin-secondary.controller";
+import { AdminSettingsService } from "./admin-settings.service";
+import { AdminUsersService } from "./admin-users.service";
 
 @Module({
   imports: [
@@ -20,7 +24,13 @@ import { AdminOpsService } from "./admin-ops.service";
     OwnershipVerificationModule,
     AuditModule,
   ],
-  controllers: [AdminOpsController],
-  providers: [AdminOpsGuard, AdminOpsService],
+  controllers: [AdminOpsController, AdminSecondaryController],
+  providers: [
+    AdminOpsGuard,
+    AdminOpsService,
+    AdminReportsService,
+    AdminSettingsService,
+    AdminUsersService,
+  ],
 })
 export class AdminOpsModule {}

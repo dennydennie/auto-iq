@@ -31,9 +31,6 @@ const PRIMARY_NAV_ITEMS = [
   { href: "/admin/quotes", label: "Quotes", icon: MessageSquareQuote },
   { href: "/admin/requests", label: "Buyer requests", icon: Sparkles },
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },
-] as const;
-
-const UPCOMING_NAV_ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -49,14 +46,12 @@ function NavLink({
   pathname,
   onNavigate,
   icon: Icon,
-  upcoming = false,
 }: {
   href: string;
   label: string;
   pathname: string;
   onNavigate?: () => void;
   icon: LucideIcon;
-  upcoming?: boolean;
 }) {
   const active = isActive(pathname, href);
 
@@ -78,11 +73,6 @@ function NavLink({
         )}
       />
       <span className="flex-1">{label}</span>
-      {upcoming ? (
-        <span className="rounded-full bg-[var(--ink-100)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-500)]">
-          Soon
-        </span>
-      ) : null}
     </Link>
   );
 }
@@ -120,12 +110,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <nav className="mt-6 flex flex-1 flex-col gap-2" aria-label="Admin">
             {PRIMARY_NAV_ITEMS.map((item) => (
               <NavLink key={item.href} pathname={pathname} {...item} />
-            ))}
-            <p className="mt-6 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-400)]">
-              In progress
-            </p>
-            {UPCOMING_NAV_ITEMS.map((item) => (
-              <NavLink key={item.href} pathname={pathname} upcoming {...item} />
             ))}
           </nav>
 
@@ -183,18 +167,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <NavLink
                       key={item.href}
                       pathname={pathname}
-                      onNavigate={() => setIsMenuOpen(false)}
-                      {...item}
-                    />
-                  ))}
-                  <p className="mt-4 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-400)]">
-                    In progress
-                  </p>
-                  {UPCOMING_NAV_ITEMS.map((item) => (
-                    <NavLink
-                      key={item.href}
-                      pathname={pathname}
-                      upcoming
                       onNavigate={() => setIsMenuOpen(false)}
                       {...item}
                     />

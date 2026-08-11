@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { SellerListingDto } from "@auto-iq/contracts/listings";
 import type { ListingStatus } from "@auto-iq/contracts/enums";
 import { ROUTES } from "@auto-iq/contracts/routes";
+import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ArrowLeft, Lock } from "lucide-react";
 import { DocumentUploader } from "@/components/seller/document-uploader";
 import { EditListingForm } from "@/components/seller/edit-listing-form";
@@ -26,7 +27,10 @@ export default async function SellerListingEditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getSessionJson<SellerListingDto>(ROUTES.listings.detail(id));
+  const [result, referenceResult] = await Promise.all([
+    getSessionJson<SellerListingDto>(ROUTES.listings.detail(id)),
+    getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all),
+  ]);
 
   if (isServerApiFailure(result)) {
     return (
@@ -48,6 +52,14 @@ export default async function SellerListingEditPage({
         ) : (
           <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
         )}
+      </main>
+    );
+  }
+
+  if (isServerApiFailure(referenceResult)) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        <ErrorBanner message={referenceResult.error.message} correlationId={referenceResult.error.correlationId} />
       </main>
     );
   }
@@ -107,7 +119,7 @@ export default async function SellerListingEditPage({
         }
       />
 
-      <EditListingForm listing={listing} />
+      <EditListingForm listing={listing} referenceData={referenceResult.data} />
 
       <PhotoUploader listingId={listing.id} images={listing.images} />
 

@@ -8,17 +8,11 @@ import {
   IsString,
   Max,
   MaxLength,
+  Matches,
   Min,
   MinLength,
 } from "class-validator";
-import {
-  BODY_TYPES,
-  CONDITION_GRADES,
-  DRIVE_TYPES,
-  FUEL_TYPES,
-  LISTING_STATUSES,
-  TRANSMISSION_TYPES,
-} from "../../../common/constants/listing.constants";
+import { LISTING_STATUSES } from "../../../common/constants/listing.constants";
 
 export class UpsertListingSpecsDto {
   @IsString()
@@ -36,22 +30,26 @@ export class UpsertListingSpecsDto {
   @Max(2100)
   year!: number;
 
-  @IsIn(BODY_TYPES)
-  bodyType!: (typeof BODY_TYPES)[number];
+  @IsString()
+  @Matches(/^[A-Z0-9][A-Z0-9_]{0,79}$/)
+  bodyType!: string;
 
   @IsString()
   @MinLength(1)
   @MaxLength(80)
   colour!: string;
 
-  @IsIn(FUEL_TYPES)
-  fuelType!: (typeof FUEL_TYPES)[number];
+  @IsString()
+  @Matches(/^[A-Z0-9][A-Z0-9_]{0,79}$/)
+  fuelType!: string;
 
-  @IsIn(TRANSMISSION_TYPES)
-  transmission!: (typeof TRANSMISSION_TYPES)[number];
+  @IsString()
+  @Matches(/^[A-Z0-9][A-Z0-9_]{0,79}$/)
+  transmission!: string;
 
-  @IsIn(DRIVE_TYPES)
-  driveType!: (typeof DRIVE_TYPES)[number];
+  @IsString()
+  @Matches(/^[A-Z0-9][A-Z0-9_]{0,79}$/)
+  driveType!: string;
 
   @IsOptional()
   @IsString()
@@ -62,8 +60,9 @@ export class UpsertListingSpecsDto {
   @Min(0)
   mileageKm!: number;
 
-  @IsIn(CONDITION_GRADES)
-  condition!: (typeof CONDITION_GRADES)[number];
+  @IsString()
+  @Matches(/^[A-Z0-9][A-Z0-9_]{0,79}$/)
+  condition!: string;
 
   @IsBoolean()
   hasAccidentHistory!: boolean;

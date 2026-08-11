@@ -8,11 +8,11 @@ import {
 } from "@/lib/remote-api";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ notificationId: string }> },
 ) {
   const { notificationId } = await context.params;
-  const sessionCookie = await readSessionCookie();
+  const sessionCookie = await readSessionCookie(request);
   if (!sessionCookie) return sessionRequiredResponse();
 
   const csrfToken = await issueRemoteCsrfToken(sessionCookie);

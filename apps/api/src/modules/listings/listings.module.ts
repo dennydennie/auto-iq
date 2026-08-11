@@ -6,6 +6,7 @@ import { IdentityModule } from "../identity/identity.module";
 import { ListingAccessModule } from "./listing-access.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { StorageModule } from "../storage/storage.module";
+import { ReferenceDataModule } from "../reference-data/reference-data.module";
 import { CatalogueController } from "./catalogue.controller";
 import { CatalogueQueryService } from "./catalogue-query.service";
 import { CatalogueService } from "./catalogue.service";
@@ -16,7 +17,15 @@ import { ListingWizardValidator } from "./listing-wizard.validator";
 import { PublicListingMapper } from "./public-listing.mapper";
 
 @Module({
-  imports: [AuditModule, DbModule, IdentityModule, ListingAccessModule, NotificationsModule, StorageModule],
+  imports: [
+    AuditModule,
+    DbModule,
+    IdentityModule,
+    ListingAccessModule,
+    NotificationsModule,
+    ReferenceDataModule,
+    StorageModule,
+  ],
   controllers: [ListingsController, CatalogueController],
   providers: [
     CatalogueQueryService,

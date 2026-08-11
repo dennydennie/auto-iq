@@ -1,16 +1,23 @@
 import Link from "next/link";
-import { BODY_TYPES, type BodyType } from "@auto-iq/contracts/enums";
+import type { BodyType } from "@auto-iq/contracts/enums";
+import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
+import { ROUTES } from "@auto-iq/contracts/routes";
 import { ArrowLeft } from "lucide-react";
 import { CreateListingForm } from "@/components/seller/create-listing-form";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { ErrorBanner } from "@/components/shared/error-banner";
+import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function readBodyType(value: string | string[] | undefined) {
+function readBodyType(
+  value: string | string[] | undefined,
+  referenceData: ReferenceDataResponse,
+) {
   const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate && BODY_TYPES.includes(candidate as BodyType)
+  return candidate && referenceData.bodyTypes.some((option) => option.value === candidate)
     ? (candidate as BodyType)
     : undefined;
 }
@@ -21,7 +28,16 @@ export default async function SellerListingNewPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const initialBodyType = readBodyType(params.bodyType);
+  const referenceResult = await getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all);
+  if (isServerApiFailure(referenceResult)) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        <ErrorBanner message={referenceResult.error.message} correlationId={referenceResult.error.correlationId} />
+      </main>
+    );
+  }
+  const referenceData = referenceResult.data;
+  const initialBodyType = readBodyType(params.bodyType, referenceData);
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
@@ -48,7 +64,7 @@ export default async function SellerListingNewPage({
           </Link>
         }
       />
-      <CreateListingForm initialBodyType={initialBodyType} />
+      <CreateListingForm initialBodyType={initialBodyType} referenceData={referenceData} />
     </main>
   );
 }

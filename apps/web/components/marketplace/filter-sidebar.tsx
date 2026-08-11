@@ -3,18 +3,13 @@ import type {
   CatalogueMakeFacet,
   CatalogueModelFacet,
 } from "@auto-iq/contracts/catalogue";
-import {
-  BODY_TYPES,
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
-} from "@auto-iq/contracts/enums";
+import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { labelizeEnum } from "@/lib/vehicle-ui";
 
 export type CatalogueFilterState = {
   make: string;
@@ -67,6 +62,7 @@ export function FilterSidebar({
   makes,
   models,
   buildMakeHref,
+  referenceData,
   idPrefix = "filter",
 }: {
   filters: CatalogueFilterState;
@@ -78,6 +74,10 @@ export function FilterSidebar({
   models?: CatalogueModelFacet[];
   /** Builds the Shop-by-make link for a given make value. */
   buildMakeHref?: (make: string) => string;
+  referenceData: Pick<
+    ReferenceDataResponse,
+    "bodyTypes" | "fuelTypes" | "transmissionTypes"
+  >;
   /** Keeps label/control IDs unique when desktop and mobile filters share the DOM. */
   idPrefix?: string;
 }) {
@@ -219,9 +219,9 @@ export function FilterSidebar({
             className="h-11"
           >
             <option value="">Any body type</option>
-            {BODY_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {labelizeEnum(value)}
+            {referenceData.bodyTypes.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>
@@ -304,9 +304,9 @@ export function FilterSidebar({
             className="h-11"
           >
             <option value="">Any transmission</option>
-            {TRANSMISSION_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {labelizeEnum(value)}
+            {referenceData.transmissionTypes.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>
@@ -321,9 +321,9 @@ export function FilterSidebar({
             className="h-11"
           >
             <option value="">Any fuel type</option>
-            {FUEL_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {labelizeEnum(value)}
+            {referenceData.fuelTypes.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>

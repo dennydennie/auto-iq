@@ -95,3 +95,30 @@ test("buyer sourcing request reaches admin triage and returns an update", async 
   await expect(page.getByText("Sourcing", { exact: true })).toBeVisible();
   await expect(page.getByText("Update: Matching dealer stock now.")).toBeVisible();
 });
+
+test("viewing lifecycle reaches seller, admin, buyer, and notification retry", async ({ page }) => {
+  await page.goto(`/vehicles/${listingSlug}`);
+  await page.getByRole("button", { name: "Open viewing form" }).click();
+  const dialog = page.getByRole("dialog", { name: "Request a viewing" });
+  await dialog.getByLabel("Approved location").selectOption("location-1");
+  await dialog.getByLabel("Note").fill("Please confirm parking access.");
+  await dialog.getByRole("button", { name: "Request viewing" }).click();
+  await expect(page.getByText("Your viewing request was sent for confirmation.").first()).toBeVisible();
+
+  await page.goto("/seller/viewings");
+  await page.getByRole("button", { name: "Acknowledge request" }).click();
+  await expect(page.getByText("Viewing acknowledged")).toBeVisible();
+
+  await page.goto("/admin/viewings");
+  await page.getByRole("link", { name: /2021 Toyota Hilux/ }).click();
+  await page.getByRole("button", { name: "Confirm viewing" }).click();
+  await expect(page.getByText(/updated to CONFIRMED/).first()).toBeVisible();
+
+  await page.goto("/admin/notifications?status=FAILED");
+  await page.getByRole("button", { name: "Retry delivery" }).click();
+  await expect(page.getByText("Retry queued")).toBeVisible();
+
+  await page.goto("/viewings");
+  await expect(page.getByText("CONFIRMED", { exact: true })).toBeVisible();
+  await expect(page.getByText("Borrowdale Hub, Harare")).toBeVisible();
+});

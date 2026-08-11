@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const sessionCookie = await readSessionCookie();
+  const sessionCookie = await readSessionCookie(request);
 
   if (!sessionCookie) {
     return sessionRequiredResponse();

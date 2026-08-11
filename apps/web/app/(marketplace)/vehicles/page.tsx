@@ -7,6 +7,7 @@ import type {
 } from "@auto-iq/contracts/catalogue";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
+import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import {
   Lock,
@@ -135,7 +136,7 @@ export default async function VehiclesPage({
         ok: true as const,
         data: [] as CatalogueModelFacetsResponse,
       });
-  const [catalogueResult, meResult, savedResult, makesResult, modelsResult] =
+  const [catalogueResult, meResult, savedResult, makesResult, modelsResult, referenceResult] =
     await Promise.all([
       getPublicJson<CatalogueResponse>(cataloguePath),
       getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
@@ -144,10 +145,14 @@ export default async function VehiclesPage({
       >(ROUTES.me.savedVehicles),
       getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
       modelFacets,
+      getPublicJson<ReferenceDataResponse>(ROUTES.referenceData.all),
     ]);
 
   const makes = !isServerApiFailure(makesResult) ? makesResult.data : [];
   const models = !isServerApiFailure(modelsResult) ? modelsResult.data : [];
+  const referenceData = !isServerApiFailure(referenceResult)
+    ? referenceResult.data
+    : { bodyTypes: [], fuelTypes: [], transmissionTypes: [] };
 
   const buyerSignedIn =
     meResult !== null && meResult.ok && meResult.data.roles.includes("BUYER");
@@ -369,6 +374,7 @@ export default async function VehiclesPage({
               clearHref="/vehicles"
               makes={makes}
               models={models}
+              referenceData={referenceData}
               buildMakeHref={(make) =>
                 vehiclesHref({ make, model: "", cursor: "" }, filters)
               }
@@ -397,6 +403,7 @@ export default async function VehiclesPage({
                     clearHref="/vehicles"
                     makes={makes}
                     models={models}
+                    referenceData={referenceData}
                     buildMakeHref={(make) =>
                       vehiclesHref({ make, model: "", cursor: "" }, filters)
                     }

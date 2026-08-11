@@ -165,39 +165,20 @@ export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number];
 
 // ─── Reference data ───────────────────────────────────────────────────────────
 
-export const BODY_TYPES = [
-  'SEDAN',
-  'SUV',
-  'HATCH',
-  'BAKKIE',
-  'VAN',
-  'COUPE',
-  'WAGON',
-] as const;
-export type BodyType = (typeof BODY_TYPES)[number];
+/** Runtime options are tenant-configured through reference data. */
+export type BodyType = string;
 
-export const FUEL_TYPES = [
-  'PETROL',
-  'DIESEL',
-  'HYBRID',
-  'ELECTRIC',
-  'OTHER',
-] as const;
-export type FuelType = (typeof FUEL_TYPES)[number];
+/** Runtime options are tenant-configured through reference data. */
+export type FuelType = string;
 
-export const TRANSMISSION_TYPES = [
-  'AUTOMATIC',
-  'MANUAL',
-  'CVT',
-  'DSG',
-] as const;
-export type TransmissionType = (typeof TRANSMISSION_TYPES)[number];
+/** Runtime options are tenant-configured through reference data. */
+export type TransmissionType = string;
 
-export const DRIVE_TYPES = ['FWD', 'RWD', '4WD', 'AWD'] as const;
-export type DriveType = (typeof DRIVE_TYPES)[number];
+/** Runtime options are tenant-configured through reference data. */
+export type DriveType = string;
 
-export const CONDITION_GRADES = ['EXCELLENT', 'GOOD', 'FAIR', 'POOR'] as const;
-export type ConditionGrade = (typeof CONDITION_GRADES)[number];
+/** Runtime options are tenant-configured through reference data. */
+export type ConditionGrade = string;
 
 // ─── Document types ───────────────────────────────────────────────────────────
 

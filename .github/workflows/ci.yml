@@ -194,6 +194,10 @@ jobs:
           node scripts/check-inspection-workflow.mjs
           node scripts/check-internationalization.mjs
           node scripts/check-web-seo-and-vehicle-detail.mjs
+          node scripts/check-reference-catalogue.mjs
+          node scripts/check-admin-secondary-pages.mjs
+          node scripts/check-e2e-coverage.mjs
+          bash scripts/deploy/phase8-gate.sh
 
       - name: Build web production artifact
         run: pnpm --filter @autoiq/web build

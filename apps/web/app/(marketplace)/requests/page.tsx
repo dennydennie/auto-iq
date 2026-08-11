@@ -126,6 +126,7 @@ function emptyReferenceData(): ReferenceDataResponse {
     fuelTypes: [],
     transmissionTypes: [],
     driveTypes: [],
+    conditionGrades: [],
     viewingLocations: [],
   };
 }

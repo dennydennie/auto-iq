@@ -137,6 +137,30 @@ function defaultFindings() {
 }
 
 let listing = initialListing();
+let adminUsers = initialAdminUsers();
+let referenceOptions = initialReferenceOptions();
+
+function initialAdminUsers() {
+  return [{
+    id: "buyer-1", fullName: "Buyer One", email: "buyer@example.test", phone: "+263771000001",
+    city: "Harare", role: "BUYER", accountStatus: "ACTIVE", accessActive: true,
+    emailVerified: true, phoneVerified: true, createdAt: now,
+  }];
+}
+
+function initialReferenceOptions() {
+  return [
+    ["option-body", "BODY_TYPE", "SUV", "SUV"],
+    ["option-fuel", "FUEL_TYPE", "PETROL", "Petrol"],
+    ["option-transmission", "TRANSMISSION_TYPE", "AUTOMATIC", "Automatic"],
+    ["option-drive", "DRIVE_TYPE", "FWD", "Front-wheel drive"],
+    ["option-condition", "CONDITION_GRADE", "GOOD", "Good"],
+  ].map(([id, category, code, label], sortOrder) => ({ id, category, code, label, sortOrder, active: true, createdAt: now, updatedAt: now }));
+}
+
+function adminLocation() {
+  return { id: "location-1", name: "Borrowdale Hub", addressLine1: "1 Borrowdale Road", addressLine2: null, city: "Harare", latitude: -17.75, longitude: 31.1, active: true, createdAt: now, updatedAt: now };
+}
 
 function send(response, statusCode, payload, contentType = "application/json") {
   response.writeHead(statusCode, {
@@ -237,6 +261,8 @@ async function handle(request, response) {
   if (url.pathname === "/health") return send(response, 200, { ok: true });
   if (url.pathname === "/__reset") {
     listing = initialListing();
+    adminUsers = initialAdminUsers();
+    referenceOptions = initialReferenceOptions();
     return send(response, 204, "");
   }
   if (url.pathname === "/__inspection-reset") {
@@ -271,6 +297,34 @@ async function handle(request, response) {
     return send(response, 200, { token: "e2e-csrf-token" });
   if (url.pathname === "/api/v1/admin/dashboard")
     return send(response, 200, dashboard());
+  if (url.pathname === "/api/v1/admin/users" && request.method === "GET")
+    return send(response, 200, { data: adminUsers, meta: { page: 1, limit: 20, total: adminUsers.length, totalPages: 1 } });
+  const userAccessMatch = url.pathname.match(/^\/api\/v1\/admin\/users\/([^/]+)\/access$/);
+  if (userAccessMatch && request.method === "PATCH") {
+    const user = adminUsers.find((entry) => entry.id === userAccessMatch[1]);
+    if (!user) return send(response, 404, apiError("User not found", 404));
+    user.accessActive = Boolean((await readBody(request)).active);
+    return send(response, 200, user);
+  }
+  if (url.pathname === "/api/v1/admin/reports/operations") {
+    return send(response, 200, {
+      generatedAt: now, range: { from: "2026-08-01T00:00:00.000Z", to: now },
+      users: { total: 8, active: 7, suspended: 1, verified: 6 },
+      listings: { created: 12, submitted: 9, published: 7, sold: 2 },
+      viewings: { requested: 5, confirmed: 4, completed: 3, cancelled: 1 },
+      notifications: { queued: 1, sent: 20, failed: 1, deadLetter: 0, retryAttempts: 2 },
+    });
+  }
+  if (url.pathname === "/api/v1/admin/settings/reference-options") {
+    if (request.method === "GET") return send(response, 200, { data: referenceOptions, meta: { page: 1, limit: 100, total: referenceOptions.length, totalPages: 1 } });
+    const body = await readBody(request);
+    const option = { id: `option-${referenceOptions.length + 1}`, ...body, active: true, createdAt: now, updatedAt: now };
+    referenceOptions.push(option);
+    return send(response, 201, option);
+  }
+  if (url.pathname === "/api/v1/admin/settings/viewing-locations") {
+    return send(response, 200, { data: [adminLocation()], meta: { page: 1, limit: 100, total: 1, totalPages: 1 } });
+  }
   if (url.pathname === "/api/v1/admin/viewings") {
     return send(response, 200, {
       data: [],
@@ -329,6 +383,14 @@ async function handle(request, response) {
   }
   if (url.pathname === `/api/v1/admin/listings/${listing.id}`)
     return send(response, 200, listing);
+  if (url.pathname === `/api/v1/listings/${listing.id}` && request.method === "GET")
+    return send(response, 200, listing);
+  if (url.pathname === `/api/v1/listings/${listing.id}/timeline` && request.method === "GET") {
+    return send(response, 200, {
+      listingId: listing.id,
+      history: [{ id: "history-1", status: listing.status, actorId: "admin-1", actorRole: "ADMIN", note: listing.changesNote, occurredAt: now }],
+    });
+  }
   if (
     request.method === "POST" &&
     url.pathname.startsWith(`/api/v1/admin/listings/${listing.id}/`)

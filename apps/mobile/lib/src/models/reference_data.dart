@@ -74,6 +74,7 @@ class ReferenceDataSet {
     required this.fuelTypes,
     required this.transmissionTypes,
     required this.driveTypes,
+    required this.conditionGrades,
     required this.viewingLocations,
   });
 
@@ -82,6 +83,7 @@ class ReferenceDataSet {
   final List<ReferenceOption> fuelTypes;
   final List<ReferenceOption> transmissionTypes;
   final List<ReferenceOption> driveTypes;
+  final List<ReferenceOption> conditionGrades;
   final List<ViewingLocation> viewingLocations;
 
   factory ReferenceDataSet.fromJson(Map<String, dynamic> json) {
@@ -99,6 +101,9 @@ class ReferenceDataSet {
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
       driveTypes: asMapList(json['driveTypes'])
+          .map(ReferenceOption.fromJson)
+          .toList(growable: false),
+      conditionGrades: asMapList(json['conditionGrades'])
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
       viewingLocations: asMapList(json['viewingLocations'])

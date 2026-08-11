@@ -13,6 +13,7 @@ import { TenantEntity } from "./entity/tenant.entity";
 import { TenantMembershipEntity } from "./entity/tenant-membership.entity";
 import { OwnershipVerificationEntity } from "./entity/ownership-verification.entity";
 import { QuoteRequestEntity } from "./entity/quote-request.entity";
+import { ReferenceOptionEntity } from "./entity/reference-option.entity";
 import { SavedVehicleEntity } from "./entity/saved-vehicle.entity";
 import { SellerProfileEntity } from "./entity/seller-profile.entity";
 import { UserConsentEntity } from "./entity/user-consent.entity";
@@ -38,6 +39,7 @@ import { NotificationAttemptRepository } from "./repository/notification-attempt
 import { NotificationRepository } from "./repository/notification.repository";
 import { OwnershipVerificationRepository } from "./repository/ownership-verification.repository";
 import { QuoteRequestRepository } from "./repository/quote-request.repository";
+import { ReferenceOptionRepository } from "./repository/reference-option.repository";
 import { SavedVehicleRepository } from "./repository/saved-vehicle.repository";
 import { SellerProfileRepository } from "./repository/seller-profile.repository";
 import { UserConsentRepository } from "./repository/user-consent.repository";
@@ -64,6 +66,7 @@ const ENTITIES = [
   ApprovedViewingLocationEntity,
   SavedVehicleEntity,
   QuoteRequestEntity,
+  ReferenceOptionEntity,
   VehicleRequestEntity,
   NotificationEntity,
   NotificationAttemptEntity,
@@ -94,6 +97,7 @@ const REPOSITORIES = [
   ApprovedViewingLocationRepository,
   SavedVehicleRepository,
   QuoteRequestRepository,
+  ReferenceOptionRepository,
   VehicleRequestRepository,
   NotificationRepository,
   NotificationAttemptRepository,

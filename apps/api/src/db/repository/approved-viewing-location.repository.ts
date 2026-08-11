@@ -20,4 +20,36 @@ export class ApprovedViewingLocationRepository extends AbstractRepository<Approv
   findActiveById(id: string): Promise<ApprovedViewingLocationEntity | null> {
     return this.repository.findOne({ where: { id, active: true } });
   }
+
+  findAnyById(id: string): Promise<ApprovedViewingLocationEntity | null> {
+    return this.repository.findOne({ where: { id } });
+  }
+
+  countActive(): Promise<number> {
+    return this.repository.count({ where: { active: true } });
+  }
+
+  async findAdminPage(input: {
+    page: number;
+    limit: number;
+    search?: string;
+    active?: boolean;
+  }): Promise<[ApprovedViewingLocationEntity[], number]> {
+    const query = this.repository.createQueryBuilder("location");
+    if (input.search) {
+      query.andWhere(
+        "(location.name ILIKE :search OR location.city ILIKE :search OR location.addressLine1 ILIKE :search)",
+        { search: `%${input.search}%` },
+      );
+    }
+    if (input.active !== undefined) {
+      query.andWhere("location.active = :active", { active: input.active });
+    }
+    return query
+      .orderBy("location.city", "ASC")
+      .addOrderBy("location.name", "ASC")
+      .skip((input.page - 1) * input.limit)
+      .take(input.limit)
+      .getManyAndCount();
+  }
 }

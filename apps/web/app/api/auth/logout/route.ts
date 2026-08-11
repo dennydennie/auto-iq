@@ -8,8 +8,8 @@ import {
   sendRemoteRequest,
 } from "@/lib/remote-api";
 
-export async function POST() {
-  const sessionCookie = await readSessionCookie();
+export async function POST(request: Request) {
+  const sessionCookie = await readSessionCookie(request);
 
   if (!sessionCookie) {
     return clearedResponse(204);

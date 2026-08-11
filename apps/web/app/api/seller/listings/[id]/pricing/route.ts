@@ -12,7 +12,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const sessionCookie = await readSessionCookie();
+  const sessionCookie = await readSessionCookie(request);
 
   if (!sessionCookie) {
     return sessionRequiredResponse();

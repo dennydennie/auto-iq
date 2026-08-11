@@ -1,7 +1,5 @@
-import type { BodyType, FuelType, TransmissionType, DriveType } from './enums.js';
-
 /**
- * Seeded reference data returned by the API.
+ * Tenant-configured reference data returned by the API.
  * Used to populate wizard dropdowns and filter panels.
  */
 
@@ -12,25 +10,16 @@ export interface MakeDto {
   popularModels: string[];
 }
 
-export interface BodyTypeDto {
-  value: BodyType;
+export interface ReferenceOptionDto {
+  value: string;
   label: string;
 }
 
-export interface FuelTypeDto {
-  value: FuelType;
-  label: string;
-}
-
-export interface TransmissionTypeDto {
-  value: TransmissionType;
-  label: string;
-}
-
-export interface DriveTypeDto {
-  value: DriveType;
-  label: string;
-}
+export type BodyTypeDto = ReferenceOptionDto;
+export type FuelTypeDto = ReferenceOptionDto;
+export type TransmissionTypeDto = ReferenceOptionDto;
+export type DriveTypeDto = ReferenceOptionDto;
+export type ConditionGradeDto = ReferenceOptionDto;
 
 export interface ApprovedViewingLocationDto {
   id: string;
@@ -49,5 +38,6 @@ export interface ReferenceDataResponse {
   fuelTypes: FuelTypeDto[];
   transmissionTypes: TransmissionTypeDto[];
   driveTypes: DriveTypeDto[];
+  conditionGrades: ConditionGradeDto[];
   viewingLocations: ApprovedViewingLocationDto[];
 }

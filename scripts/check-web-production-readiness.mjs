@@ -48,6 +48,9 @@ const requiredRouteFiles = [
   "apps/web/app/seller/viewings/page.tsx",
   "apps/web/app/admin/notifications/page.tsx",
   "apps/web/app/api/admin/notifications/[notificationId]/retry/route.ts",
+  "apps/web/app/api/admin/users/[userId]/access/route.ts",
+  "apps/web/app/api/admin/settings/reference-options/route.ts",
+  "apps/web/app/api/admin/settings/viewing-locations/route.ts",
   "apps/web/proxy.ts",
 ];
 
@@ -181,6 +184,15 @@ for (const file of [".dockerignore"]) {
   }
 }
 
+for (const file of collectRouteFiles(join(ROOT, "apps/web/app/api"))) {
+  const contents = readFileSync(file, "utf8");
+  if (/export async function (POST|PUT|PATCH|DELETE)\(\s*request\b/.test(contents) &&
+      contents.includes("readSessionCookie()") &&
+      !contents.includes("readSessionCookie(request)")) {
+    failures.push(`${relative(ROOT, file)}: mutation must pass request to readSessionCookie`);
+  }
+}
+
 for (const [route, files] of collectPageRoutes(join(ROOT, "apps/web/app"))) {
   if (files.length > 1) {
     failures.push(
@@ -255,4 +267,13 @@ function normalizeRouteSegment(segment) {
   if (/^\[\.\.\..+\]$/.test(segment)) return "[...param]";
   if (/^\[.+\]$/.test(segment)) return ":param";
   return segment;
+}
+
+function collectRouteFiles(directory, files = []) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) collectRouteFiles(path, files);
+    else if (/^route\.(js|ts)$/.test(entry.name)) files.push(path);
+  }
+  return files;
 }

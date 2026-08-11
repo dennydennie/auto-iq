@@ -11,10 +11,6 @@ import {
   Matches,
   Min,
 } from "class-validator";
-import {
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
-} from "../../../common/constants/listing.constants";
 
 const VEHICLE_PURPOSES = [
   "PERSONAL",
@@ -70,12 +66,14 @@ export class UpdateMeDto {
 
   @IsOptional()
   @IsArray()
-  @IsIn(FUEL_TYPES, { each: true })
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
   preferredFuelTypes?: string[];
 
   @IsOptional()
   @IsArray()
-  @IsIn(TRANSMISSION_TYPES, { each: true })
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
   preferredTransmissions?: string[];
 
   @IsOptional()

@@ -1,10 +1,5 @@
 import { Transform, Type } from "class-transformer";
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
-import {
-  BODY_TYPES,
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
-} from "../../../common/constants/listing.constants";
 
 function toArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
@@ -46,7 +41,8 @@ export class CatalogueQueryDto {
 
   @Transform(({ value }) => toArray(value))
   @IsOptional()
-  @IsIn(BODY_TYPES, { each: true })
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
   bodyType?: string[];
 
   @Transform(({ value }) => toArray(value))
@@ -91,12 +87,14 @@ export class CatalogueQueryDto {
   mileageMax?: number;
 
   @IsOptional()
-  @IsIn(TRANSMISSION_TYPES)
-  transmission?: (typeof TRANSMISSION_TYPES)[number];
+  @IsString()
+  @MaxLength(80)
+  transmission?: string;
 
   @IsOptional()
-  @IsIn(FUEL_TYPES)
-  fuelType?: (typeof FUEL_TYPES)[number];
+  @IsString()
+  @MaxLength(80)
+  fuelType?: string;
 
   @IsOptional()
   @IsString()

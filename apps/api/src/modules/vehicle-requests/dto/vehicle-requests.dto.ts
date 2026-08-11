@@ -1,12 +1,6 @@
 import { Type } from "class-transformer";
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
-import {
-  BODY_TYPES,
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
-  URGENCY_LEVELS,
-  VEHICLE_REQUEST_STATUSES,
-} from "../../../common/constants/listing.constants";
+import { URGENCY_LEVELS, VEHICLE_REQUEST_STATUSES } from "../../../common/constants/listing.constants";
 
 export class CreateVehicleRequestDto {
   @Type(() => Number)
@@ -37,16 +31,19 @@ export class CreateVehicleRequestDto {
   yearMax?: number;
 
   @IsOptional()
-  @IsIn(BODY_TYPES)
-  bodyTypeId?: (typeof BODY_TYPES)[number];
+  @IsString()
+  @MaxLength(80)
+  bodyTypeId?: string;
 
   @IsOptional()
-  @IsIn(FUEL_TYPES)
-  fuelTypeId?: (typeof FUEL_TYPES)[number];
+  @IsString()
+  @MaxLength(80)
+  fuelTypeId?: string;
 
   @IsOptional()
-  @IsIn(TRANSMISSION_TYPES)
-  transmissionTypeId?: (typeof TRANSMISSION_TYPES)[number];
+  @IsString()
+  @MaxLength(80)
+  transmissionTypeId?: string;
 
   @Type(() => Number)
   @IsOptional()

@@ -53,7 +53,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
   String? _selectedFuelType;
   String? _selectedTransmission;
   String? _selectedDriveType;
-  String _selectedCondition = 'GOOD';
+  String? _selectedCondition;
   String _selectedDocumentType = SellerRepository.documentTypes.first;
 
   @override
@@ -87,6 +87,10 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
     _selectedFuelType ??= referenceData.fuelTypes.first.value;
     _selectedTransmission ??= referenceData.transmissionTypes.first.value;
     _selectedDriveType ??= referenceData.driveTypes.first.value;
+    _selectedCondition ??= referenceData.conditionGrades
+            .any((option) => option.value == 'GOOD')
+        ? 'GOOD'
+        : referenceData.conditionGrades.first.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -278,15 +282,16 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
           DropdownButtonFormField<String>(
             initialValue: _selectedCondition,
             decoration: const InputDecoration(labelText: 'Condition'),
-            items: const [
-              DropdownMenuItem(value: 'EXCELLENT', child: Text('Excellent')),
-              DropdownMenuItem(value: 'GOOD', child: Text('Good')),
-              DropdownMenuItem(value: 'FAIR', child: Text('Fair')),
-              DropdownMenuItem(value: 'POOR', child: Text('Poor')),
-            ],
+            items: referenceData.conditionGrades
+                .map(
+                  (option) => DropdownMenuItem(
+                    value: option.value,
+                    child: Text(option.label),
+                  ),
+                )
+                .toList(growable: false),
             onChanged: detail?.isEditable ?? true
-                ? (value) =>
-                    setState(() => _selectedCondition = value ?? 'GOOD')
+                ? (value) => setState(() => _selectedCondition = value)
                 : null,
           ),
           const SizedBox(height: 12),
@@ -657,7 +662,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
           driveType: _selectedDriveType!,
           engineCapacity: _engineController.text,
           mileageKm: int.parse(_mileageController.text),
-          condition: _selectedCondition,
+          condition: _selectedCondition!,
           hasAccidentHistory: _hasAccidentHistory,
           accidentNote: _accidentNoteController.text,
           askPriceUsd: double.parse(_priceController.text),
@@ -676,7 +681,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
           driveType: _selectedDriveType!,
           engineCapacity: _engineController.text,
           mileageKm: int.parse(_mileageController.text),
-          condition: _selectedCondition,
+          condition: _selectedCondition!,
           hasAccidentHistory: _hasAccidentHistory,
           accidentNote: _accidentNoteController.text,
         );

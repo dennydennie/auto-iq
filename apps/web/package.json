@@ -14,7 +14,7 @@
     "test:listing-readiness": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/listing-readiness.test.mjs",
     "test:inspection-workflow": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/inspection-workflow.test.mjs",
     "test:i18n": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test lib/i18n.test.mjs",
-    "test:e2e:admin": "playwright test e2e/admin-review.spec.ts",
+    "test:e2e:admin": "playwright test e2e/admin-review.spec.ts e2e/admin-secondary.spec.ts",
     "test:e2e:accessibility": "playwright test e2e/accessibility-buyer.spec.ts --config=playwright.buyer.config.ts && playwright test e2e/accessibility-admin.spec.ts",
     "test:e2e:buyer": "playwright test e2e/buyer-marketplace.spec.ts --config=playwright.buyer.config.ts",
     "test:e2e:inspections": "playwright test e2e/inspection-workflow.spec.ts",

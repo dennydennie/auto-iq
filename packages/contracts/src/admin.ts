@@ -1,4 +1,11 @@
-import type { ListingStatus, QuoteStatus, VehicleRequestStatus, ViewingStatus } from './enums.js';
+import type {
+  ListingStatus,
+  QuoteStatus,
+  UserRole,
+  UserStatus,
+  VehicleRequestStatus,
+  ViewingStatus,
+} from './enums.js';
 import type { OffsetPaginationParams, SortDirection } from './pagination.js';
 import type { SellerListingDto } from './listings.js';
 import type { VehicleDocumentDto } from './storage.js';
@@ -132,4 +139,134 @@ export interface AdminActionLogDto {
   entityId: string;
   note?: string;
   createdAt: string;
+}
+
+// ─── Secondary admin operations ──────────────────────────────────────────────
+
+export interface AdminUserDto {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string;
+  role: UserRole;
+  accountStatus: UserStatus;
+  accessActive: boolean;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  createdAt: string;
+}
+
+export interface AdminUserListParams extends OffsetPaginationParams {
+  search?: string;
+  role?: UserRole;
+  access?: 'ACTIVE' | 'SUSPENDED';
+  sortBy?: 'createdAt' | 'fullName';
+  sortDir?: SortDirection;
+}
+
+export interface UpdateAdminUserAccessRequest {
+  active: boolean;
+}
+
+export interface AdminOperationsReportDto {
+  generatedAt: string;
+  range: { from: string; to: string };
+  users: {
+    total: number;
+    active: number;
+    suspended: number;
+    verified: number;
+  };
+  listings: {
+    created: number;
+    submitted: number;
+    published: number;
+    sold: number;
+  };
+  viewings: {
+    requested: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+  };
+  notifications: {
+    queued: number;
+    sent: number;
+    failed: number;
+    deadLetter: number;
+    retryAttempts: number;
+  };
+}
+
+export interface AdminViewingLocationDto {
+  id: string;
+  name: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminViewingLocationListParams extends OffsetPaginationParams {
+  search?: string;
+  active?: boolean;
+}
+
+export interface CreateAdminViewingLocationRequest {
+  name: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface UpdateAdminViewingLocationRequest
+  extends Partial<CreateAdminViewingLocationRequest> {
+  active?: boolean;
+}
+
+export const REFERENCE_OPTION_CATEGORIES = [
+  'BODY_TYPE',
+  'FUEL_TYPE',
+  'TRANSMISSION_TYPE',
+  'DRIVE_TYPE',
+  'CONDITION_GRADE',
+] as const;
+
+export type ReferenceOptionCategory = (typeof REFERENCE_OPTION_CATEGORIES)[number];
+
+export interface AdminReferenceOptionDto {
+  id: string;
+  category: ReferenceOptionCategory;
+  code: string;
+  label: string;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminReferenceOptionListParams extends OffsetPaginationParams {
+  category?: ReferenceOptionCategory;
+  search?: string;
+  active?: boolean;
+}
+
+export interface CreateAdminReferenceOptionRequest {
+  category: ReferenceOptionCategory;
+  code: string;
+  label: string;
+  sortOrder?: number;
+}
+
+export interface UpdateAdminReferenceOptionRequest {
+  label?: string;
+  sortOrder?: number;
+  active?: boolean;
 }

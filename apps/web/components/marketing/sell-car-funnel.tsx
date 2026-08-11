@@ -24,7 +24,7 @@ const SELL_STAGES = [
   { number: "3", label: "Photos and review", icon: Camera },
 ] as const;
 
-const BODY_TYPES = [
+const FEATURED_BODY_TYPES = [
   { label: "Sedan", href: "/seller/listings/new?bodyType=SEDAN" },
   { label: "SUV", href: "/seller/listings/new?bodyType=SUV" },
   { label: "Bakkie", href: "/seller/listings/new?bodyType=BAKKIE" },
@@ -84,7 +84,7 @@ function BodyTypeLinks() {
     <div>
       <p className="text-sm font-semibold text-white">What are you listing?</p>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {BODY_TYPES.map(({ label, href }) => (
+        {FEATURED_BODY_TYPES.map(({ label, href }) => (
           <Link
             key={href}
             href={href}

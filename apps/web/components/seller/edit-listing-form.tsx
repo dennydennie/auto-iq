@@ -4,13 +4,6 @@ import type { ChangeEvent, FormEvent, InputHTMLAttributes, ReactNode } from "rea
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  BODY_TYPES,
-  CONDITION_GRADES,
-  DRIVE_TYPES,
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
-} from "@auto-iq/contracts/enums";
 import type {
   BodyType,
   ConditionGrade,
@@ -18,6 +11,7 @@ import type {
   FuelType,
   TransmissionType,
 } from "@auto-iq/contracts/enums";
+import type { ReferenceDataResponse, ReferenceOptionDto } from "@auto-iq/contracts/reference-data";
 import type {
   SellerListingDto,
   UpsertListingPricingRequest,
@@ -55,10 +49,6 @@ type FormState = {
 };
 
 type FieldErrors = Partial<Record<keyof FormState | "form", string>>;
-
-function optionLabel(value: string) {
-  return value.toLowerCase().replace(/_/g, " ");
-}
 
 function initialFormFromListing(listing: SellerListingDto): FormState {
   return {
@@ -195,7 +185,25 @@ function SelectField({
   );
 }
 
-export function EditListingForm({ listing }: { listing: SellerListingDto }) {
+function withCurrent(options: ReferenceOptionDto[], value: string): ReferenceOptionDto[] {
+  return options.some((option) => option.value === value)
+    ? options
+    : [{ value, label: `${value.toLowerCase().replaceAll("_", " ")} (inactive)` }, ...options];
+}
+
+function OptionList({ options }: { options: ReferenceOptionDto[] }) {
+  return options.map((option) => (
+    <option key={option.value} value={option.value}>{option.label}</option>
+  ));
+}
+
+export function EditListingForm({
+  listing,
+  referenceData,
+}: {
+  listing: SellerListingDto;
+  referenceData: ReferenceDataResponse;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [form, setForm] = useState<FormState>(() => initialFormFromListing(listing));
@@ -305,11 +313,7 @@ export function EditListingForm({ listing }: { listing: SellerListingDto }) {
             value={form.bodyType}
             onChange={(event) => setField("bodyType", event.target.value as BodyType)}
           >
-            {BODY_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {optionLabel(value)}
-              </option>
-            ))}
+            <OptionList options={withCurrent(referenceData.bodyTypes, form.bodyType)} />
           </SelectField>
         </CardContent>
       </Card>
@@ -327,11 +331,7 @@ export function EditListingForm({ listing }: { listing: SellerListingDto }) {
               value={form.fuelType}
               onChange={(event) => setField("fuelType", event.target.value as FuelType)}
             >
-              {FUEL_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {optionLabel(value)}
-                </option>
-              ))}
+              <OptionList options={withCurrent(referenceData.fuelTypes, form.fuelType)} />
             </SelectField>
             <SelectField
               id="transmission"
@@ -339,11 +339,7 @@ export function EditListingForm({ listing }: { listing: SellerListingDto }) {
               value={form.transmission}
               onChange={(event) => setField("transmission", event.target.value as TransmissionType)}
             >
-              {TRANSMISSION_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {optionLabel(value)}
-                </option>
-              ))}
+              <OptionList options={withCurrent(referenceData.transmissionTypes, form.transmission)} />
             </SelectField>
             <SelectField
               id="drive-type"
@@ -351,11 +347,7 @@ export function EditListingForm({ listing }: { listing: SellerListingDto }) {
               value={form.driveType}
               onChange={(event) => setField("driveType", event.target.value as DriveType)}
             >
-              {DRIVE_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {optionLabel(value)}
-                </option>
-              ))}
+              <OptionList options={withCurrent(referenceData.driveTypes, form.driveType)} />
             </SelectField>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
@@ -382,11 +374,7 @@ export function EditListingForm({ listing }: { listing: SellerListingDto }) {
               value={form.condition}
               onChange={(event) => setField("condition", event.target.value as ConditionGrade)}
             >
-              {CONDITION_GRADES.map((value) => (
-                <option key={value} value={value}>
-                  {optionLabel(value)}
-                </option>
-              ))}
+              <OptionList options={withCurrent(referenceData.conditionGrades, form.condition)} />
             </SelectField>
           </div>
           <Checkbox

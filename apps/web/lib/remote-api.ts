@@ -46,9 +46,19 @@ function sessionExpiredError(): ApiError {
   };
 }
 
-export async function readSessionCookie() {
+export async function readSessionCookie(request?: Request) {
+  if (request) return cookieValue(request.headers.get("cookie"), SESSION_COOKIE_NAME);
   const cookieStore = await cookies();
   return cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
+}
+
+function cookieValue(header: string | null, name: string) {
+  if (!header) return null;
+  for (const entry of header.split(";")) {
+    const [key, ...parts] = entry.trim().split("=");
+    if (key === name) return decodeURIComponent(parts.join("="));
+  }
+  return null;
 }
 
 export async function sendRemoteRequest({

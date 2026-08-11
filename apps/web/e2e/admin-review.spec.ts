@@ -98,3 +98,14 @@ test("admin completes trust gates before explicit publishing", async ({
 
   await expect(page.getByText("Published", { exact: true })).toBeVisible();
 });
+
+test("seller sees requested changes while a foreign listing remains hidden", async ({ page, request }) => {
+  await request.post("http://127.0.0.1:4400/__action", {
+    data: { action: "request-changes", body: { message: "Replace the blurred VIN photo." } },
+  });
+  await page.goto(`/seller/listings/${listingId}`);
+  await expect(page.getByText("Replace the blurred VIN photo.").first()).toBeVisible();
+
+  await page.goto("/seller/listings/99999999-9999-4999-8999-999999999999/edit");
+  await expect(page.getByRole("heading", { name: "Listing not found" })).toBeVisible();
+});

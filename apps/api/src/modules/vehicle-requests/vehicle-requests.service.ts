@@ -22,6 +22,11 @@ export class VehicleRequestsService {
 
   async create(userId: string, correlationId: string | undefined, body: CreateVehicleRequestDto) {
     await this.rateLimitService.consume(`vehicle-request:${userId}`, 10, 3600);
+    await Promise.all([
+      this.referenceDataService.assertActive("BODY_TYPE", [body.bodyTypeId]),
+      this.referenceDataService.assertActive("FUEL_TYPE", [body.fuelTypeId]),
+      this.referenceDataService.assertActive("TRANSMISSION_TYPE", [body.transmissionTypeId]),
+    ]);
 
     const request = await this.vehicleRequestRepository.save(this.vehicleRequestRepository.create({
       buyerUserId: userId,

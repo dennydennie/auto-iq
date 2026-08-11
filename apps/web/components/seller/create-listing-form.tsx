@@ -11,17 +11,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ApiResult } from "@auto-iq/contracts/error";
 import {
-  BODY_TYPES,
-  CONDITION_GRADES,
-  DRIVE_TYPES,
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
   type BodyType,
   type ConditionGrade,
   type DriveType,
   type FuelType,
   type TransmissionType,
 } from "@auto-iq/contracts/enums";
+import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import {
   MIN_LISTING_PHOTOS,
   MIN_SELLER_DISCLOSURE_LENGTH,
@@ -93,6 +89,7 @@ type StepProps = {
   form: ListingFormState;
   setField: SetField;
 };
+type ReferenceStepProps = StepProps & { referenceData: ReferenceDataResponse };
 
 const STEPS = [
   { title: "Specs", description: "Describe the vehicle and its condition." },
@@ -115,19 +112,24 @@ const STEPS = [
 ] as const;
 const FINAL_STEP = STEPS.length - 1;
 
-function createInitialForm(initialBodyType?: BodyType): ListingFormState {
+function createInitialForm(
+  referenceData: ReferenceDataResponse,
+  initialBodyType?: BodyType,
+): ListingFormState {
+  const condition = referenceData.conditionGrades.find(({ value }) => value === "GOOD")
+    ?? referenceData.conditionGrades[0];
   return {
     make: "",
     model: "",
     year: "2021",
-    bodyType: initialBodyType ?? BODY_TYPES[0],
+    bodyType: initialBodyType ?? referenceData.bodyTypes[0].value,
     colour: "",
-    fuelType: FUEL_TYPES[0],
-    transmission: TRANSMISSION_TYPES[0],
-    driveType: DRIVE_TYPES[0],
+    fuelType: referenceData.fuelTypes[0].value,
+    transmission: referenceData.transmissionTypes[0].value,
+    driveType: referenceData.driveTypes[0].value,
     engineCapacity: "",
     mileageKm: "0",
-    condition: CONDITION_GRADES[1],
+    condition: condition.value,
     askPriceUsd: "",
     negotiable: true,
     hasAccidentHistory: false,
@@ -361,15 +363,15 @@ function SelectField({
   );
 }
 
-function EnumOptions({ values }: { values: readonly string[] }) {
-  return values.map((value) => (
-    <option key={value} value={value}>
-      {optionLabel(value)}
+function ReferenceOptions({ options }: { options: Array<{ value: string; label: string }> }) {
+  return options.map((option) => (
+    <option key={option.value} value={option.value}>
+      {option.label}
     </option>
   ));
 }
 
-function VehicleFields({ errors, form, setField }: StepProps) {
+function VehicleFields({ errors, form, referenceData, setField }: ReferenceStepProps) {
   return (
     <div className="grid gap-5 md:grid-cols-2">
       <TextInputField
@@ -418,13 +420,13 @@ function VehicleFields({ errors, form, setField }: StepProps) {
           setField("bodyType", event.target.value as BodyType)
         }
       >
-        <EnumOptions values={BODY_TYPES} />
+        <ReferenceOptions options={referenceData.bodyTypes} />
       </SelectField>
     </div>
   );
 }
 
-function ConditionFields({ errors, form, setField }: StepProps) {
+function ConditionFields({ errors, form, referenceData, setField }: ReferenceStepProps) {
   return (
     <div className="space-y-5">
       <div className="grid gap-5 md:grid-cols-3">
@@ -436,7 +438,7 @@ function ConditionFields({ errors, form, setField }: StepProps) {
             setField("fuelType", event.target.value as FuelType)
           }
         >
-          <EnumOptions values={FUEL_TYPES} />
+          <ReferenceOptions options={referenceData.fuelTypes} />
         </SelectField>
         <SelectField
           id="transmission"
@@ -446,7 +448,7 @@ function ConditionFields({ errors, form, setField }: StepProps) {
             setField("transmission", event.target.value as TransmissionType)
           }
         >
-          <EnumOptions values={TRANSMISSION_TYPES} />
+          <ReferenceOptions options={referenceData.transmissionTypes} />
         </SelectField>
         <SelectField
           id="drive-type"
@@ -456,7 +458,7 @@ function ConditionFields({ errors, form, setField }: StepProps) {
             setField("driveType", event.target.value as DriveType)
           }
         >
-          <EnumOptions values={DRIVE_TYPES} />
+          <ReferenceOptions options={referenceData.driveTypes} />
         </SelectField>
       </div>
       <div className="grid gap-5 md:grid-cols-3">
@@ -485,7 +487,7 @@ function ConditionFields({ errors, form, setField }: StepProps) {
             setField("condition", event.target.value as ConditionGrade)
           }
         >
-          <EnumOptions values={CONDITION_GRADES} />
+          <ReferenceOptions options={referenceData.conditionGrades} />
         </SelectField>
       </div>
       <Checkbox
@@ -509,7 +511,7 @@ function ConditionFields({ errors, form, setField }: StepProps) {
   );
 }
 
-function SpecsStep(props: StepProps) {
+function SpecsStep(props: ReferenceStepProps) {
   return (
     <div className="space-y-6">
       <VehicleFields {...props} />
@@ -684,12 +686,14 @@ function ReviewStep({
 
 export function CreateListingForm({
   initialBodyType,
+  referenceData,
 }: {
   initialBodyType?: BodyType;
+  referenceData: ReferenceDataResponse;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState(() => createInitialForm(initialBodyType));
+  const [form, setForm] = useState(() => createInitialForm(referenceData, initialBodyType));
   const [listing, setListing] = useState<SellerListingDto | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isPending, startTransition] = useTransition();
@@ -793,7 +797,12 @@ export function CreateListingForm({
       </section>
 
       {step === 0 ? (
-        <SpecsStep errors={errors} form={form} setField={setField} />
+        <SpecsStep
+          errors={errors}
+          form={form}
+          referenceData={referenceData}
+          setField={setField}
+        />
       ) : null}
       {step === 1 ? (
         <PricingStep errors={errors} form={form} setField={setField} />

@@ -6,6 +6,7 @@ import { ListingsService } from "./listings.service";
 import { CatalogueQueryDto } from "./dto/catalogue.dto";
 import { CatalogueQueryService } from "./catalogue-query.service";
 import { PublicListingMapper } from "./public-listing.mapper";
+import { ReferenceDataService } from "../reference-data/reference-data.service";
 
 @Injectable()
 export class CatalogueService {
@@ -14,10 +15,16 @@ export class CatalogueService {
     private readonly inspectionReportRepository: InspectionReportRepository,
     private readonly listingsService: ListingsService,
     private readonly publicListingMapper: PublicListingMapper,
+    private readonly referenceDataService: ReferenceDataService,
     private readonly vehicleRepository: VehicleRepository,
   ) {}
 
   async list(query: CatalogueQueryDto) {
+    await Promise.all([
+      this.referenceDataService.assertActive("BODY_TYPE", query.bodyType ?? []),
+      this.referenceDataService.assertActive("FUEL_TYPE", [query.fuelType]),
+      this.referenceDataService.assertActive("TRANSMISSION_TYPE", [query.transmission]),
+    ]);
     const result = await this.catalogueQueryService.list(query);
     return {
       data: await Promise.all(result.rows.map((row) => this.publicListingMapper.toCardDto(row))),

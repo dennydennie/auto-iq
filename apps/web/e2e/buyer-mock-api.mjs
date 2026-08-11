@@ -47,7 +47,7 @@ const listings = [
 ];
 
 function initialState() {
-  return { saved: new Set(), quotes: [], requests: [] };
+  return { saved: new Set(), quotes: [], requests: [], viewings: [], notifications: [] };
 }
 
 let state = initialState();
@@ -126,7 +126,63 @@ function referenceData() {
     fuelTypes: [{ value: "DIESEL", label: "Diesel" }],
     transmissionTypes: [{ value: "MANUAL", label: "Manual" }],
     driveTypes: [{ value: "4WD", label: "4wd" }],
-    viewingLocations: [],
+    conditionGrades: [{ value: "GOOD", label: "Good" }],
+    viewingLocations: [viewingLocation()],
+  };
+}
+
+function viewingLocation() {
+  return {
+    id: "location-1",
+    name: "Borrowdale Hub",
+    addressLine1: "1 Borrowdale Road",
+    addressLine2: null,
+    city: "Harare",
+    coordinates: { lat: -17.75, lng: 31.1 },
+    active: true,
+  };
+}
+
+function createViewing(body) {
+  const viewing = {
+    id: `viewing-${state.viewings.length + 1}`,
+    listingId: toyotaId,
+    listingSnapshot: { year: 2021, make: "Toyota", model: "Hilux", coverImageUrl: null },
+    status: "REQUESTED",
+    buyerId: "buyer-1",
+    buyerName: "Buyer One",
+    preferredSlot: `${body.preferredDate}T${body.preferredTime}:00.000Z`,
+    confirmedSlot: null,
+    location: viewingLocation(),
+    participants: [
+      { userId: "buyer-1", name: "Buyer One", role: "BUYER", confirmed: true },
+      { userId: "seller-1", name: "Seller One", role: "SELLER", confirmed: false },
+    ],
+    note: body.note?.trim() || null,
+    outcomeNote: null,
+    completedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  state.viewings.unshift(viewing);
+  state.notifications.unshift(notification("VIEWING_REQUESTED", "FAILED"));
+  return viewing;
+}
+
+function notification(template, status) {
+  return {
+    id: `notification-${state.notifications.length + 1}`,
+    recipientId: "seller-1",
+    recipientName: "Seller One",
+    channel: "EMAIL",
+    template,
+    idempotencyKey: `viewing:${state.viewings.length}:${template}`,
+    status,
+    attemptCount: 1,
+    lastAttemptAt: now,
+    attempts: [],
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
@@ -227,7 +283,10 @@ function handleRead(url, response) {
   if (url.pathname === "/api/v1/me/quotes") return send(response, 200, page(state.quotes));
   if (url.pathname === "/api/v1/admin/quotes") return send(response, 200, page(state.quotes));
   if (url.pathname === "/api/v1/me/vehicle-requests") return send(response, 200, page(state.requests));
-  if (url.pathname === "/api/v1/me/viewings") return send(response, 200, page([]));
+  if (url.pathname === "/api/v1/me/viewings") return send(response, 200, page(state.viewings));
+  if (url.pathname === "/api/v1/me/seller-viewings") return send(response, 200, page(state.viewings));
+  if (url.pathname === "/api/v1/admin/viewings") return send(response, 200, page(state.viewings));
+  if (url.pathname === "/api/v1/admin/notifications") return send(response, 200, page(state.notifications));
   if (url.pathname === "/api/v1/admin/vehicle-requests") return send(response, 200, page(state.requests));
   return false;
 }
@@ -293,6 +352,51 @@ async function handleVehicleRequest(request, response, url) {
   return true;
 }
 
+async function handleViewing(request, response, url) {
+  if (request.method === "POST" && url.pathname === `/api/v1/listings/${toyotaId}/viewings`) {
+    send(response, 201, createViewing(await readBody(request)));
+    return true;
+  }
+  const sellerMatch = url.pathname.match(/^\/api\/v1\/me\/viewings\/([^/]+)\/seller-confirm$/);
+  if (request.method === "POST" && sellerMatch) {
+    const viewing = state.viewings.find((entry) => entry.id === sellerMatch[1]);
+    if (!viewing) return false;
+    viewing.status = "PENDING_SELLER_CONFIRMATION";
+    viewing.participants[1].confirmed = true;
+    send(response, 200, viewing);
+    return true;
+  }
+  const adminMatch = url.pathname.match(/^\/api\/v1\/admin\/viewings\/([^/]+)(?:\/(confirm|complete))?$/);
+  if (!adminMatch) return false;
+  const viewing = state.viewings.find((entry) => entry.id === adminMatch[1]);
+  if (!viewing) return false;
+  if (request.method === "GET") return send(response, 200, viewing), true;
+  const body = await readBody(request);
+  if (adminMatch[2] === "confirm") {
+    viewing.status = "CONFIRMED";
+    viewing.confirmedSlot = body.confirmedAt;
+    state.notifications.unshift(notification("VIEWING_CONFIRMED", "SENT"));
+  }
+  if (adminMatch[2] === "complete") {
+    viewing.status = body.outcome;
+    viewing.outcomeNote = body.note || null;
+    viewing.completedAt = now;
+  }
+  send(response, 200, viewing);
+  return true;
+}
+
+async function handleNotification(request, response, url) {
+  const match = url.pathname.match(/^\/api\/v1\/admin\/notifications\/([^/]+)\/retry$/);
+  if (request.method !== "POST" || !match) return false;
+  const item = state.notifications.find((entry) => entry.id === match[1]);
+  if (!item) return false;
+  item.status = "QUEUED";
+  item.attemptCount += 1;
+  send(response, 200, item);
+  return true;
+}
+
 async function handle(request, response) {
   const url = new URL(request.url ?? "/", `http://${host}:${port}`);
   if (url.pathname === "/health") return send(response, 200, { ok: true });
@@ -306,6 +410,8 @@ async function handle(request, response) {
   if (await handleSaved(request, response, url)) return;
   if (await handleQuote(request, response, url)) return;
   if (await handleVehicleRequest(request, response, url)) return;
+  if (await handleViewing(request, response, url)) return;
+  if (await handleNotification(request, response, url)) return;
   return send(response, 404, apiError("Not found"));
 }
 

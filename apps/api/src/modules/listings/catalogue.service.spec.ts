@@ -24,6 +24,7 @@ describe("CatalogueService inspection summaries", () => {
       { findByListingId: jest.fn().mockResolvedValue(report) } as never,
       {} as never,
       publicListingMapper as never,
+      { assertActive: jest.fn() } as never,
       vehicleRepository as never,
     );
 

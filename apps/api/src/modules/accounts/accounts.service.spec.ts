@@ -52,6 +52,7 @@ function createFixture() {
   const service = new AccountsService(
     buyerRepository as never,
     sellerRepository as never,
+    { assertActive: jest.fn() } as never,
     userRepository as never,
   );
   return { service, user, userRepository, buyerRepository, sellerRepository };

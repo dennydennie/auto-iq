@@ -9,10 +9,11 @@ import {
 
 async function forwardMutation(
   method: "POST" | "DELETE",
+  request: Request,
   context: { params: Promise<{ listingId: string }> },
 ) {
   const { listingId } = await context.params;
-  const sessionCookie = await readSessionCookie();
+  const sessionCookie = await readSessionCookie(request);
   if (!sessionCookie) return sessionRequiredResponse();
 
   const csrfToken = await issueRemoteCsrfToken(sessionCookie);
@@ -28,15 +29,15 @@ async function forwardMutation(
 }
 
 export function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ listingId: string }> },
 ) {
-  return forwardMutation("POST", context);
+  return forwardMutation("POST", request, context);
 }
 
 export function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ listingId: string }> },
 ) {
-  return forwardMutation("DELETE", context);
+  return forwardMutation("DELETE", request, context);
 }

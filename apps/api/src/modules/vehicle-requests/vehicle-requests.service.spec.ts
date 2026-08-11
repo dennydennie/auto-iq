@@ -85,6 +85,7 @@ function requestDependencies() {
     rateLimit: { consume: jest.fn() },
     referenceData: {
       getMakes: jest.fn(() => [{ id: "toyota", name: "Toyota" }]),
+      assertActive: jest.fn(),
     },
     vehicles: {},
     requests,

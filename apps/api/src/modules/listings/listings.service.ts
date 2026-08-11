@@ -12,6 +12,7 @@ import { VehicleSpecsRepository } from "../../db/repository/vehicle-specs.reposi
 import { AuditService } from "../audit/audit.service";
 import { NotificationService } from "../notifications/notification.service";
 import { StorageService } from "../storage/storage.service";
+import { ReferenceDataService } from "../reference-data/reference-data.service";
 import {
   CreateListingDto,
   SellerListingsQueryDto,
@@ -33,6 +34,7 @@ export class ListingsService {
     private readonly listingStateService: ListingStateService,
     private readonly notificationService: NotificationService,
     private readonly pricingRepository: VehiclePricingRepository,
+    private readonly referenceDataService: ReferenceDataService,
     private readonly specsRepository: VehicleSpecsRepository,
     private readonly storageService: StorageService,
     private readonly userRepository: UserRepository,
@@ -67,6 +69,7 @@ export class ListingsService {
 
   async create(userId: string, body: CreateListingDto) {
     await this.accessService.assertSellerReady(userId);
+    await this.validateReferenceOptions(body);
     const listingId = await this.dataSource.transaction(async (manager) => {
       const slug = await generateListingSlug(manager, body.year, body.make, body.model);
       const vehicle = manager.create(VehicleEntity, {
@@ -117,6 +120,7 @@ export class ListingsService {
 
   async upsertSpecs(userId: string, listingId: string, body: UpsertListingSpecsDto) {
     const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
+    await this.validateReferenceOptions(body);
     const specs = listing.specs ?? this.specsRepository.create({ vehicleId: listing.id });
     Object.assign(specs, normalizeSpecs(body));
     await this.specsRepository.save(specs);
@@ -221,6 +225,16 @@ export class ListingsService {
       changesNote: listing.changesNote,
       updatedAt: listing.updatedAt.toISOString(),
     };
+  }
+
+  private async validateReferenceOptions(body: UpsertListingSpecsDto) {
+    await Promise.all([
+      this.referenceDataService.assertActive("BODY_TYPE", [body.bodyType]),
+      this.referenceDataService.assertActive("FUEL_TYPE", [body.fuelType]),
+      this.referenceDataService.assertActive("TRANSMISSION_TYPE", [body.transmission]),
+      this.referenceDataService.assertActive("DRIVE_TYPE", [body.driveType]),
+      this.referenceDataService.assertActive("CONDITION_GRADE", [body.condition]),
+    ]);
   }
 
   private async toDetailDto(listing: VehicleEntity) {

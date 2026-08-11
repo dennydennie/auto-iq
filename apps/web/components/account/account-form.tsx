@@ -9,7 +9,7 @@ import type {
   UpdateMeRequest,
   VehiclePurpose,
 } from "@auto-iq/contracts/identity";
-import type { FuelType, TransmissionType } from "@auto-iq/contracts/enums";
+import type { ReferenceDataResponse, ReferenceOptionDto } from "@auto-iq/contracts/reference-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ type FormState = {
   email: string;
   phone: string;
   preferredMakes: string;
-  preferredBodyTypes: string;
+  preferredBodyTypes: string[];
   vehiclePurpose: string;
   searchRadiusKm: string;
   deliveryPreference: string;
@@ -39,7 +39,7 @@ type FormState = {
   businessName: string;
 };
 
-type ChoiceField = "preferredFuelTypes" | "preferredTransmissions";
+type ChoiceField = "preferredBodyTypes" | "preferredFuelTypes" | "preferredTransmissions";
 type TextField = Exclude<keyof FormState, ChoiceField>;
 
 const PURPOSE_OPTIONS = [
@@ -60,10 +60,7 @@ const PAYMENT_OPTIONS = [
   { value: "FINANCE", label: "Finance" },
   { value: "EITHER", label: "Cash or finance" },
 ];
-const FUEL_OPTIONS = ["PETROL", "DIESEL", "HYBRID", "ELECTRIC", "OTHER"];
-const TRANSMISSION_OPTIONS = ["AUTOMATIC", "MANUAL", "CVT", "DSG"];
-
-export function AccountForm({ profile }: { profile: MeResponse }) {
+export function AccountForm({ profile, referenceData }: { profile: MeResponse; referenceData: ReferenceDataResponse }) {
   const [form, setForm] = useState(() => toFormState(profile));
   const [message, setMessage] = useState("");
   const [error, setError] = useState<{ message: string; correlationId?: string } | null>(null);
@@ -127,7 +124,7 @@ export function AccountForm({ profile }: { profile: MeResponse }) {
       </Card>
 
       {profile.buyerProfile ? (
-        <BuyerPreferences form={form} updateField={updateField} toggleChoice={toggleChoice} />
+        <BuyerPreferences form={form} referenceData={referenceData} updateField={updateField} toggleChoice={toggleChoice} />
       ) : null}
       {profile.sellerProfile ? (
         <Card>
@@ -150,7 +147,7 @@ export function AccountForm({ profile }: { profile: MeResponse }) {
   );
 }
 
-function BuyerPreferences({ form, updateField, toggleChoice }: { form: FormState; updateField: (field: TextField, value: string) => void; toggleChoice: (field: ChoiceField, value: string) => void }) {
+function BuyerPreferences({ form, referenceData, updateField, toggleChoice }: { form: FormState; referenceData: ReferenceDataResponse; updateField: (field: TextField, value: string) => void; toggleChoice: (field: ChoiceField, value: string) => void }) {
   return (
     <>
       <Card>
@@ -174,9 +171,9 @@ function BuyerPreferences({ form, updateField, toggleChoice }: { form: FormState
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
           <Field label="Preferred makes" name="preferredMakes" value={form.preferredMakes} onChange={updateField} placeholder="Toyota, Honda, Nissan" />
-          <Field label="Preferred body types" name="preferredBodyTypes" value={form.preferredBodyTypes} onChange={updateField} placeholder="SUV, Sedan, Bakkie" />
-          <ChoiceGroup label="Fuel types" name="preferredFuelTypes" values={form.preferredFuelTypes} options={FUEL_OPTIONS} onToggle={toggleChoice} />
-          <ChoiceGroup label="Transmissions" name="preferredTransmissions" values={form.preferredTransmissions} options={TRANSMISSION_OPTIONS} onToggle={toggleChoice} />
+          <ChoiceGroup label="Body types" name="preferredBodyTypes" values={form.preferredBodyTypes} options={referenceData.bodyTypes} onToggle={toggleChoice} />
+          <ChoiceGroup label="Fuel types" name="preferredFuelTypes" values={form.preferredFuelTypes} options={referenceData.fuelTypes} onToggle={toggleChoice} />
+          <ChoiceGroup label="Transmissions" name="preferredTransmissions" values={form.preferredTransmissions} options={referenceData.transmissionTypes} onToggle={toggleChoice} />
           <Field label="Minimum seats" name="minSeats" value={form.minSeats} onChange={updateField} type="number" min="1" max="100" step="1" />
           <Field label="Maximum mileage (km)" name="maxMileageKm" value={form.maxMileageKm} onChange={updateField} type="number" min="0" max="10000000" step="1" />
           <Field label="Minimum year" name="yearMin" value={form.yearMin} onChange={updateField} type="number" min="1886" max="2200" step="1" />
@@ -210,15 +207,15 @@ function SelectField({ label, name, value, onChange, options }: { label: string;
   );
 }
 
-function ChoiceGroup({ label, name, values, options, onToggle }: { label: string; name: ChoiceField; values: string[]; options: string[]; onToggle: (field: ChoiceField, value: string) => void }) {
+function ChoiceGroup({ label, name, values, options, onToggle }: { label: string; name: ChoiceField; values: string[]; options: ReferenceOptionDto[]; onToggle: (field: ChoiceField, value: string) => void }) {
   return (
     <fieldset className="space-y-2">
       <legend className="text-sm font-semibold text-[var(--ink-900)]">{label}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
-          <label key={option} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-[var(--ink-200)] px-3 text-sm">
-            <input type="checkbox" checked={values.includes(option)} onChange={() => onToggle(name, option)} />
-            {labelize(option)}
+          <label key={option.value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-[var(--ink-200)] px-3 text-sm">
+            <input type="checkbox" checked={values.includes(option.value)} onChange={() => onToggle(name, option.value)} />
+            {option.label}
           </label>
         ))}
       </div>
@@ -246,7 +243,7 @@ function toFormState(profile: MeResponse): FormState {
     deliveryPreference: profile.buyerProfile?.deliveryPreference ?? "",
     paymentPreference: profile.buyerProfile?.paymentPreference ?? "",
     preferredMakes: profile.buyerProfile?.preferredMakes.join(", ") ?? "",
-    preferredBodyTypes: profile.buyerProfile?.preferredBodyTypes.join(", ") ?? "",
+    preferredBodyTypes: profile.buyerProfile?.preferredBodyTypes ?? [],
     preferredFuelTypes: profile.buyerProfile?.preferredFuelTypes ?? [],
     preferredTransmissions: profile.buyerProfile?.preferredTransmissions ?? [],
     minSeats: profile.buyerProfile?.minSeats?.toString() ?? "",
@@ -267,9 +264,9 @@ function toRequest(form: FormState, profile: MeResponse): UpdateMeRequest {
     payload.deliveryPreference = choiceValue<DeliveryPreference>(form.deliveryPreference);
     payload.paymentPreference = choiceValue<PaymentPreference>(form.paymentPreference);
     payload.preferredMakes = commaList(form.preferredMakes);
-    payload.preferredBodyTypes = commaList(form.preferredBodyTypes);
-    payload.preferredFuelTypes = form.preferredFuelTypes as FuelType[];
-    payload.preferredTransmissions = form.preferredTransmissions as TransmissionType[];
+    payload.preferredBodyTypes = form.preferredBodyTypes;
+    payload.preferredFuelTypes = form.preferredFuelTypes;
+    payload.preferredTransmissions = form.preferredTransmissions;
     payload.minSeats = integerValue(form.minSeats);
     payload.maxMileageKm = integerValue(form.maxMileageKm);
     payload.yearMin = integerValue(form.yearMin);
@@ -333,8 +330,4 @@ function validateInteger(value: string, field: string, min: number, max: number)
   return Number.isInteger(parsed) && parsed >= min && parsed <= max
     ? ""
     : `${field} must be between ${min} and ${max}.`;
-}
-
-function labelize(value: string) {
-  return value.toLowerCase().split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }

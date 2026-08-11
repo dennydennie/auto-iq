@@ -7,13 +7,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import type {
-  BodyType,
-  ConditionGrade,
-  DriveType,
-  FuelType,
-  TransmissionType,
-} from "../../common/constants/listing.constants";
 import { VehicleEntity } from "./vehicle.entity";
 
 @Entity({ name: "vehicle_specs" })
@@ -34,19 +27,19 @@ export class VehicleSpecsEntity {
   year!: number;
 
   @Column({ name: "body_type", type: "text" })
-  bodyType!: BodyType;
+  bodyType!: string;
 
   @Column({ type: "text" })
   colour!: string;
 
   @Column({ name: "fuel_type", type: "text" })
-  fuelType!: FuelType;
+  fuelType!: string;
 
   @Column({ type: "text" })
-  transmission!: TransmissionType;
+  transmission!: string;
 
   @Column({ name: "drive_type", type: "text" })
-  driveType!: DriveType;
+  driveType!: string;
 
   @Column({ name: "engine_capacity", type: "text", nullable: true })
   engineCapacity!: string | null;
@@ -55,7 +48,7 @@ export class VehicleSpecsEntity {
   mileageKm!: number;
 
   @Column({ type: "text" })
-  condition!: ConditionGrade;
+  condition!: string;
 
   @Column({ name: "has_accident_history", type: "boolean", default: false })
   hasAccidentHistory!: boolean;

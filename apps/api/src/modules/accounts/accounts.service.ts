@@ -4,12 +4,14 @@ import { SellerProfileRepository } from "../../db/repository/seller-profile.repo
 import { UserRepository } from "../../db/repository/user.repository";
 import { toMeResponse } from "./account.mapper";
 import { UpdateMeDto } from "./dto/accounts.dto";
+import { ReferenceDataService } from "../reference-data/reference-data.service";
 
 @Injectable()
 export class AccountsService {
   constructor(
     private readonly buyerProfileRepository: BuyerProfileRepository,
     private readonly sellerProfileRepository: SellerProfileRepository,
+    private readonly referenceDataService: ReferenceDataService,
     private readonly userRepository: UserRepository,
   ) {}
 
@@ -26,6 +28,11 @@ export class AccountsService {
     if (!user) {
       throw new NotFoundException({ code: "RESOURCE_NOT_FOUND", message: "User not found" });
     }
+    await Promise.all([
+      this.referenceDataService.assertActive("BODY_TYPE", body.preferredBodyTypes ?? []),
+      this.referenceDataService.assertActive("FUEL_TYPE", body.preferredFuelTypes ?? []),
+      this.referenceDataService.assertActive("TRANSMISSION_TYPE", body.preferredTransmissions ?? []),
+    ]);
 
     const nextFullName = body.fullName === undefined ? user.fullName : text(body.fullName, "Full name");
     const nextCity = body.city === undefined ? user.city : text(body.city, "City");
