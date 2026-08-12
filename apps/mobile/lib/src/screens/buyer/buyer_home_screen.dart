@@ -14,6 +14,7 @@ import '../../models/reference_data.dart';
 import '../../repositories/buyer_repository.dart';
 import '../../state/session_controller.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/account_deletion_card.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/vehicle_image.dart';
@@ -1570,6 +1571,8 @@ class _BuyerAccountTabState extends State<_BuyerAccountTab> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        const AccountDeletionCard(),
       ],
     );
   }

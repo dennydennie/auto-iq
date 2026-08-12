@@ -31,7 +31,11 @@ jobs:
           node --test
           scripts/mobile/assert-committed-source.test.mjs
           scripts/mobile/assert-release-apk.test.mjs
+          scripts/mobile/assert-play-bundle.test.mjs
           scripts/mobile/ci-workflow.test.mjs
+
+      - name: Check Google Play source readiness
+        run: node scripts/check-google-play-readiness.mjs
 
       - name: Install mobile dependencies
         run: flutter pub get --enforce-lockfile

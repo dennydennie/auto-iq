@@ -12,6 +12,8 @@ class ApiRoutes {
 
   static const meProfile = '$_base/me';
   static const meConsents = '$_base/me/consents';
+  static const meAccountDeletionRequests =
+      '$_base/me/account-deletion-requests';
   static const meSavedVehicles = '$_base/me/saved-vehicles';
   static const meQuotes = '$_base/me/quotes';
   static const meVehicleRequests = '$_base/me/vehicle-requests';

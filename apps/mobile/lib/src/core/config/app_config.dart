@@ -12,6 +12,11 @@ class AppConfig {
       _assertProductionScheme(normalized);
       return normalized;
     }
+    if (kReleaseMode) {
+      throw StateError(
+        'AUTO_IQ_API_BASE_URL is required for release builds.',
+      );
+    }
     return 'https://api-staging-bdfe.up.railway.app';
   }
 

@@ -51,11 +51,25 @@ void main() {
       'newPassword': 'Secure123',
     });
   });
+
+  test('account deletion uses CSRF and clears the local session', () async {
+    final apiClient = _RecordingApiClient();
+    final repository = AuthRepository(apiClient);
+
+    await repository.requestAccountDeletion();
+
+    expect(apiClient.path, '/api/v1/me/account-deletion-requests');
+    expect(apiClient.body, {'client': 'MOBILE'});
+    expect(apiClient.includeCsrf, isTrue);
+    expect(apiClient.sessionCleared, isTrue);
+  });
 }
 
 class _RecordingApiClient implements ApiClient {
   String? path;
   dynamic body;
+  bool includeCsrf = false;
+  bool sessionCleared = false;
 
   @override
   Future<T> postJson<T>(
@@ -66,11 +80,14 @@ class _RecordingApiClient implements ApiClient {
   }) async {
     this.path = path;
     this.body = body;
+    this.includeCsrf = includeCsrf;
     return parser(null);
   }
 
   @override
-  Future<void> clearSession() => throw UnimplementedError();
+  Future<void> clearSession() async {
+    sessionCleared = true;
+  }
 
   @override
   Future<void> delete(String path, {bool includeCsrf = false}) =>

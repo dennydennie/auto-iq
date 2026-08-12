@@ -9,6 +9,8 @@ const STATIC_ROUTES = [
   "/vehicles",
   "/buy-a-car",
   "/sell-my-car",
+  "/privacy",
+  "/account-deletion",
   "/auth/login",
   "/auth/signup",
 ] as const;

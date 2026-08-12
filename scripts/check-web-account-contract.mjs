@@ -19,9 +19,21 @@ const form = read(formPath);
 
 assert(existsSync(resolve(root, pagePath)), "the /account page is missing");
 assert(existsSync(resolve(root, formPath)), "the account form is missing");
-assert(layout.includes('href: "/account"') && layout.includes('label: "Account"'), "navigation does not include Account");
-assert(route.includes("export async function PATCH") && route.includes("issueRemoteCsrfToken"), "PATCH proxy is not CSRF protected");
-assert(route.includes("ROUTES.me.profile") && route.includes("csrfToken"), "PATCH proxy does not forward the session route and CSRF token");
+assert(
+  layout.includes('href: "/account"') &&
+    (layout.includes('label: "Account"') ||
+      layout.includes('messageKey: "nav.account"')),
+  "navigation does not include Account",
+);
+assert(
+  route.includes("export async function PATCH") &&
+    route.includes("issueRemoteCsrfToken"),
+  "PATCH proxy is not CSRF protected",
+);
+assert(
+  route.includes("ROUTES.me.profile") && route.includes("csrfToken"),
+  "PATCH proxy does not forward the session route and CSRF token",
+);
 
 for (const field of [
   "fullName",
@@ -45,6 +57,14 @@ for (const field of [
   assert(form.includes(field), `form field ${field} is not wired`);
 }
 
-assert(form.includes('patchJson<MeResponse>("/api/me"'), "form does not submit through the web proxy");
-assert(form.includes("readOnly") && form.includes("emailVerified") && form.includes("phoneVerified"), "contact verification fields are not read-only and status-aware");
+assert(
+  form.includes('patchJson<MeResponse>("/api/me"'),
+  "form does not submit through the web proxy",
+);
+assert(
+  form.includes("readOnly") &&
+    form.includes("emailVerified") &&
+    form.includes("phoneVerified"),
+  "contact verification fields are not read-only and status-aware",
+);
 console.log("Account contract checks passed.");

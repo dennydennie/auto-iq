@@ -12,6 +12,8 @@ test("CI analyzes, tests, and compiles the mobile app", () => {
   assert.match(workflow, /flutter analyze/);
   assert.match(workflow, /flutter test/);
   assert.match(workflow, /flutter build apk --debug/);
+  assert.match(workflow, /assert-play-bundle\.test\.mjs/);
+  assert.match(workflow, /check-google-play-readiness\.mjs/);
 });
 
 test("CI installs pnpm before setup-node configures its cache", () => {

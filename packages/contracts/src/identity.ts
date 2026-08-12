@@ -187,6 +187,23 @@ export interface UpdateMeRequest {
   businessName?: string | null;
 }
 
+export interface AccountDeletionRequest {
+  client: "MOBILE" | "WEB";
+  /** Optional context to help the support team process the request. */
+  reason?: string;
+}
+
+export interface PublicAccountDeletionRequest {
+  email: string;
+  /** Optional context to help the support team process the request. */
+  reason?: string;
+}
+
+export interface AccountDeletionRequestResponse {
+  /** Always true when the request has been accepted for processing. */
+  accepted: true;
+}
+
 // ─── Consents ─────────────────────────────────────────────────────────────────
 
 export interface RecordConsentRequest {

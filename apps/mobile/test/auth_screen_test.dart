@@ -106,6 +106,9 @@ class _PendingVerificationSession extends ChangeNotifier
   Future<void> logout() async {}
 
   @override
+  Future<void> requestAccountDeletion() async {}
+
+  @override
   Future<void> refreshProfile() async {}
 
   @override
@@ -130,6 +133,11 @@ class _UnusedAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> requestAccountDeletion() {
     throw UnimplementedError();
   }
 

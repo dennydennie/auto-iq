@@ -23,6 +23,8 @@ const FOOTER_GROUPS = [
     links: [
       ["About us", "/about"],
       ["How it works", "/about#verification"],
+      ["Privacy", "/privacy"],
+      ["Delete account", "/account-deletion"],
       ["Create an account", "/auth/signup"],
     ],
   },

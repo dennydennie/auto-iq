@@ -42,3 +42,21 @@ flutter run \
 ```
 
 The release helper forwards the same three `AUTO_IQ_SENTRY_*` environment variables when `AUTO_IQ_SENTRY_DSN` is present. Default PII and request bodies are disabled. A real staging event and native symbol upload remain deployment evidence; do not record a successful Sentry smoke until the event appears in the configured project.
+
+## Google Play bundle
+
+Production Android builds require a dedicated upload key. Keep the keystore and
+passwords outside Git and provide them through these environment variables:
+
+```bash
+export AUTO_IQ_ANDROID_KEYSTORE_PATH=/secure/path/autoiq-upload.jks
+export AUTO_IQ_ANDROID_KEYSTORE_PASSWORD='...'
+export AUTO_IQ_ANDROID_KEY_ALIAS=autoiq-upload
+export AUTO_IQ_ANDROID_KEY_PASSWORD='...'
+./scripts/mobile/build-play-bundle.sh https://api.production.example
+```
+
+The Play builder rejects staging, local, and placeholder API origins. It also
+checks the package, version, target SDK, cleartext policy, arm64 binary, API
+origin, account-deletion route, and signing certificate before reporting a
+successful artifact.

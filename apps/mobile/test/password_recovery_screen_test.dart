@@ -130,6 +130,9 @@ class _RecordingAuthRepository implements AuthRepository {
   Future<void> logout() => throw UnimplementedError();
 
   @override
+  Future<void> requestAccountDeletion() => throw UnimplementedError();
+
+  @override
   Future<AppUser> me() => throw UnimplementedError();
 
   @override

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { AccountDeletionRequestEntity } from "./entity/account-deletion-request.entity";
 import { AuditLogEntity } from "./entity/audit-log.entity";
 import { AdminActionLogEntity } from "./entity/admin-action-log.entity";
 import { ApprovedViewingLocationEntity } from "./entity/approved-viewing-location.entity";
@@ -28,6 +29,7 @@ import { VehicleStatusHistoryEntity } from "./entity/vehicle-status-history.enti
 import { VehicleEntity } from "./entity/vehicle.entity";
 import { ViewingAppointmentEntity } from "./entity/viewing-appointment.entity";
 import { ViewingParticipantEntity } from "./entity/viewing-participant.entity";
+import { AccountDeletionRequestRepository } from "./repository/account-deletion-request.repository";
 import { AuditLogRepository } from "./repository/audit-log.repository";
 import { AdminActionLogRepository } from "./repository/admin-action-log.repository";
 import { ApprovedViewingLocationRepository } from "./repository/approved-viewing-location.repository";
@@ -56,6 +58,7 @@ import { ViewingAppointmentRepository } from "./repository/viewing-appointment.r
 import { ViewingParticipantRepository } from "./repository/viewing-participant.repository";
 
 const ENTITIES = [
+  AccountDeletionRequestEntity,
   UserEntity,
   UserRoleEntity,
   UserConsentEntity,
@@ -87,6 +90,7 @@ const ENTITIES = [
 ];
 
 const REPOSITORIES = [
+  AccountDeletionRequestRepository,
   UserRepository,
   UserRoleRepository,
   UserConsentRepository,

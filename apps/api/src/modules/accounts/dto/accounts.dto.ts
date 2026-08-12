@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsEmail,
   IsIn,
   IsInt,
   IsNumber,
@@ -118,11 +119,37 @@ export class UpdateMeDto {
 
 export class RecordConsentDto {
   @IsIn(["TERMS", "PRIVACY", "SELLER_RULES", "BUYER_RULES", "NO_SIDE_DEAL"])
-  consentType!: "TERMS" | "PRIVACY" | "SELLER_RULES" | "BUYER_RULES" | "NO_SIDE_DEAL";
+  consentType!:
+    | "TERMS"
+    | "PRIVACY"
+    | "SELLER_RULES"
+    | "BUYER_RULES"
+    | "NO_SIDE_DEAL";
 
   @Matches(/^\d+\.\d+\.\d+$/)
   version!: string;
 
   @IsBoolean()
   accepted!: true;
+}
+
+export class AccountDeletionRequestDto {
+  @IsIn(["MOBILE", "WEB"])
+  client!: "MOBILE" | "WEB";
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
+export class PublicAccountDeletionRequestDto {
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }

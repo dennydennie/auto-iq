@@ -35,6 +35,11 @@ class AutoIqLocalizations {
   String get requests => _read('requests');
   String get viewings => _read('viewings');
   String get account => _read('account');
+  String get deleteAccount => _read('deleteAccount');
+  String get deleteAccountDescription => _read('deleteAccountDescription');
+  String get deleteAccountConfirmation => _read('deleteAccountConfirmation');
+  String get requestAccountDeletion => _read('requestAccountDeletion');
+  String get cancel => _read('cancel');
   String get catalogueUnavailable => _read('catalogueUnavailable');
   String get catalogueUnavailableMessage =>
       _read('catalogueUnavailableMessage');
@@ -103,6 +108,13 @@ const _messages = <String, Map<String, String>>{
     'requests': 'Requests',
     'viewings': 'Viewings',
     'account': 'Account',
+    'deleteAccount': 'Delete account',
+    'deleteAccountDescription':
+        'Request deletion of your AutoIQ account and associated personal data.',
+    'deleteAccountConfirmation':
+        'This sends a deletion request and signs you out. The team may contact you to verify account ownership.',
+    'requestAccountDeletion': 'Send deletion request',
+    'cancel': 'Cancel',
     'catalogueUnavailable': 'Catalogue unavailable',
     'catalogueUnavailableMessage': 'Check the local API and refresh the app.',
     'retry': 'Retry',
@@ -137,6 +149,13 @@ const _messages = <String, Map<String, String>>{
     'requests': 'Zvikumbiro',
     'viewings': 'Kuona mota',
     'account': 'Akaundi',
+    'deleteAccount': 'Dzima akaundi',
+    'deleteAccountDescription':
+        'Kumbira kudzima akaundi yako yeAutoIQ nedata rako.',
+    'deleteAccountConfirmation':
+        'Izvi zvinotumira chikumbiro chekudzima uye zvinokuburitsa muakaundi. Chikwata chinogona kukubata kuti chisimbise kuti akaundi ndeyako.',
+    'requestAccountDeletion': 'Tumira chikumbiro',
+    'cancel': 'Kanzura',
     'catalogueUnavailable': 'Mota hadzisi kuwanikwa',
     'catalogueUnavailableMessage': 'Tarisa API wozovandudza app.',
     'retry': 'Edza zvakare',
@@ -170,6 +189,13 @@ const _messages = <String, Map<String, String>>{
     'requests': 'الطلبات',
     'viewings': 'المعاينات',
     'account': 'الحساب',
+    'deleteAccount': 'حذف الحساب',
+    'deleteAccountDescription':
+        'اطلب حذف حساب AutoIQ والبيانات الشخصية المرتبطة به.',
+    'deleteAccountConfirmation':
+        'سيؤدي هذا إلى إرسال طلب حذف وتسجيل خروجك. قد يتواصل معك الفريق للتحقق من ملكية الحساب.',
+    'requestAccountDeletion': 'إرسال طلب الحذف',
+    'cancel': 'إلغاء',
     'catalogueUnavailable': 'الكتالوج غير متاح',
     'catalogueUnavailableMessage': 'تحقق من واجهة API ثم حدّث التطبيق.',
     'retry': 'إعادة المحاولة',

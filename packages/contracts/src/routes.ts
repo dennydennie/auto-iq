@@ -26,9 +26,14 @@ export const ROUTES = {
   me: {
     profile: `${BASE}/me`,
     consents: `${BASE}/me/consents`,
+    accountDeletionRequests: `${BASE}/me/account-deletion-requests`,
     savedVehicles: `${BASE}/me/saved-vehicles`,
     savedVehicle: (listingId: string) =>
       `${BASE}/me/saved-vehicles/${listingId}`,
+  },
+
+  accountDeletionRequests: {
+    create: `${BASE}/account-deletion-requests`,
   },
 
   // ─── Reference data ────────────────────────────────────────────────────────

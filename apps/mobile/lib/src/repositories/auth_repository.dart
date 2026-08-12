@@ -119,6 +119,16 @@ class AuthRepository {
     await _apiClient.clearSession();
   }
 
+  Future<void> requestAccountDeletion() async {
+    await _apiClient.postJson<void>(
+      ApiRoutes.meAccountDeletionRequests,
+      const {'client': 'MOBILE'},
+      (_) {},
+      includeCsrf: true,
+    );
+    await _apiClient.clearSession();
+  }
+
   Future<void> sendOtp({required String identifier, String? phone}) async {
     await _apiClient.postJson<void>(
         ApiRoutes.authSendOtp,

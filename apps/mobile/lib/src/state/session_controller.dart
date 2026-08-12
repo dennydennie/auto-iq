@@ -70,6 +70,14 @@ class SessionController extends ChangeNotifier {
     });
   }
 
+  Future<void> requestAccountDeletion() async {
+    await _runBusy(() async {
+      await _authRepository.requestAccountDeletion();
+      _user = null;
+      _referenceData = null;
+    });
+  }
+
   Future<void> refreshProfile() async {
     await _runBusy(_hydrate);
   }

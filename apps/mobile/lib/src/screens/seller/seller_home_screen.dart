@@ -9,6 +9,7 @@ import '../../models/seller_models.dart';
 import '../../repositories/seller_repository.dart';
 import '../../state/session_controller.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/account_deletion_card.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/vehicle_image.dart';
@@ -382,6 +383,8 @@ class _SellerAccountTabState extends State<_SellerAccountTab> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        const AccountDeletionCard(),
       ],
     );
   }

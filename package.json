@@ -19,6 +19,7 @@
     "check:web-ui-consistency": "node scripts/check-web-ui-consistency.mjs",
     "check:web-page-widths": "node scripts/check-web-page-widths.mjs",
     "check:reference-catalogue": "node scripts/check-reference-catalogue.mjs",
+    "check:google-play-readiness": "node scripts/check-google-play-readiness.mjs",
     "check:admin-secondary": "node scripts/check-admin-secondary-pages.mjs",
     "check:e2e-coverage": "node scripts/check-e2e-coverage.mjs",
     "dev": "turbo run dev --parallel",
