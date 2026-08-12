@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   BadgeCheck,
@@ -36,36 +37,19 @@ const PROOF_ITEMS = [
 
 const SELLER_BODY_TYPES = ["SUV", "Bakkie", "Sedan", "Hatch"] as const;
 
-function HeroCarIllustration() {
+function HeroVehiclePhoto() {
   return (
-    <div className="relative mx-auto w-full max-w-[620px]" aria-hidden="true">
-      <svg viewBox="0 0 640 390" className="relative z-10 w-full drop-shadow-[0_30px_25px_rgba(0,0,0,0.28)]">
-        <defs>
-          <linearGradient id="auto-iq-car" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stopColor="#FFD95A" />
-            <stop offset="0.5" stopColor="#FFC72C" />
-            <stop offset="1" stopColor="#E49A00" />
-          </linearGradient>
-          <linearGradient id="auto-iq-glass" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stopColor="#D8EEFF" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#8EA6C8" stopOpacity="0.5" />
-          </linearGradient>
-        </defs>
-        <path d="M34 332C125 302 165 248 259 245c111-3 156 38 347 31" fill="none" stroke="#F47B20" strokeLinecap="round" strokeWidth="28" />
-        <path d="M175 238c17-37 36-67 70-90l58-39c15-10 34-15 52-15h78c22 0 40 8 57 23l70 62c11 10 24 16 39 19l37 8c12 3 21 14 21 26v20H188c-11 0-18-10-13-14Z" fill="url(#auto-iq-car)" stroke="#0A1E4D" strokeWidth="7" />
-        <path d="M292 108l-40 32h75l25-48h73c18 0 31 4 42 14l39 34H320Z" fill="url(#auto-iq-glass)" stroke="#0A1E4D" strokeWidth="6" />
-        <path d="M394 95v45h74" fill="none" stroke="#0A1E4D" strokeWidth="5" />
-        <path d="M175 238h352" fill="none" stroke="#FFF1B8" strokeWidth="8" />
-        <path d="M515 198h54" fill="none" stroke="#FFF" strokeLinecap="round" strokeWidth="7" />
-        <path d="M182 204h31" fill="none" stroke="#0A1E4D" strokeLinecap="round" strokeWidth="8" />
-        <circle cx="255" cy="250" r="43" fill="#0A1E4D" stroke="#D6DAE5" strokeWidth="8" />
-        <circle cx="255" cy="250" r="17" fill="#FFC72C" />
-        <circle cx="525" cy="250" r="43" fill="#0A1E4D" stroke="#D6DAE5" strokeWidth="8" />
-        <circle cx="525" cy="250" r="17" fill="#FFC72C" />
-        <path d="M585 184l23 8v22l-25-1Z" fill="#F47B20" />
-        <path d="M169 189l-25 8v22l29-1Z" fill="#FFF1B8" />
-      </svg>
-      <div className="absolute bottom-5 left-1/2 h-10 w-2/3 -translate-x-1/2 rounded-full bg-black/25 blur-2xl" />
+    <div className="relative mx-auto h-[280px] w-full max-w-[620px] overflow-hidden rounded-[2rem] border border-white/15 bg-[#081638] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)] sm:h-[360px] lg:h-[410px]">
+      <Image
+        src="/images/honda-vezel-hero.jpg"
+        alt="Honda Vezel Hybrid photographed at a motor show"
+        fill
+        priority
+        sizes="(min-width: 1024px) 50vw, 100vw"
+        className="object-cover object-center"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#051438]/65 via-transparent to-transparent" aria-hidden="true" />
+      <p className="absolute bottom-4 left-4 rounded-full border border-white/20 bg-[#051438]/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white">Honda Vezel</p>
     </div>
   );
 }
@@ -254,7 +238,7 @@ export function HomeLanding() {
               <Link href="/buy-a-car" className={buttonVariants({ variant: "default", className: "border border-white/20 bg-white/10 px-6 text-white hover:bg-white/15" })}>Buy a car <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
-          <HeroCarIllustration />
+          <HeroVehiclePhoto />
         </div>
         <div className="relative z-20 mx-auto -mb-44 mt-6 max-w-5xl"><SearchCard /></div>
       </section>
