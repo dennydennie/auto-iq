@@ -94,7 +94,7 @@ test("public landing and mobile navigation remain responsive", async ({
 }) => {
   await page.goto("/");
   const heroImage = page.getByRole("img", {
-    name: "Honda Vezel Hybrid photographed at a motor show",
+    name: "Blue Honda Vezel Hybrid, front three-quarter view",
   });
   await expect(heroImage).toBeVisible();
   await expect

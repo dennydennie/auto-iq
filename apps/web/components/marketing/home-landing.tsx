@@ -19,9 +19,6 @@ import {
 } from "@/components/marketplace/vehicle-search-form";
 import { buttonVariants } from "@/components/ui/button";
 
-const HERO_BLUR =
-  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCAyNCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjI0IiBmaWxsPSIjMTAxYTM4Ii8+PHBhdGggZD0iTTAgMjQgNDAgNHYyMHoiIGZpbGw9IiMyNzM1NmEiLz48L3N2Zz4=";
-
 const TRUST_ITEMS = [
   {
     icon: BadgeCheck,
@@ -84,24 +81,15 @@ const SELLER_BODY_TYPES = ["SUV", "Bakkie", "Sedan", "Hatch"] as const;
 
 function HeroVehiclePhoto() {
   return (
-    <div className="relative mx-auto h-[280px] w-full max-w-[620px] overflow-hidden rounded-[2rem] border border-white/15 bg-[#081638] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)] sm:h-[360px] lg:h-[410px]">
+    <div className="relative mx-auto h-[260px] w-full max-w-[700px] sm:h-[360px] lg:h-[430px]">
       <Image
-        src="/images/honda-vezel-hero.jpg"
-        alt="Honda Vezel Hybrid photographed at a motor show"
+        src="/images/honda-vezel-cutout.png"
+        alt="Blue Honda Vezel Hybrid, front three-quarter view"
         fill
         priority
-        placeholder="blur"
-        blurDataURL={HERO_BLUR}
         sizes="(min-width: 1024px) 50vw, 100vw"
-        className="object-cover object-center"
+        className="object-contain object-center drop-shadow-[0_28px_30px_rgba(0,0,0,0.35)]"
       />
-      <div
-        className="absolute inset-0 bg-gradient-to-t from-[#051438]/65 via-transparent to-transparent"
-        aria-hidden="true"
-      />
-      <p className="absolute bottom-4 left-4 rounded-full border border-white/20 bg-[#051438]/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white">
-        Honda Vezel
-      </p>
     </div>
   );
 }
@@ -419,52 +407,54 @@ export function HomeLanding({
 }) {
   return (
     <main>
-      <section className="relative overflow-x-hidden bg-[linear-gradient(135deg,#051438_0%,#0A1E4D_56%,#18233E_100%)] pb-12 pt-12 text-white sm:pt-16">
-        <div
-          className="absolute -right-40 top-20 h-96 w-96 rounded-full bg-[var(--amber)]/10 blur-3xl"
-          aria-hidden="true"
-        />
-        <PageContainer className="relative grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-          <div className="relative z-20">
-            <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber)]">
-              Zimbabwe&apos;s trust-first vehicle marketplace
-            </p>
-            <h1 className="display mt-6 max-w-3xl text-5xl leading-[0.94] sm:text-7xl">
-              Your next car. Your next move.
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
-              Buy and sell vehicles with the facts up front, structured
-              requests, and a clear path from search to handover.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/sell-my-car"
-                className={buttonVariants({
-                  variant: "amber",
-                  className: "px-6",
-                })}
-              >
-                Sell my car <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/buy-a-car"
-                className={buttonVariants({
-                  variant: "default",
-                  className:
-                    "border border-white/20 bg-white/10 px-6 text-white hover:bg-white/15",
-                })}
-              >
-                Buy a car <ArrowRight className="h-4 w-4" />
-              </Link>
+      <div className="flex flex-col bg-[var(--ink-900)] lg:min-h-[calc(100svh-4.25rem)]">
+        <section className="relative flex flex-1 flex-col justify-center overflow-x-hidden bg-[linear-gradient(135deg,#051438_0%,#0A1E4D_56%,#18233E_100%)] py-10 text-white sm:py-12">
+          <div
+            className="absolute -right-40 top-20 h-96 w-96 rounded-full bg-[var(--amber)]/10 blur-3xl"
+            aria-hidden="true"
+          />
+          <PageContainer className="relative grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div className="relative z-20">
+              <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber)]">
+                Zimbabwe&apos;s trust-first vehicle marketplace
+              </p>
+              <h1 className="display mt-6 max-w-3xl text-5xl leading-[0.94] sm:text-7xl">
+                Your next car. Your next move.
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
+                Buy and sell vehicles with the facts up front, structured
+                requests, and a clear path from search to handover.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/sell-my-car"
+                  className={buttonVariants({
+                    variant: "amber",
+                    className: "px-6",
+                  })}
+                >
+                  Sell my car <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/buy-a-car"
+                  className={buttonVariants({
+                    variant: "default",
+                    className:
+                      "border border-white/20 bg-white/10 px-6 text-white hover:bg-white/15",
+                  })}
+                >
+                  Buy a car <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
-          </div>
-          <HeroVehiclePhoto />
-        </PageContainer>
-        <PageContainer size="content" className="relative z-20 mt-8">
-          <VehicleSearchForm options={searchOptions} />
-        </PageContainer>
-      </section>
-      <TrustStrip />
+            <HeroVehiclePhoto />
+          </PageContainer>
+          <PageContainer size="content" className="relative z-20 mt-8">
+            <VehicleSearchForm options={searchOptions} />
+          </PageContainer>
+        </section>
+        <TrustStrip />
+      </div>
       <MoveOptions />
       <HowItWorks />
       <ProofGrid />

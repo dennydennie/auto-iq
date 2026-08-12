@@ -7,7 +7,7 @@ const source = readFileSync(
   join(root, "apps/web/components/marketing/home-landing.tsx"),
   "utf8",
 );
-const heroPhoto = join(root, "apps/web/public/images/honda-vezel-hero.jpg");
+const heroCutout = join(root, "apps/web/public/images/honda-vezel-cutout.png");
 const required = [
   "ProofGrid",
   "TrustJourney",
@@ -18,11 +18,20 @@ const required = [
   "One protected account",
   "Confidence comes with the vehicle.",
   "List your car with confidence.",
-  "/images/honda-vezel-hero.jpg",
+  "/images/honda-vezel-cutout.png",
+  "object-contain",
+  "lg:min-h-[calc(100svh-4.25rem)]",
 ];
 const missing = required.filter((fragment) => !source.includes(fragment));
-if (!existsSync(heroPhoto))
-  missing.push("apps/web/public/images/honda-vezel-hero.jpg");
+if (!existsSync(heroCutout))
+  missing.push("apps/web/public/images/honda-vezel-cutout.png");
+if (existsSync(heroCutout)) {
+  const png = readFileSync(heroCutout);
+  const colourType = png[25];
+  if (colourType !== 4 && colourType !== 6) {
+    missing.push("an alpha channel in honda-vezel-cutout.png");
+  }
+}
 if (missing.length) {
   console.error(missing.map((fragment) => `- missing ${fragment}`).join("\n"));
   process.exit(1);
