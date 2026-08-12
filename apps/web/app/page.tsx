@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
+import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
+import { ROUTES } from "@auto-iq/contracts/routes";
 import { HomeLanding } from "@/components/marketing/home-landing";
 import { SiteHeader } from "@/components/shared/site-header";
 import { absoluteSiteUrl } from "@/lib/site-url";
-
-const links = [
-  { href: "/buy-a-car", messageKey: "nav.buy" as const },
-  { href: "/sell-my-car", messageKey: "nav.sell" as const },
-  { href: "/vehicles", messageKey: "nav.browse" as const },
-];
+import { PUBLIC_SITE_LINKS } from "@/lib/site-navigation";
+import { getPublicJson, isServerApiFailure } from "@/lib/server-api";
 
 export const metadata: Metadata = {
   title: "Your next car. Your next move.",
@@ -23,15 +21,36 @@ const siteNavigationJsonLd = {
   url: [absoluteSiteUrl("/buy-a-car"), absoluteSiteUrl("/sell-my-car")],
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const referenceResult = await getPublicJson<ReferenceDataResponse>(
+    ROUTES.referenceData.all,
+  );
+  const searchOptions = isServerApiFailure(referenceResult)
+    ? { makes: [], cities: [] }
+    : {
+        makes: referenceResult.data.makes.map((make) => make.name),
+        cities: [
+          ...new Set(
+            referenceResult.data.viewingLocations.map(
+              (location) => location.city,
+            ),
+          ),
+        ],
+      };
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(siteNavigationJsonLd),
+        }}
       />
-      <SiteHeader links={links} homeHref="/" primaryCta={{ href: "/auth/login", messageKey: "auth.signIn" }} variant="underline" />
-      <HomeLanding />
+      <SiteHeader
+        links={PUBLIC_SITE_LINKS}
+        homeHref="/"
+        primaryCta={{ href: "/auth/login", messageKey: "auth.signIn" }}
+      />
+      <HomeLanding searchOptions={searchOptions} />
     </>
   );
 }

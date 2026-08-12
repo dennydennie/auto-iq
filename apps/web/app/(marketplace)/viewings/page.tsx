@@ -81,7 +81,7 @@ export default async function BuyerViewingsPage({
           icon={CalendarClock}
           headline="No viewings requested"
           body="Open a vehicle detail page and request a viewing at a BiSell-approved location."
-          cta={{ label: "Browse catalogue", href: "/vehicles" }}
+          cta={{ label: "Browse vehicles", href: "/vehicles" }}
         />
       ) : (
         <div className="space-y-4">

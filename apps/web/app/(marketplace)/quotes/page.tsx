@@ -90,7 +90,7 @@ export default async function BuyerQuotesPage({
           icon={MessageSquareQuote}
           headline="No quotes yet"
           body="Open a vehicle detail page and use the Request a quote form to send your first offer."
-          cta={{ label: "Browse catalogue", href: "/vehicles" }}
+          cta={{ label: "Browse vehicles", href: "/vehicles" }}
         />
       ) : (
         <div className="space-y-4">

@@ -16,6 +16,7 @@ import {
   ProcessStep,
   SectionIntro,
 } from "@/components/marketing/funnel-primitives";
+import { PageContainer } from "@/components/shared/page-container";
 import { buttonVariants } from "@/components/ui/button";
 
 const SELL_STAGES = [
@@ -127,8 +128,8 @@ function SellActionPanel() {
 
 function SellHero() {
   return (
-    <section className="bg-[linear-gradient(180deg,#f7f8fb_0%,#eef1f7_100%)] px-4 pb-12 pt-10 sm:px-6 lg:px-8 lg:pb-16">
-      <div className="mx-auto max-w-7xl">
+    <section className="bg-[linear-gradient(180deg,#f7f8fb_0%,#eef1f7_100%)] pb-12 pt-10 lg:pb-16">
+      <PageContainer>
         <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
           <div className="pb-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber-dark)]">
@@ -163,15 +164,15 @@ function SellHero() {
             <SellActionPanel />
           </div>
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }
 
 function SellerGuide() {
   return (
-    <section className="px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <section className="py-[var(--section-space)]">
+      <PageContainer>
         <SectionIntro
           eyebrow="How it works"
           title="A clear path from draft to buyer interest"
@@ -194,7 +195,7 @@ function SellerGuide() {
             description="Resolve the checklist, submit to Auto IQ, and manage buyer requests after publication."
           />
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }
@@ -207,8 +208,8 @@ function SellerPreparation() {
     "Ownership and identity documents requested by the review checklist",
   ];
   return (
-    <section className="bg-white px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-2">
+    <section className="bg-white py-[var(--section-space)]">
+      <PageContainer className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-[1.75rem] bg-[var(--ink-900)] p-6 text-white sm:p-8">
           <ShieldCheck
             className="h-7 w-7 text-[var(--amber)]"
@@ -270,15 +271,15 @@ function SellerPreparation() {
             ))}
           </ul>
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }
 
 function SellerFaqs() {
   return (
-    <section className="px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
+    <section className="py-[var(--section-space)]">
+      <PageContainer size="content">
         <SectionIntro
           eyebrow="Questions"
           title="Know what to expect before you start"
@@ -305,7 +306,7 @@ function SellerFaqs() {
             </details>
           ))}
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }

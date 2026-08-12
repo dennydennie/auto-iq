@@ -3,17 +3,13 @@ import type { MeResponse } from "@auto-iq/contracts/identity";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { SellCarFunnel } from "@/components/marketing/sell-car-funnel";
 import { SiteHeader } from "@/components/shared/site-header";
+import { SiteFooter } from "@/components/shared/site-footer";
 import { getOptionalSessionJson } from "@/lib/server-api";
 import { absoluteSiteUrl } from "@/lib/site-url";
-
-const links = [
-  { href: "/buy-a-car", messageKey: "nav.buy" as const },
-  { href: "/sell-my-car", messageKey: "nav.sell" as const },
-  { href: "/vehicles", messageKey: "nav.browse" as const },
-];
+import { PUBLIC_SITE_LINKS } from "@/lib/site-navigation";
 
 export const metadata: Metadata = {
-  title: "Sell my car in Zimbabwe | BiSell AutoIQ",
+  title: "Sell my car in Zimbabwe",
   description:
     "List your vehicle with photos, documents, review status, and protected buyer interactions on BiSell AutoIQ.",
   alternates: { canonical: absoluteSiteUrl("/sell-my-car") },
@@ -34,15 +30,17 @@ export default async function SellMyCarPage() {
   return (
     <>
       <SiteHeader
-        links={links}
+        links={PUBLIC_SITE_LINKS}
         homeHref="/"
         primaryCta={
-          signedIn ? undefined : { href: "/auth/login", messageKey: "auth.signIn" }
+          signedIn
+            ? undefined
+            : { href: "/auth/login", messageKey: "auth.signIn" }
         }
         signedIn={signedIn}
-        variant="underline"
       />
       <SellCarFunnel />
+      <SiteFooter />
     </>
   );
 }

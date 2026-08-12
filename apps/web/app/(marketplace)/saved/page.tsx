@@ -54,7 +54,7 @@ export default async function SavedPage() {
           icon={Heart}
           headline="No saved vehicles yet"
           body="Tap the heart on any listing to save it. Come back here to compare or continue where you left off."
-          cta={{ label: "Browse catalogue", href: "/vehicles" }}
+          cta={{ label: "Browse vehicles", href: "/vehicles" }}
         />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

@@ -8,8 +8,6 @@ import {
   ClipboardCheck,
   LayoutGrid,
   LockKeyhole,
-  MapPin,
-  Search,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -19,6 +17,11 @@ import {
   TrustItem,
 } from "@/components/marketing/funnel-primitives";
 import { VehicleCard } from "@/components/marketplace/vehicle-card";
+import {
+  VehicleSearchForm,
+  type VehicleSearchOptions,
+} from "@/components/marketplace/vehicle-search-form";
+import { PageContainer } from "@/components/shared/page-container";
 import { buttonVariants } from "@/components/ui/button";
 
 const CATEGORIES = [
@@ -45,7 +48,7 @@ const TRUST_ITEMS = [
   },
   {
     icon: ShieldCheck,
-    title: "Verified sellers",
+    title: "Seller verification",
     description:
       "Use clear verification signals to compare marketplace listings.",
   },
@@ -79,46 +82,6 @@ function CategoryRail() {
   );
 }
 
-function SearchPanel() {
-  return (
-    <form
-      action="/vehicles"
-      className="mt-3 grid gap-3 rounded-2xl bg-white p-3 shadow-[0_20px_50px_-35px_rgba(10,30,77,0.6)] md:grid-cols-[1fr_1fr_auto]"
-    >
-      <label className="relative block">
-        <span className="sr-only">Vehicle make</span>
-        <Search
-          className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]"
-          aria-hidden="true"
-        />
-        <input
-          name="make"
-          placeholder="Search make, for example Toyota"
-          className="h-12 w-full rounded-xl border border-[var(--ink-200)] bg-white pl-11 pr-4 text-sm text-[var(--ink-900)] outline-none transition placeholder:text-[var(--ink-400)] focus:border-[var(--amber-dark)] focus:ring-2 focus:ring-[var(--amber)]/25"
-        />
-      </label>
-      <label className="relative block">
-        <span className="sr-only">City</span>
-        <MapPin
-          className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]"
-          aria-hidden="true"
-        />
-        <input
-          name="city"
-          placeholder="City, for example Harare"
-          className="h-12 w-full rounded-xl border border-[var(--ink-200)] bg-white pl-11 pr-4 text-sm text-[var(--ink-900)] outline-none transition placeholder:text-[var(--ink-400)] focus:border-[var(--amber-dark)] focus:ring-2 focus:ring-[var(--amber)]/25"
-        />
-      </label>
-      <button
-        className={buttonVariants({ variant: "amber", className: "h-12 px-7" })}
-      >
-        <Search className="h-4 w-4" aria-hidden="true" />
-        Search cars
-      </button>
-    </form>
-  );
-}
-
 function BudgetLinks() {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-white/70">
@@ -142,10 +105,10 @@ function BudgetLinks() {
   );
 }
 
-function BuyHero() {
+function BuyHero({ searchOptions }: { searchOptions: VehicleSearchOptions }) {
   return (
-    <section className="bg-[linear-gradient(180deg,#f7f8fb_0%,#eef1f7_100%)] px-4 pb-10 pt-10 sm:px-6 lg:px-8 lg:pb-14">
-      <div className="mx-auto max-w-7xl">
+    <section className="bg-[linear-gradient(180deg,#f7f8fb_0%,#eef1f7_100%)] pb-10 pt-10 lg:pb-14">
+      <PageContainer>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber-dark)]">
           Buy a car
         </p>
@@ -153,22 +116,22 @@ function BuyHero() {
           Find your next car with the facts up front.
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--ink-500)]">
-          Search inspected marketplace listings, compare seller trust signals,
-          and keep every viewing or quote request in one secure place.
+          Search marketplace listings, compare inspection and seller trust
+          signals, and keep every viewing or quote request in one secure place.
         </p>
         <div className="mt-8 rounded-[1.75rem] bg-[linear-gradient(145deg,#18233e_0%,#0a1e4d_100%)] p-4 shadow-[0_30px_80px_-45px_rgba(10,30,77,0.85)] sm:p-5">
           <CategoryRail />
-          <SearchPanel />
+          <VehicleSearchForm options={searchOptions} className="mt-3" />
           <BudgetLinks />
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }
 
 function VehiclePreview({ listings, signedIn }: BuyCarFunnelProps) {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <PageContainer as="section" className="py-[var(--section-space)]">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <SectionIntro
           eyebrow="Fresh inventory"
@@ -182,7 +145,7 @@ function VehiclePreview({ listings, signedIn }: BuyCarFunnelProps) {
             className: "shrink-0",
           })}
         >
-          Browse all vehicles <ArrowRight className="h-4 w-4" />
+          Browse vehicles <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
       {listings.length > 0 ? (
@@ -212,14 +175,14 @@ function VehiclePreview({ listings, signedIn }: BuyCarFunnelProps) {
           </Link>
         </div>
       )}
-    </section>
+    </PageContainer>
   );
 }
 
 function BuyerGuide() {
   return (
-    <section className="bg-white px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <section className="bg-white py-[var(--section-space)]">
+      <PageContainer>
         <SectionIntro
           eyebrow="Simple by design"
           title="From search to viewing in three clear steps"
@@ -242,7 +205,7 @@ function BuyerGuide() {
             description="Sign in to request a quote or viewing and keep the conversation tied to the listing."
           />
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }
@@ -250,18 +213,19 @@ function BuyerGuide() {
 export type BuyCarFunnelProps = {
   listings: PublicListingCardDto[];
   signedIn: boolean;
+  searchOptions: VehicleSearchOptions;
 };
 
 export function BuyCarFunnel(props: BuyCarFunnelProps) {
   return (
     <main>
-      <BuyHero />
-      <section className="bg-[var(--ink-900)] px-4 py-5 sm:px-6 lg:px-8">
-        <ul className="mx-auto grid max-w-7xl gap-3 md:grid-cols-3">
+      <BuyHero searchOptions={props.searchOptions} />
+      <section className="bg-[var(--ink-900)] py-5">
+        <PageContainer as="ul" className="grid gap-3 md:grid-cols-3">
           {TRUST_ITEMS.map((item) => (
             <TrustItem key={item.title} {...item} />
           ))}
-        </ul>
+        </PageContainer>
       </section>
       <VehiclePreview {...props} />
       <BuyerGuide />

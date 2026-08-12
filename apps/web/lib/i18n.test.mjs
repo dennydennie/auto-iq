@@ -17,9 +17,15 @@ test("resolves supported locales and falls back to launch English", () => {
 });
 
 test("formats ICU-style plural messages with locale-aware counts", () => {
-  assert.equal(translate("en-ZW", "catalogue.resultCount", { count: 1 }), "1 vehicle");
-  assert.equal(translate("en-ZW", "catalogue.resultCount", { count: 12 }), "12 vehicles");
-  assert.equal(translate("sn-ZW", "nav.browse"), "Tsvaga");
+  assert.equal(
+    translate("en-ZW", "catalogue.resultCount", { count: 1 }),
+    "1 vehicle",
+  );
+  assert.equal(
+    translate("en-ZW", "catalogue.resultCount", { count: 12 }),
+    "12 vehicles",
+  );
+  assert.equal(translate("sn-ZW", "nav.browse"), "Tsvaga mota");
 });
 
 test("exposes RTL direction for Arabic", () => {
@@ -28,7 +34,10 @@ test("exposes RTL direction for Arabic", () => {
 });
 
 test("keeps locale redirects on the current origin", () => {
-  assert.equal(normalizeReturnPath("/vehicles?make=Toyota"), "/vehicles?make=Toyota");
+  assert.equal(
+    normalizeReturnPath("/vehicles?make=Toyota"),
+    "/vehicles?make=Toyota",
+  );
   assert.equal(normalizeReturnPath("https://example.com"), "/");
   assert.equal(normalizeReturnPath("//example.com"), "/");
   assert.equal(normalizeReturnPath("/\\example.com"), "/");

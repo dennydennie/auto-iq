@@ -2,16 +2,12 @@ import type { ReactNode } from "react";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { SiteHeader } from "@/components/shared/site-header";
+import { SiteFooter } from "@/components/shared/site-footer";
 import { getOptionalSessionJson } from "@/lib/server-api";
-
-const GUEST_LINKS = [
-  { href: "/buy-a-car", messageKey: "nav.buy" as const },
-  { href: "/sell-my-car", messageKey: "nav.sell" as const },
-  { href: "/vehicles", messageKey: "nav.browse" as const },
-];
+import { PUBLIC_SITE_LINKS } from "@/lib/site-navigation";
 
 const AUTHED_LINKS = [
-  { href: "/vehicles", messageKey: "nav.buy" as const },
+  { href: "/vehicles", messageKey: "nav.browseVehicles" as const },
   { href: "/saved", messageKey: "nav.saved" as const },
   { href: "/quotes", messageKey: "nav.quotes" as const },
   { href: "/requests", messageKey: "nav.requests" as const },
@@ -31,14 +27,17 @@ export default async function MarketplaceLayout({
   return (
     <>
       <SiteHeader
-        links={signedIn ? AUTHED_LINKS : GUEST_LINKS}
+        links={signedIn ? AUTHED_LINKS : PUBLIC_SITE_LINKS}
         homeHref={signedIn ? "/vehicles" : "/"}
         primaryCta={
-          signedIn ? undefined : { href: "/auth/login", messageKey: "auth.signIn" }
+          signedIn
+            ? undefined
+            : { href: "/auth/login", messageKey: "auth.signIn" }
         }
         signedIn={signedIn}
       />
       {children}
+      {signedIn ? null : <SiteFooter />}
     </>
   );
 }

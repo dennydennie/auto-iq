@@ -16,7 +16,9 @@ const EN_MESSAGES = {
   "nav.mobilePrimary": "Mobile primary navigation",
   "nav.buy": "Buy a car",
   "nav.sell": "Sell my car",
-  "nav.browse": "Browse",
+  "nav.browse": "Browse vehicles",
+  "nav.browseVehicles": "Browse vehicles",
+  "nav.howItWorks": "How it works",
   "nav.saved": "Saved",
   "nav.quotes": "Quotes",
   "nav.requests": "Requests",
@@ -34,7 +36,8 @@ const EN_MESSAGES = {
   "auth.signOutError": "Couldn't sign out",
   "menu.open": "Open menu",
   "menu.close": "Close menu",
-  "catalogue.resultCount": "{count, plural, one {# vehicle} other {# vehicles}}",
+  "catalogue.resultCount":
+    "{count, plural, one {# vehicle} other {# vehicles}}",
 } as const;
 
 export type MessageKey = keyof typeof EN_MESSAGES;
@@ -49,7 +52,9 @@ const SN_MESSAGES: Record<MessageKey, string> = {
   "nav.mobilePrimary": "Kufamba kukuru kwefoni",
   "nav.buy": "Tenga mota",
   "nav.sell": "Tengesa mota yangu",
-  "nav.browse": "Tsvaga",
+  "nav.browse": "Tsvaga mota",
+  "nav.browseVehicles": "Tsvaga mota",
+  "nav.howItWorks": "Mashandiro azvinoita",
   "nav.saved": "Zvakachengetwa",
   "nav.quotes": "Mitengo",
   "nav.requests": "Zvikumbiro",
@@ -80,7 +85,9 @@ const AR_MESSAGES: Record<MessageKey, string> = {
   "nav.mobilePrimary": "التنقل الرئيسي للجوال",
   "nav.buy": "شراء سيارة",
   "nav.sell": "بيع سيارتي",
-  "nav.browse": "تصفح",
+  "nav.browse": "تصفح المركبات",
+  "nav.browseVehicles": "تصفح المركبات",
+  "nav.howItWorks": "كيف يعمل",
   "nav.saved": "المحفوظات",
   "nav.quotes": "العروض",
   "nav.requests": "الطلبات",
@@ -108,7 +115,11 @@ const MESSAGES: Record<AppLocale, Record<MessageKey, string>> = {
 };
 
 export function resolveLocale(value?: string | null): AppLocale {
-  const requested = value?.split(",", 1)[0]?.split(";", 1)[0]?.trim().toLowerCase();
+  const requested = value
+    ?.split(",", 1)[0]
+    ?.split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
   if (requested?.startsWith("sn")) return "sn-ZW";
   if (requested?.startsWith("ar")) return "ar";
   return DEFAULT_LOCALE;
@@ -120,7 +131,8 @@ export function localeDirection(locale: AppLocale): TextDirection {
 
 export function normalizeReturnPath(value: unknown) {
   if (typeof value !== "string") return "/";
-  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\"))
+    return "/";
   return value;
 }
 
@@ -135,11 +147,23 @@ export function translate(
   );
 }
 
-function replacePlurals(message: string, locale: AppLocale, values: MessageValues) {
-  const pattern = /\{(\w+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\}/g;
-  return message.replace(pattern, (_, name: string, one: string, other: string) => {
-    const count = Number(values[name] ?? 0);
-    const template = new Intl.PluralRules(locale).select(count) === "one" ? one : other;
-    return template.replaceAll("#", new Intl.NumberFormat(locale).format(count));
-  });
+function replacePlurals(
+  message: string,
+  locale: AppLocale,
+  values: MessageValues,
+) {
+  const pattern =
+    /\{(\w+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\}/g;
+  return message.replace(
+    pattern,
+    (_, name: string, one: string, other: string) => {
+      const count = Number(values[name] ?? 0);
+      const template =
+        new Intl.PluralRules(locale).select(count) === "one" ? one : other;
+      return template.replaceAll(
+        "#",
+        new Intl.NumberFormat(locale).format(count),
+      );
+    },
+  );
 }

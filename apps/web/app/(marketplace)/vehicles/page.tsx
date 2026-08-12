@@ -9,25 +9,21 @@ import type { MeResponse } from "@auto-iq/contracts/identity";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
-import {
-  Lock,
-  Search,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-} from "lucide-react";
+import { Lock, Search, ShieldCheck, Sparkles } from "lucide-react";
 import {
   FilterSidebar,
   type CatalogueFilterState,
 } from "@/components/marketplace/filter-sidebar";
+import { MobileFilterDrawer } from "@/components/marketplace/mobile-filter-drawer";
+import { VehicleSearchForm } from "@/components/marketplace/vehicle-search-form";
 import { VehicleCard } from "@/components/marketplace/vehicle-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
   getOptionalSessionJson,
@@ -136,23 +132,41 @@ export default async function VehiclesPage({
         ok: true as const,
         data: [] as CatalogueModelFacetsResponse,
       });
-  const [catalogueResult, meResult, savedResult, makesResult, modelsResult, referenceResult] =
-    await Promise.all([
-      getPublicJson<CatalogueResponse>(cataloguePath),
-      getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
-      getOptionalSessionJson<
-        SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>
-      >(ROUTES.me.savedVehicles),
-      getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
-      modelFacets,
-      getPublicJson<ReferenceDataResponse>(ROUTES.referenceData.all),
-    ]);
+  const [
+    catalogueResult,
+    meResult,
+    savedResult,
+    makesResult,
+    modelsResult,
+    referenceResult,
+  ] = await Promise.all([
+    getPublicJson<CatalogueResponse>(cataloguePath),
+    getOptionalSessionJson<MeResponse>(ROUTES.me.profile),
+    getOptionalSessionJson<
+      SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>
+    >(ROUTES.me.savedVehicles),
+    getPublicJson<CatalogueMakeFacetsResponse>(ROUTES.catalogue.makeFacets),
+    modelFacets,
+    getPublicJson<ReferenceDataResponse>(ROUTES.referenceData.all),
+  ]);
 
   const makes = !isServerApiFailure(makesResult) ? makesResult.data : [];
   const models = !isServerApiFailure(modelsResult) ? modelsResult.data : [];
   const referenceData = !isServerApiFailure(referenceResult)
     ? referenceResult.data
     : { bodyTypes: [], fuelTypes: [], transmissionTypes: [] };
+  const searchOptions = isServerApiFailure(referenceResult)
+    ? { makes: [], cities: [] }
+    : {
+        makes: referenceResult.data.makes.map((make) => make.name),
+        cities: [
+          ...new Set(
+            referenceResult.data.viewingLocations.map(
+              (location) => location.city,
+            ),
+          ),
+        ],
+      };
 
   const buyerSignedIn =
     meResult !== null && meResult.ok && meResult.data.roles.includes("BUYER");
@@ -233,33 +247,23 @@ export default async function VehiclesPage({
   const returnHref = listQuery ? `/vehicles?${listQuery}` : "/vehicles";
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <PageContainer as="main" className="pb-20 pt-6">
       {buyerSignedIn ? (
         // Compact workspace-style header for returning buyers
-        <PageHeader
-          eyebrow="Live catalogue"
-          title="Browse vehicles"
-          description="Filter by make, city, price, year, and more. Contact a seller directly from any listing."
-          actions={
-            <form className="flex items-center gap-2">
-              <input type="hidden" name="sortBy" value={filters.sortBy} />
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
-                <Input
-                  name="make"
-                  defaultValue={filters.make}
-                  placeholder="Search make"
-                  className="h-10 pl-9"
-                />
-              </div>
-              <button
-                className={buttonVariants({ variant: "amber", size: "sm" })}
-              >
-                Search
-              </button>
-            </form>
-          }
-        />
+        <div>
+          <PageHeader
+            eyebrow="Live catalogue"
+            title="Browse vehicles"
+            description="Filter by make, city, price, year, and more. Contact a seller directly from any listing."
+          />
+          <VehicleSearchForm
+            options={searchOptions}
+            defaultMake={filters.make}
+            defaultCity={filters.city}
+            sortBy={filters.sortBy}
+            className="mt-5 max-w-4xl"
+          />
+        </div>
       ) : (
         // Full marketing hero for first-time visitors — this is the landing surface
         <section className="relative overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_top_right,rgba(255,205,83,0.22),transparent_40%),linear-gradient(180deg,#18233e_0%,#0a1e4d_100%)] px-6 py-8 text-white shadow-[0_30px_100px_-40px_rgba(10,30,77,0.65)] sm:px-10 sm:py-10">
@@ -272,42 +276,20 @@ export default async function VehiclesPage({
                 Live catalogue
               </Badge>
               <h1 className="display mt-4 text-3xl leading-tight text-white sm:text-4xl lg:text-5xl">
-                Inspected vehicles. Verified sellers.
+                Vehicle facts. Clear trust signals.
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/72">
                 Browse every available vehicle on BiSell AutoIQ. Seller contact
                 details and viewing bookings unlock when you sign in.
               </p>
 
-              <form className="mt-5 flex w-full max-w-2xl flex-col gap-2 sm:flex-row">
-                <input type="hidden" name="sortBy" value={filters.sortBy} />
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
-                  <Input
-                    name="make"
-                    defaultValue={filters.make}
-                    placeholder="Search make (e.g. Toyota)"
-                    className="h-11 border-none bg-white pl-9 text-[var(--ink-900)] placeholder:text-[var(--ink-400)]"
-                  />
-                </div>
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-400)]" />
-                  <Input
-                    name="city"
-                    defaultValue={filters.city}
-                    placeholder="City (e.g. Harare)"
-                    className="h-11 border-none bg-white pl-9 text-[var(--ink-900)] placeholder:text-[var(--ink-400)]"
-                  />
-                </div>
-                <button
-                  className={buttonVariants({
-                    variant: "amber",
-                    className: "h-11 px-6",
-                  })}
-                >
-                  Search
-                </button>
-              </form>
+              <VehicleSearchForm
+                options={searchOptions}
+                defaultMake={filters.make}
+                defaultCity={filters.city}
+                sortBy={filters.sortBy}
+                className="mt-5 max-w-2xl"
+              />
 
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-white/55">
@@ -343,21 +325,25 @@ export default async function VehiclesPage({
                   className="h-4 w-4 shrink-0 text-[#FFC72C]"
                   aria-hidden="true"
                 />
-                <span className="text-white/80">Every listing inspected</span>
+                <span className="text-white/80">
+                  Inspection context where available
+                </span>
               </li>
               <li className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                 <Sparkles
                   className="h-4 w-4 shrink-0 text-[#FFC72C]"
                   aria-hidden="true"
                 />
-                <span className="text-white/80">Verified sellers only</span>
+                <span className="text-white/80">Seller verification shown</span>
               </li>
               <li className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                 <Lock
                   className="h-4 w-4 shrink-0 text-[#FFC72C]"
                   aria-hidden="true"
                 />
-                <span className="text-white/80">Spam-free contact</span>
+                <span className="text-white/80">
+                  Protected in-platform contact
+                </span>
               </li>
             </ul>
           </div>
@@ -374,6 +360,8 @@ export default async function VehiclesPage({
               clearHref="/vehicles"
               makes={makes}
               models={models}
+              makeOptions={searchOptions.makes}
+              cities={searchOptions.cities}
               referenceData={referenceData}
               buildMakeHref={(make) =>
                 vehiclesHref({ make, model: "", cursor: "" }, filters)
@@ -386,30 +374,23 @@ export default async function VehiclesPage({
           {/* Mobile filter trigger + toolbar */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <details className="relative lg:hidden">
-                <summary
-                  className={buttonVariants({
-                    variant: "outline",
-                    className: "cursor-pointer list-none",
-                  })}
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filters{filterCount > 0 ? ` (${filterCount})` : ""}
-                </summary>
-                <div className="absolute left-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))]">
+              <div className="lg:hidden">
+                <MobileFilterDrawer filterCount={filterCount}>
                   <FilterSidebar
                     idPrefix="mobile-filter"
                     filters={filters}
                     clearHref="/vehicles"
                     makes={makes}
                     models={models}
+                    makeOptions={searchOptions.makes}
+                    cities={searchOptions.cities}
                     referenceData={referenceData}
                     buildMakeHref={(make) =>
                       vehiclesHref({ make, model: "", cursor: "" }, filters)
                     }
                   />
-                </div>
-              </details>
+                </MobileFilterDrawer>
+              </div>
               <p className="text-sm text-[var(--ink-500)]">
                 {isServerApiFailure(catalogueResult) ? (
                   "Unable to load results"
@@ -426,7 +407,7 @@ export default async function VehiclesPage({
               </p>
             </div>
 
-            <form className="flex items-center gap-2">
+            <form className="flex w-full items-end gap-2 sm:w-auto">
               <input type="hidden" name="make" value={filters.make} />
               <input type="hidden" name="city" value={filters.city} />
               <input type="hidden" name="bodyType" value={filters.bodyType} />
@@ -448,25 +429,25 @@ export default async function VehiclesPage({
               />
               <label
                 htmlFor="sort-by"
-                className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]"
+                className="flex min-w-0 flex-1 flex-col gap-1.5 sm:w-48"
               >
-                Sort by
+                <span className="text-xs font-medium text-[var(--ink-500)]">
+                  Sort vehicles
+                </span>
+                <Select
+                  id="sort-by"
+                  name="sortBy"
+                  defaultValue={filters.sortBy}
+                  className="h-11"
+                >
+                  <option value="publishedAt">Newest first</option>
+                  <option value="askPriceUsd">Price</option>
+                  <option value="year">Year</option>
+                  <option value="inspectionScore">Inspection score</option>
+                </Select>
               </label>
-              <Select
-                id="sort-by"
-                name="sortBy"
-                defaultValue={filters.sortBy}
-                className="h-10"
-              >
-                <option value="publishedAt">Newest</option>
-                <option value="askPriceUsd">Price</option>
-                <option value="year">Year</option>
-                <option value="inspectionScore">Inspection score</option>
-              </Select>
-              <button
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Apply
+              <button className={buttonVariants({ variant: "outline" })}>
+                Update
               </button>
             </form>
           </div>
@@ -530,6 +511,6 @@ export default async function VehiclesPage({
           )}
         </div>
       </div>
-    </main>
+    </PageContainer>
   );
 }

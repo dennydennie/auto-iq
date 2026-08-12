@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { PageContainer } from "@/components/shared/page-container";
+import { useOverlayDialog } from "@/components/shared/use-overlay-dialog";
 import { useLocale } from "@/components/shared/locale-provider";
 import { LocaleSwitcher } from "@/components/shared/locale-switcher";
 import { BiSellLogo } from "@/components/ui/bisell-logo";
@@ -16,6 +18,7 @@ export type SiteHeaderLink = {
   href: string;
   label?: string;
   messageKey?: MessageKey;
+  activePaths?: string[];
 };
 
 export type SiteHeaderProps = {
@@ -24,14 +27,18 @@ export type SiteHeaderProps = {
   homeHref?: string;
   /** When true, show a Sign out button instead of the sign-in CTA. */
   signedIn?: boolean;
-  variant?: "pill" | "underline";
 };
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/";
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
+function matchesPath(pathname: string, href: string) {
+  return href === "/"
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isActive(pathname: string, link: SiteHeaderLink) {
+  return [link.href, ...(link.activePaths ?? [])].some((href) =>
+    matchesPath(pathname, href),
+  );
 }
 
 export function SiteHeader({
@@ -39,15 +46,21 @@ export function SiteHeader({
   primaryCta,
   homeHref = "/",
   signedIn,
-  variant = "pill",
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
   const { t } = useLocale();
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }, []);
+  useOverlayDialog(isOpen, menuRef, closeMenu);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/70 bg-[var(--paper)]/92 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <PageContainer className="flex items-center justify-between gap-4 py-3">
         <Link
           href={homeHref}
           className="inline-flex items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-[0_16px_36px_-28px_rgba(22,31,58,0.4)]"
@@ -55,9 +68,12 @@ export function SiteHeader({
           <BiSellLogo size={24} />
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label={t("nav.primary")}>
+        <nav
+          className="hidden items-center gap-1 lg:flex"
+          aria-label={t("nav.primary")}
+        >
           {links.map((link) => {
-            const active = isActive(pathname, link.href);
+            const active = isActive(pathname, link);
             return (
               <Link
                 key={link.href}
@@ -65,14 +81,9 @@ export function SiteHeader({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-xl px-3.5 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)]",
-                  variant === "underline" && "rounded-none border-b-2 px-3.5",
-                  active && variant === "underline"
-                    ? "border-[var(--amber)] text-[var(--ink-900)]"
-                    : active
-                      ? "bg-[var(--ink-900)] text-white"
-                      : variant === "underline"
-                        ? "border-transparent text-[var(--ink-500)] hover:border-[var(--ink-200)] hover:text-[var(--ink-900)]"
-                        : "text-[var(--ink-500)] hover:bg-white hover:text-[var(--ink-900)]",
+                  active
+                    ? "bg-[var(--ink-900)] text-white"
+                    : "text-[var(--ink-500)] hover:bg-white hover:text-[var(--ink-900)]",
                 )}
               >
                 {link.messageKey ? t(link.messageKey) : link.label}
@@ -100,11 +111,14 @@ export function SiteHeader({
                 className: "hidden sm:inline-flex",
               })}
             >
-              {primaryCta.messageKey ? t(primaryCta.messageKey) : primaryCta.label}
+              {primaryCta.messageKey
+                ? t(primaryCta.messageKey)
+                : primaryCta.label}
             </Link>
           ) : null}
 
           <button
+            ref={triggerRef}
             type="button"
             aria-controls="site-header-mobile-nav"
             aria-expanded={isOpen}
@@ -115,24 +129,28 @@ export function SiteHeader({
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
-      </div>
+      </PageContainer>
 
       {isOpen ? (
         <div
           className="fixed inset-0 z-30 bg-[rgba(10,30,77,0.28)] lg:hidden"
-          onClick={() => setIsOpen(false)}
+          onMouseDown={closeMenu}
         >
           <aside
+            ref={menuRef}
             id="site-header-mobile-nav"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("nav.mobilePrimary")}
             className="absolute inset-x-4 top-20 rounded-[1.75rem] border border-white/70 bg-white p-4 shadow-[0_32px_80px_-40px_rgba(22,31,58,0.45)]"
-            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <nav className="grid gap-2" aria-label={t("nav.mobilePrimary")}>
               <div className="mb-2 border-b border-[var(--ink-100)] pb-3">
                 <LocaleSwitcher />
               </div>
               {links.map((link) => {
-                const active = isActive(pathname, link.href);
+                const active = isActive(pathname, link);
                 return (
                   <Link
                     key={link.href}
@@ -164,7 +182,9 @@ export function SiteHeader({
                     className: "mt-2 justify-center",
                   })}
                 >
-                  {primaryCta.messageKey ? t(primaryCta.messageKey) : primaryCta.label}
+                  {primaryCta.messageKey
+                    ? t(primaryCta.messageKey)
+                    : primaryCta.label}
                 </Link>
               ) : null}
             </nav>

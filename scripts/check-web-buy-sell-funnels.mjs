@@ -19,6 +19,9 @@ function assertIncludes(source, expected, message) {
 
 const buyPage = read("apps/web/app/buy-a-car/page.tsx");
 const buyFunnel = read("apps/web/components/marketing/buy-car-funnel.tsx");
+const vehicleSearch = read(
+  "apps/web/components/marketplace/vehicle-search-form.tsx",
+);
 
 assertIncludes(
   buyPage,
@@ -42,8 +45,13 @@ assertIncludes(
 );
 assertIncludes(
   buyFunnel,
+  "VehicleSearchForm",
+  "Buy search must reuse the shared vehicle search form.",
+);
+assertIncludes(
+  vehicleSearch,
   'action="/vehicles"',
-  "Buy search must submit to the catalogue.",
+  "Shared vehicle search must submit to the catalogue.",
 );
 assertIncludes(
   buyFunnel,
@@ -85,8 +93,8 @@ assertIncludes(
 );
 assertIncludes(
   sellPage,
-  'variant="underline"',
-  "Sell page must use the marketing header treatment.",
+  "PUBLIC_SITE_LINKS",
+  "Sell page must use the shared public navigation.",
 );
 assertIncludes(
   sellFunnel,
@@ -135,7 +143,7 @@ assertIncludes(
 );
 assertIncludes(
   newListingPage,
-  "BODY_TYPES.includes",
+  "referenceData.bodyTypes.some",
   "Listing entry must validate body-type deep links.",
 );
 assertIncludes(

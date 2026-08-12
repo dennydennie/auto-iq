@@ -11,14 +11,16 @@ export default function NotFound() {
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-400)]">
         404
       </p>
-      <h1 className="display mt-2 text-3xl text-[var(--ink-900)]">Page not found</h1>
+      <h1 className="display mt-2 text-3xl text-[var(--ink-900)]">
+        Page not found
+      </h1>
       <p className="mt-3 max-w-md text-sm leading-6 text-[var(--ink-500)]">
-        The link you followed may be broken, or the vehicle you&apos;re looking for might
-        have been delisted.
+        The link you followed may be broken, or the vehicle you&apos;re looking
+        for might have been delisted.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/" className={buttonVariants({ variant: "amber" })}>
-          Browse catalogue
+          Browse vehicles
         </Link>
         <Link href="/about" className={buttonVariants({ variant: "outline" })}>
           What is BiSell AutoIQ?

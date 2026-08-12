@@ -61,6 +61,8 @@ export function FilterSidebar({
   clearHref,
   makes,
   models,
+  makeOptions = [],
+  cities = [],
   buildMakeHref,
   referenceData,
   idPrefix = "filter",
@@ -72,6 +74,10 @@ export function FilterSidebar({
   makes?: CatalogueMakeFacet[];
   /** API-backed models for the selected make. */
   models?: CatalogueModelFacet[];
+  /** Tenant-configured make values for the primary dropdown. */
+  makeOptions?: string[];
+  /** Tenant-configured cities for marketplace search. */
+  cities?: string[];
   /** Builds the Shop-by-make link for a given make value. */
   buildMakeHref?: (make: string) => string;
   referenceData: Pick<
@@ -86,7 +92,7 @@ export function FilterSidebar({
   return (
     <aside
       className={cn(
-        "rounded-[1.75rem] border border-[var(--ink-100)] bg-white/95 p-5 shadow-[0_24px_60px_-40px_rgba(22,31,58,0.25)] backdrop-blur",
+        "rounded-[var(--radius-card)] border border-[var(--ink-100)] bg-white/95 p-5 shadow-[var(--shadow-card)] backdrop-blur",
         className,
       )}
       aria-label="Catalogue filters"
@@ -98,7 +104,7 @@ export function FilterSidebar({
               className="h-4 w-4 text-[var(--amber-dark)]"
               aria-hidden="true"
             />
-            Filter
+            Filter vehicles
           </div>
           <a
             href={clearHref}
@@ -117,13 +123,19 @@ export function FilterSidebar({
             >
               Make
             </Label>
-            <Input
+            <Select
               id={fieldId("make")}
               name="make"
               defaultValue={filters.make}
-              placeholder="e.g. Toyota"
               className="h-11"
-            />
+            >
+              <option value="">Any make</option>
+              {includeCurrent(makeOptions, filters.make).map((make) => (
+                <option key={make} value={make}>
+                  {make}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="space-y-2">
             <Label
@@ -185,14 +197,14 @@ export function FilterSidebar({
             </ul>
             {makes.length > 12 ? (
               <p className="mt-2 text-[11px] text-[var(--ink-400)]">
-                Showing top 12 · use the Make input above to filter to a
+                Showing top 12 · use the Make dropdown above to filter to a
                 specific make.
               </p>
             ) : null}
           </Section>
         ) : null}
 
-        <Section title="Location">
+        <Section title="City">
           <div className="space-y-2">
             <Label
               htmlFor={fieldId("city")}
@@ -200,13 +212,19 @@ export function FilterSidebar({
             >
               City
             </Label>
-            <Input
+            <Select
               id={fieldId("city")}
               name="city"
               defaultValue={filters.city}
-              placeholder="e.g. Harare"
               className="h-11"
-            />
+            >
+              <option value="">Any city</option>
+              {includeCurrent(cities, filters.city).map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </Select>
           </div>
         </Section>
 
@@ -355,4 +373,10 @@ export function FilterSidebar({
       </form>
     </aside>
   );
+}
+
+function includeCurrent(options: string[], current: string) {
+  const values =
+    current && !options.includes(current) ? [...options, current] : options;
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
