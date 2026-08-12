@@ -50,6 +50,7 @@ WORKDIR /app
 
 COPY --from=build /workspace/apps/web/.next/standalone ./
 COPY --from=build /workspace/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /workspace/apps/web/public ./apps/web/public
 
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 RUN chown -R nextjs:nodejs /app
