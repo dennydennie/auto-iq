@@ -53,10 +53,15 @@ export AUTO_IQ_ANDROID_KEYSTORE_PATH=/secure/path/autoiq-upload.jks
 export AUTO_IQ_ANDROID_KEYSTORE_PASSWORD='...'
 export AUTO_IQ_ANDROID_KEY_ALIAS=autoiq-upload
 export AUTO_IQ_ANDROID_KEY_PASSWORD='...'
-./scripts/mobile/build-play-bundle.sh https://api.production.example
+./scripts/mobile/build-play-bundle.sh https://api-production-af6d.up.railway.app
 ```
 
 The Play builder rejects staging, local, and placeholder API origins. It also
 checks the package, version, target SDK, cleartext policy, arm64 binary, API
 origin, account-deletion route, and signing certificate before reporting a
 successful artifact.
+
+The Railway production origin was verified through both API health endpoints on
+12 August 2026. Store screenshots are under
+`apps/mobile/store-listing/screenshots`; they are rendered from the production
+Flutter widgets at 1080 × 1920 without using production customer records.

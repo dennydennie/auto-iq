@@ -16,6 +16,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -32,6 +33,11 @@ const PRIMARY_NAV_ITEMS = [
   { href: "/admin/requests", label: "Buyer requests", icon: Sparkles },
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },
   { href: "/admin/users", label: "Users", icon: Users },
+  {
+    href: "/admin/account-deletions",
+    label: "Account deletions",
+    icon: Trash2,
+  },
   { href: "/admin/reports", label: "Reports", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;

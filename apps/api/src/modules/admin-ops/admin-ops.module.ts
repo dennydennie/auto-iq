@@ -7,6 +7,7 @@ import { ListingsModule } from "../listings/listings.module";
 import { OwnershipVerificationModule } from "../ownership-verification/ownership-verification.module";
 import { StorageModule } from "../storage/storage.module";
 import { AdminOpsController } from "./admin-ops.controller";
+import { AdminAccountDeletionService } from "./admin-account-deletion.service";
 import { AdminOpsGuard } from "./admin-ops.guard";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminReportsService } from "./admin-reports.service";
@@ -26,6 +27,7 @@ import { AdminUsersService } from "./admin-users.service";
   ],
   controllers: [AdminOpsController, AdminSecondaryController],
   providers: [
+    AdminAccountDeletionService,
     AdminOpsGuard,
     AdminOpsService,
     AdminReportsService,

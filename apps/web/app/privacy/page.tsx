@@ -43,6 +43,14 @@ const sections = [
       "We may need to verify that you control the account before completing a deletion request. Deletion removes or de-identifies associated personal data unless retention is required for a legitimate reason.",
     ],
   },
+  {
+    title: "How deletion requests are processed",
+    paragraphs: [
+      "Requests submitted in the app or through the public form enter a restricted operator queue. The acknowledgement does not reveal whether an email address is registered.",
+      "Before completion, an authorised operator verifies account control, performs the required deletion or de-identification, reviews any records that must be retained, and records processing evidence.",
+      "Retained records remain access-controlled and may be used only for the documented security, fraud-prevention, dispute, or legal purpose. A request is marked complete only after both identity verification and data handling are confirmed.",
+    ],
+  },
 ] as const;
 
 export default function PrivacyPage() {

@@ -169,6 +169,40 @@ export interface UpdateAdminUserAccessRequest {
   active: boolean;
 }
 
+export type AccountDeletionRequestStatus =
+  | 'PENDING'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export type AccountDeletionRequestSource = 'MOBILE' | 'PUBLIC_WEB' | 'WEB';
+
+export interface AdminAccountDeletionRequestDto {
+  id: string;
+  email: string;
+  source: AccountDeletionRequestSource;
+  status: AccountDeletionRequestStatus;
+  reason: string | null;
+  identityVerified: boolean;
+  dataHandlingConfirmed: boolean;
+  processingNote: string | null;
+  processedBy: { id: string; fullName: string } | null;
+  requestedAt: string;
+  processedAt: string | null;
+}
+
+export interface AdminAccountDeletionRequestListParams
+  extends OffsetPaginationParams {
+  status?: AccountDeletionRequestStatus;
+  search?: string;
+}
+
+export interface ProcessAdminAccountDeletionRequest {
+  status: Extract<AccountDeletionRequestStatus, 'COMPLETED' | 'CANCELLED'>;
+  identityVerified: boolean;
+  dataHandlingConfirmed: boolean;
+  note: string;
+}
+
 export interface AdminOperationsReportDto {
   generatedAt: string;
   range: { from: string; to: string };

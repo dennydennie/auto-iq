@@ -17,16 +17,19 @@ import type {
   CorrelatedRequest,
 } from "../../common/types/http";
 import { AdminOpsGuard } from "./admin-ops.guard";
+import { AdminAccountDeletionService } from "./admin-account-deletion.service";
 import { AdminReportsService } from "./admin-reports.service";
 import { AdminSettingsService } from "./admin-settings.service";
 import { AdminUsersService } from "./admin-users.service";
 import {
   AdminReportQueryDto,
+  AdminAccountDeletionRequestListQueryDto,
   AdminReferenceOptionListQueryDto,
   AdminUserListQueryDto,
   AdminViewingLocationListQueryDto,
   CreateAdminViewingLocationDto,
   CreateAdminReferenceOptionDto,
+  ProcessAdminAccountDeletionRequestDto,
   UpdateAdminUserAccessDto,
   UpdateAdminViewingLocationDto,
   UpdateAdminReferenceOptionDto,
@@ -36,10 +39,34 @@ import {
 @UseGuards(AuthGuard, AdminOpsGuard)
 export class AdminSecondaryController {
   constructor(
+    private readonly accountDeletion: AdminAccountDeletionService,
     private readonly reports: AdminReportsService,
     private readonly settings: AdminSettingsService,
     private readonly users: AdminUsersService,
   ) {}
+
+  @Get("account-deletion-requests")
+  accountDeletionRequests(
+    @Query() query: AdminAccountDeletionRequestListQueryDto,
+  ) {
+    return this.accountDeletion.list(query);
+  }
+
+  @Patch("account-deletion-requests/:requestId")
+  @UseGuards(CsrfGuard)
+  processAccountDeletionRequest(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Req() request: CorrelatedRequest,
+    @Param("requestId") requestId: string,
+    @Body() body: ProcessAdminAccountDeletionRequestDto,
+  ) {
+    return this.accountDeletion.process(
+      admin.id,
+      request.correlationId,
+      requestId,
+      body,
+    );
+  }
 
   @Get("users")
   listUsers(@Query() query: AdminUserListQueryDto) {

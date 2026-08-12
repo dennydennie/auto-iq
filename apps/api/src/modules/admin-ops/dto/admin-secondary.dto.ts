@@ -18,6 +18,11 @@ import {
 import { REFERENCE_OPTION_CATEGORIES } from "../../../db/entity/reference-option.entity";
 
 const ADMIN_USER_ROLES = ["BUYER", "SELLER", "INSPECTOR", "ADMIN"] as const;
+const ACCOUNT_DELETION_STATUSES = [
+  "PENDING",
+  "COMPLETED",
+  "CANCELLED",
+] as const;
 
 export class AdminUserListQueryDto {
   @IsOptional()
@@ -58,6 +63,46 @@ export class AdminUserListQueryDto {
 export class UpdateAdminUserAccessDto {
   @IsBoolean()
   active!: boolean;
+}
+
+export class AdminAccountDeletionRequestListQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @IsOptional()
+  @IsIn(ACCOUNT_DELETION_STATUSES)
+  status?: (typeof ACCOUNT_DELETION_STATUSES)[number];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(254)
+  search?: string;
+}
+
+export class ProcessAdminAccountDeletionRequestDto {
+  @IsIn(["COMPLETED", "CANCELLED"])
+  status!: "COMPLETED" | "CANCELLED";
+
+  @IsBoolean()
+  identityVerified!: boolean;
+
+  @IsBoolean()
+  dataHandlingConfirmed!: boolean;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(1000)
+  note!: string;
 }
 
 export class AdminReportQueryDto {

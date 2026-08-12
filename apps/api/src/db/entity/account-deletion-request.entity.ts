@@ -39,6 +39,25 @@ export class AccountDeletionRequestEntity {
   @Column({ type: "text", nullable: true })
   reason!: string | null;
 
+  @Column({ name: "identity_verified", type: "boolean", default: false })
+  identityVerified!: boolean;
+
+  @Column({
+    name: "data_handling_confirmed",
+    type: "boolean",
+    default: false,
+  })
+  dataHandlingConfirmed!: boolean;
+
+  @Column({ name: "processing_note", type: "text", nullable: true })
+  processingNote!: string | null;
+
+  @Column({ name: "processed_by_user_id", type: "uuid", nullable: true })
+  processedByUserId!: string | null;
+
+  @Column({ name: "processed_at", type: "timestamptz", nullable: true })
+  processedAt!: Date | null;
+
   @CreateDateColumn({ name: "requested_at", type: "timestamptz" })
   requestedAt!: Date;
 
@@ -52,4 +71,8 @@ export class AccountDeletionRequestEntity {
   @ManyToOne(() => UserEntity, { nullable: true, onDelete: "SET NULL" })
   @JoinColumn({ name: "user_id" })
   user?: UserEntity | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "processed_by_user_id" })
+  processedBy?: UserEntity | null;
 }

@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../config/app_config.dart';
@@ -14,16 +14,12 @@ class ApiClient {
   ApiClient._(this._dio, this._cookieJar);
 
   final Dio _dio;
-  final PersistCookieJar _cookieJar;
+  final CookieJar _cookieJar;
   String? _csrfToken;
   Future<void>? _csrfInFlight;
 
   static Future<ApiClient> create() async {
-    final directory = await getApplicationSupportDirectory();
-    final cookieJar = PersistCookieJar(
-      ignoreExpires: false,
-      storage: FileStorage('${directory.path}/cookies'),
-    );
+    final cookieJar = await _createCookieJar();
     final dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.apiBaseUrl,
@@ -36,7 +32,7 @@ class ApiClient {
         validateStatus: (status) => status != null && status < 500,
       ),
     );
-    dio.interceptors.add(CookieManager(cookieJar));
+    if (!kIsWeb) dio.interceptors.add(CookieManager(cookieJar));
     // Unwrap Dio errors to raw ApiException so call sites can do
     //   try { … } on ApiException catch (e) { … }
     // without also handling DioException. Without this the network-error and
@@ -70,6 +66,15 @@ class ApiClient {
       ),
     );
     return ApiClient._(dio, cookieJar);
+  }
+
+  static Future<CookieJar> _createCookieJar() async {
+    if (kIsWeb) return CookieJar();
+    final directory = await getApplicationSupportDirectory();
+    return PersistCookieJar(
+      ignoreExpires: false,
+      storage: FileStorage('${directory.path}/cookies'),
+    );
   }
 
   /// Wraps a Dio call and re-throws the underlying ApiException so UI code
@@ -219,7 +224,8 @@ class ApiClient {
   }
 
   Future<void> _fetchCsrfToken() async {
-    final response = await _dioCall(() => _dio.get<dynamic>(ApiRoutes.authCsrf));
+    final response =
+        await _dioCall(() => _dio.get<dynamic>(ApiRoutes.authCsrf));
     _ensureSuccess(response);
     final data = response.data;
     if (data is Map<String, dynamic>) {

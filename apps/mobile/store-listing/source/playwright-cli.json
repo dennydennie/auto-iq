@@ -1,0 +1,16 @@
+{
+  "browser": {
+    "launchOptions": {
+      "headless": true
+    },
+    "contextOptions": {
+      "viewport": {
+        "width": 432,
+        "height": 768
+      },
+      "deviceScaleFactor": 2.5,
+      "hasTouch": true,
+      "isMobile": true
+    }
+  }
+}
