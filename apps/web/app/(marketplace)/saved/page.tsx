@@ -4,6 +4,7 @@ import { VehicleCard } from "@/components/marketplace/vehicle-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import {
   extractSavedVehicles,
   type SavedVehiclesPayload,
@@ -17,7 +18,7 @@ export default async function SavedPage() {
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={Heart}
@@ -31,14 +32,14 @@ export default async function SavedPage() {
             correlationId={result.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
   const saved = extractSavedVehicles(result.data);
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="Buyer workspace"
         title="Saved vehicles"
@@ -68,6 +69,6 @@ export default async function SavedPage() {
           ))}
         </div>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

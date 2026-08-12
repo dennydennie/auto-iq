@@ -19,6 +19,7 @@ import { SubmitListingAction } from "@/components/seller/submit-listing-action";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +80,7 @@ export default async function SellerListingDetailPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={FileText}
@@ -93,7 +94,7 @@ export default async function SellerListingDetailPage({
             correlationId={result.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
@@ -102,7 +103,7 @@ export default async function SellerListingDetailPage({
   const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Breadcrumb
         className="mb-4"
         items={[
@@ -288,7 +289,7 @@ export default async function SellerListingDetailPage({
           </div>
         </div>
       </div>
-    </main>
+    </WorkspacePage>
   );
 }
 

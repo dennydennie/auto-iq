@@ -17,6 +17,7 @@
     "check:web-production-readiness": "node scripts/check-web-production-readiness.mjs",
     "check:web-homepage-sections": "node scripts/check-web-homepage-sections.mjs",
     "check:web-ui-consistency": "node scripts/check-web-ui-consistency.mjs",
+    "check:web-page-widths": "node scripts/check-web-page-widths.mjs",
     "check:reference-catalogue": "node scripts/check-reference-catalogue.mjs",
     "check:admin-secondary": "node scripts/check-admin-secondary-pages.mjs",
     "check:e2e-coverage": "node scripts/check-e2e-coverage.mjs",

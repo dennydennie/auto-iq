@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +58,7 @@ export default async function BuyerQuotesPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage size="content">
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={MessageSquareQuote}
@@ -71,14 +72,14 @@ export default async function BuyerQuotesPage({
             correlationId={result.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
   const quotes = result.data;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage size="content" className="space-y-6">
       <PageHeader
         eyebrow="Buyer workspace"
         title="Your quote requests"
@@ -171,6 +172,6 @@ export default async function BuyerQuotesPage({
           buildHref={quotesHref}
         />
       ) : null}
-    </main>
+    </WorkspacePage>
   );
 }

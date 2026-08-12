@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
@@ -28,17 +29,17 @@ export default async function SellerViewingsPage({
   );
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <WorkspacePage size="content">
         <ErrorBanner
           message={result.error.message}
           correlationId={result.error.correlationId}
         />
-      </main>
+      </WorkspacePage>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage size="content" className="space-y-6">
       <PageHeader
         eyebrow="Seller workspace"
         title="Viewing requests"
@@ -100,6 +101,6 @@ export default async function SellerViewingsPage({
           }
         />
       ) : null}
-    </main>
+    </WorkspacePage>
   );
 }

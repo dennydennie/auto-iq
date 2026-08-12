@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,23 +43,27 @@ export default async function InspectorTasksPage({
   >(withQuery(ROUTES.inspectors.taskList, { status, page, limit: 20 }));
   if (isServerApiFailure(result))
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <WorkspacePage>
         <ErrorBanner
           message={result.error.message}
           correlationId={result.error.correlationId}
         />
-      </main>
+      </WorkspacePage>
     );
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="Inspector workspace"
         title="Assigned inspections"
         description="Open an assigned task, capture findings, and submit the roadworthiness report."
       />
       <form className="flex gap-3 rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-4">
-        <Select name="status" defaultValue={status} aria-label="Inspection task status">
+        <Select
+          name="status"
+          defaultValue={status}
+          aria-label="Inspection task status"
+        >
           <option value="">All statuses</option>
           {STATUSES.map((value) => (
             <option key={value} value={value}>
@@ -114,7 +119,7 @@ export default async function InspectorTasksPage({
           buildHref={(nextPage) => tasksHref(nextPage, status)}
         />
       ) : null}
-    </main>
+    </WorkspacePage>
   );
 }
 

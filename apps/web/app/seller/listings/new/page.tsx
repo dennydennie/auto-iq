@@ -5,6 +5,7 @@ import { ROUTES } from "@auto-iq/contracts/routes";
 import { ArrowLeft } from "lucide-react";
 import { CreateListingForm } from "@/components/seller/create-listing-form";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -17,7 +18,8 @@ function readBodyType(
   referenceData: ReferenceDataResponse,
 ) {
   const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate && referenceData.bodyTypes.some((option) => option.value === candidate)
+  return candidate &&
+    referenceData.bodyTypes.some((option) => option.value === candidate)
     ? (candidate as BodyType)
     : undefined;
 }
@@ -28,19 +30,24 @@ export default async function SellerListingNewPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const referenceResult = await getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all);
+  const referenceResult = await getSessionJson<ReferenceDataResponse>(
+    ROUTES.referenceData.all,
+  );
   if (isServerApiFailure(referenceResult)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <ErrorBanner message={referenceResult.error.message} correlationId={referenceResult.error.correlationId} />
-      </main>
+      <WorkspacePage size="content">
+        <ErrorBanner
+          message={referenceResult.error.message}
+          correlationId={referenceResult.error.correlationId}
+        />
+      </WorkspacePage>
     );
   }
   const referenceData = referenceResult.data;
   const initialBodyType = readBodyType(params.bodyType, referenceData);
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage size="content" className="space-y-6">
       <PageHeader
         eyebrow="New listing"
         title="List your vehicle"
@@ -64,7 +71,10 @@ export default async function SellerListingNewPage({
           </Link>
         }
       />
-      <CreateListingForm initialBodyType={initialBodyType} referenceData={referenceData} />
-    </main>
+      <CreateListingForm
+        initialBodyType={initialBodyType}
+        referenceData={referenceData}
+      />
+    </WorkspacePage>
   );
 }

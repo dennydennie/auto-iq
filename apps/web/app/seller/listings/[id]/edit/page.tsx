@@ -11,6 +11,7 @@ import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 import { labelizeEnum } from "@/lib/vehicle-ui";
@@ -34,7 +35,7 @@ export default async function SellerListingEditPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage size="content">
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={Lock}
@@ -50,17 +51,23 @@ export default async function SellerListingEditPage({
             cta={{ label: "Back to listings", href: "/seller" }}
           />
         ) : (
-          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+          <ErrorBanner
+            message={result.error.message}
+            correlationId={result.error.correlationId}
+          />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
   if (isServerApiFailure(referenceResult)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <ErrorBanner message={referenceResult.error.message} correlationId={referenceResult.error.correlationId} />
-      </main>
+      <WorkspacePage size="content">
+        <ErrorBanner
+          message={referenceResult.error.message}
+          correlationId={referenceResult.error.correlationId}
+        />
+      </WorkspacePage>
     );
   }
 
@@ -69,7 +76,7 @@ export default async function SellerListingEditPage({
 
   if (!isEditable(listing.status)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage size="content">
         <Breadcrumb
           className="mb-4"
           items={[
@@ -85,14 +92,17 @@ export default async function SellerListingEditPage({
           body={`Listings with status ${labelizeEnum(
             listing.status,
           )} cannot be edited. You can still review the listing details from the seller workspace.`}
-          cta={{ label: "Back to listing", href: `/seller/listings/${listing.id}` }}
+          cta={{
+            label: "Back to listing",
+            href: `/seller/listings/${listing.id}`,
+          }}
         />
-      </main>
+      </WorkspacePage>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage size="content" className="space-y-6">
       <PageHeader
         eyebrow="Edit listing"
         title={title}
@@ -124,6 +134,6 @@ export default async function SellerListingEditPage({
       <PhotoUploader listingId={listing.id} images={listing.images} />
 
       <DocumentUploader listingId={listing.id} documents={listing.documents} />
-    </main>
+    </WorkspacePage>
   );
 }

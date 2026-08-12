@@ -199,6 +199,7 @@ jobs:
           node scripts/check-e2e-coverage.mjs
           node scripts/check-web-homepage-sections.mjs
           node scripts/check-web-ui-consistency.mjs
+          node scripts/check-web-page-widths.mjs
           bash scripts/deploy/phase8-gate.sh
 
       - name: Build web production artifact

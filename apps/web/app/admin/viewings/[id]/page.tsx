@@ -7,6 +7,7 @@ import { AdminViewingActions } from "@/components/admin/admin-viewing-actions";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,10 @@ import { formatDate } from "@/lib/format";
 import { getSessionJson, isServerApiFailure } from "@/lib/server-api";
 import { viewingStatusTone } from "@/lib/vehicle-ui";
 
-function readReturnHref(value: string | string[] | undefined, fallback: string) {
+function readReturnHref(
+  value: string | string[] | undefined,
+  fallback: string,
+) {
   const candidate = Array.isArray(value) ? value[0] : value;
   if (typeof candidate !== "string") return fallback;
   return candidate.startsWith("/admin/") ? candidate : fallback;
@@ -37,7 +41,7 @@ export default async function AdminViewingDetailPage({
 
   if (isServerApiFailure(viewingResult)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {viewingResult.error.statusCode === 404 ? (
           <EmptyState
             icon={CalendarClock}
@@ -45,7 +49,8 @@ export default async function AdminViewingDetailPage({
             body="This viewing could not be loaded from the admin endpoint."
             cta={{ label: "Back to viewing scheduler", href: backHref }}
           />
-        ) : viewingResult.error.statusCode === 401 || viewingResult.error.statusCode === 403 ? (
+        ) : viewingResult.error.statusCode === 401 ||
+          viewingResult.error.statusCode === 403 ? (
           <EmptyState
             icon={CalendarClock}
             headline="Admin sign-in required"
@@ -53,20 +58,25 @@ export default async function AdminViewingDetailPage({
             cta={{ label: "Go to admin login", href: "/admin/login" }}
           />
         ) : (
-          <ErrorBanner message={viewingResult.error.message} correlationId={viewingResult.error.correlationId} />
+          <ErrorBanner
+            message={viewingResult.error.message}
+            correlationId={viewingResult.error.correlationId}
+          />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
   const viewing = viewingResult.data;
   const locations = !isServerApiFailure(referenceResult)
-    ? referenceResult.data.viewingLocations.filter((location) => location.active)
+    ? referenceResult.data.viewingLocations.filter(
+        (location) => location.active,
+      )
     : [];
   const title = `${viewing.listingSnapshot.year} ${viewing.listingSnapshot.make} ${viewing.listingSnapshot.model}`;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Breadcrumb
         className="mb-4"
         items={[
@@ -76,7 +86,10 @@ export default async function AdminViewingDetailPage({
         ]}
       />
 
-      <Link href={backHref} className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
+      <Link
+        href={backHref}
+        className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}
+      >
         <ArrowLeft className="h-4 w-4" />
         Back to viewing scheduler
       </Link>
@@ -87,7 +100,9 @@ export default async function AdminViewingDetailPage({
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <Badge variant={viewingStatusTone(viewing.status)}>{viewing.status}</Badge>
+                  <Badge variant={viewingStatusTone(viewing.status)}>
+                    {viewing.status}
+                  </Badge>
                   <CardTitle className="mt-3">{title}</CardTitle>
                 </div>
                 <Link
@@ -104,7 +119,9 @@ export default async function AdminViewingDetailPage({
                   <CalendarClock className="h-3.5 w-3.5 text-[var(--amber-dark)]" />
                   Preferred slot
                 </div>
-                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{formatDate(viewing.preferredSlot)}</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+                  {formatDate(viewing.preferredSlot)}
+                </p>
               </div>
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
                 <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
@@ -112,7 +129,9 @@ export default async function AdminViewingDetailPage({
                   Confirmed slot
                 </div>
                 <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
-                  {viewing.confirmedSlot ? formatDate(viewing.confirmedSlot) : "Not yet confirmed"}
+                  {viewing.confirmedSlot
+                    ? formatDate(viewing.confirmedSlot)
+                    : "Not yet confirmed"}
                 </p>
               </div>
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
@@ -121,7 +140,9 @@ export default async function AdminViewingDetailPage({
                   Location
                 </div>
                 <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
-                  {viewing.location ? `${viewing.location.name}, ${viewing.location.city}` : "Pending"}
+                  {viewing.location
+                    ? `${viewing.location.name}, ${viewing.location.city}`
+                    : "Pending"}
                 </p>
               </div>
               <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
@@ -129,7 +150,9 @@ export default async function AdminViewingDetailPage({
                   <Users className="h-3.5 w-3.5 text-[var(--amber-dark)]" />
                   Buyer
                 </div>
-                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">{viewing.buyerName}</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--ink-900)]">
+                  {viewing.buyerName}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -141,17 +164,22 @@ export default async function AdminViewingDetailPage({
             <CardContent className="space-y-2 text-sm text-[var(--ink-500)]">
               {viewing.participants.length === 0 ? (
                 <p>No participants recorded yet.</p>
-              ) : viewing.participants.map((participant) => (
-                <div
-                  key={participant.userId}
-                  className="flex items-center justify-between rounded-[1rem] border border-[var(--ink-100)] px-3 py-2"
-                >
-                  <span className="font-semibold text-[var(--ink-900)]">{participant.name}</span>
-                  <span className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
-                    {participant.role} · {participant.confirmed ? "Confirmed" : "Not confirmed"}
-                  </span>
-                </div>
-              ))}
+              ) : (
+                viewing.participants.map((participant) => (
+                  <div
+                    key={participant.userId}
+                    className="flex items-center justify-between rounded-[1rem] border border-[var(--ink-100)] px-3 py-2"
+                  >
+                    <span className="font-semibold text-[var(--ink-900)]">
+                      {participant.name}
+                    </span>
+                    <span className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                      {participant.role} ·{" "}
+                      {participant.confirmed ? "Confirmed" : "Not confirmed"}
+                    </span>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -163,14 +191,20 @@ export default async function AdminViewingDetailPage({
               <CardContent className="space-y-3 text-sm leading-7 text-[var(--ink-500)]">
                 {viewing.note ? (
                   <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Buyer note</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                      Buyer note
+                    </p>
                     <p className="mt-1 text-[var(--ink-900)]">{viewing.note}</p>
                   </div>
                 ) : null}
                 {viewing.outcomeNote ? (
                   <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">Outcome note</p>
-                    <p className="mt-1 text-[var(--ink-900)]">{viewing.outcomeNote}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+                      Outcome note
+                    </p>
+                    <p className="mt-1 text-[var(--ink-900)]">
+                      {viewing.outcomeNote}
+                    </p>
                   </div>
                 ) : null}
               </CardContent>
@@ -189,6 +223,6 @@ export default async function AdminViewingDetailPage({
           </Card>
         </div>
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

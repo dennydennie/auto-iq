@@ -6,6 +6,7 @@ import { Calendar, ListTodo, Tickets } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { StatCardSkeleton } from "@/components/skeletons";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,16 +38,34 @@ async function KpiStats() {
   if (isServerApiFailure(result)) return null;
   const dashboard = result.data;
   const adminStats = [
-    { label: "Approval queue", value: dashboard.queues.pendingReview, icon: ListTodo },
-    { label: "Viewings today", value: dashboard.viewingsTodayCount, icon: Calendar },
-    { label: "Open buyer requests", value: dashboard.openVehicleRequestCount, icon: Tickets },
+    {
+      label: "Approval queue",
+      value: dashboard.queues.pendingReview,
+      icon: ListTodo,
+    },
+    {
+      label: "Viewings today",
+      value: dashboard.viewingsTodayCount,
+      icon: Calendar,
+    },
+    {
+      label: "Open buyer requests",
+      value: dashboard.openVehicleRequestCount,
+      icon: Tickets,
+    },
   ];
 
   return (
     <>
       {/* Trend deltas not yet exposed by /admin/dashboard — pass `trend={{ delta, period }}` once the API ships diffs. */}
       {adminStats.map(({ label, value, icon }) => (
-        <StatCard key={label} label={label} value={value} icon={icon} period="Current snapshot" />
+        <StatCard
+          key={label}
+          label={label}
+          value={value}
+          icon={icon}
+          period="Current snapshot"
+        />
       ))}
     </>
   );
@@ -64,19 +83,27 @@ async function QueueBreakdown() {
       <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
         <div className="flex items-center justify-between">
           <span>Pending review</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.pendingReview}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.queues.pendingReview}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Changes requested</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.changesRequested}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.queues.changesRequested}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Ownership pending</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.ownershipPending}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.queues.ownershipPending}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Ready to publish</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.queues.readyToPublish}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.queues.readyToPublish}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -95,15 +122,21 @@ async function CommercialPipeline() {
       <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
         <div className="flex items-center justify-between">
           <span>Open quotes</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.openQuoteCount}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.openQuoteCount}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Buyer requests</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.openVehicleRequestCount}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.openVehicleRequestCount}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Recent activity</span>
-          <span className="font-semibold text-[var(--ink-900)]">{dashboard.recentActivityCount}</span>
+          <span className="font-semibold text-[var(--ink-900)]">
+            {dashboard.recentActivityCount}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -124,23 +157,32 @@ async function DashboardErrorBoundary() {
     );
   }
   return (
-    <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+    <ErrorBanner
+      message={result.error.message}
+      correlationId={result.error.correlationId}
+    />
   );
 }
 
 export default function AdminHomePage() {
   return (
-    <main className="mx-auto max-w-7xl space-y-8 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-8">
       <PageHeader
         eyebrow="Admin overview"
         title="Operations dashboard"
         description="Moderation queues, viewing activity, and buyer requests that need operator attention."
         actions={
           <>
-            <Link href="/admin/listings" className={buttonVariants({ variant: "amber", size: "sm" })}>
+            <Link
+              href="/admin/listings"
+              className={buttonVariants({ variant: "amber", size: "sm" })}
+            >
               Moderation queue
             </Link>
-            <Link href="/admin/viewings" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link
+              href="/admin/viewings"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
               Viewings
             </Link>
           </>
@@ -173,6 +215,6 @@ export default function AdminHomePage() {
           <CommercialPipeline />
         </Suspense>
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

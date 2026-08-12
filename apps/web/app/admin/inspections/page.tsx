@@ -8,13 +8,18 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDate } from "@/lib/format";
-import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
+import {
+  getSessionJson,
+  isServerApiFailure,
+  withQuery,
+} from "@/lib/server-api";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -28,7 +33,7 @@ const STATUSES: InspectionTaskStatus[] = [
 ];
 
 function readValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function inspectionsHref(page: number, status: string) {
@@ -38,7 +43,10 @@ function inspectionsHref(page: number, status: string) {
   return params.size ? `/admin/inspections?${params}` : "/admin/inspections";
 }
 
-function currentPageCount(tasks: InspectionTaskDto[], status: InspectionTaskStatus) {
+function currentPageCount(
+  tasks: InspectionTaskDto[],
+  status: InspectionTaskStatus,
+) {
   return tasks.filter((task) => task.status === status).length;
 }
 
@@ -50,13 +58,13 @@ export default async function AdminInspectionsPage({
   const params = await searchParams;
   const page = Number(readValue(params.page) || "1") || 1;
   const status = readValue(params.status);
-  const result = await getSessionJson<OffsetPaginatedResponse<InspectionTaskDto>>(
-    withQuery(ROUTES.admin.inspectionTasks, { page, limit: 12, status }),
-  );
+  const result = await getSessionJson<
+    OffsetPaginatedResponse<InspectionTaskDto>
+  >(withQuery(ROUTES.admin.inspectionTasks, { page, limit: 12, status }));
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <WorkspacePage>
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={ClipboardCheck}
@@ -70,13 +78,13 @@ export default async function AdminInspectionsPage({
             correlationId={result.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
   const tasks = result.data;
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="Inspection operations"
         title="Vehicle inspections"
@@ -102,7 +110,11 @@ export default async function AdminInspectionsPage({
       </div>
 
       <form className="flex gap-3 rounded-[1.5rem] border border-[var(--ink-100)] bg-white p-4">
-        <Select name="status" defaultValue={status} aria-label="Inspection status">
+        <Select
+          name="status"
+          defaultValue={status}
+          aria-label="Inspection status"
+        >
           <option value="">All statuses</option>
           {STATUSES.map((value) => (
             <option key={value} value={value}>
@@ -136,7 +148,9 @@ export default async function AdminInspectionsPage({
                   <div className="flex items-center justify-between gap-3">
                     <Badge variant="warning">{labelizeEnum(task.status)}</Badge>
                     <span className="text-xs text-[var(--ink-400)]">
-                      {task.scheduledAt ? formatDate(task.scheduledAt) : "Unscheduled"}
+                      {task.scheduledAt
+                        ? formatDate(task.scheduledAt)
+                        : "Unscheduled"}
                     </span>
                   </div>
                   <CardTitle className="mt-3">
@@ -145,7 +159,9 @@ export default async function AdminInspectionsPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
-                  <p>{task.assignedInspectorName ?? "Inspector not assigned"}</p>
+                  <p>
+                    {task.assignedInspectorName ?? "Inspector not assigned"}
+                  </p>
                   <p className="inline-flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-[var(--amber-dark)]" />
                     {task.listingSnapshot.city || "Location pending"}
@@ -164,6 +180,6 @@ export default async function AdminInspectionsPage({
         total={tasks.meta.total}
         buildHref={(targetPage) => inspectionsHref(targetPage, status)}
       />
-    </main>
+    </WorkspacePage>
   );
 }

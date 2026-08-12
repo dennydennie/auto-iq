@@ -17,6 +17,7 @@ import { AdminVerificationActions } from "@/components/admin/admin-verification-
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +57,7 @@ export default async function AdminListingReviewPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {result.error.statusCode === 404 ? (
           <EmptyState
             icon={AlertTriangle}
@@ -70,7 +71,7 @@ export default async function AdminListingReviewPage({
             correlationId={result.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
@@ -85,7 +86,7 @@ export default async function AdminListingReviewPage({
   const title = `${listing.specs.year} ${listing.specs.make} ${listing.specs.model}`;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Breadcrumb
         className="mb-4"
         items={[
@@ -358,7 +359,10 @@ export default async function AdminListingReviewPage({
               {listing.inspectionTask ? (
                 <Link
                   href={`/admin/inspections/${listing.inspectionTask.id}`}
-                  className={buttonVariants({ variant: "outline", className: "w-full" })}
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "w-full",
+                  })}
                 >
                   Open inspection workspace
                 </Link>
@@ -367,6 +371,6 @@ export default async function AdminListingReviewPage({
           </Card>
         </div>
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

@@ -24,14 +24,24 @@ import { VehiclePhotoBrowser } from "@/components/marketplace/vehicle-photo-brow
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ScoreGauge } from "@/components/ui/score-gauge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatKm, formatPrice } from "@/lib/format";
 import { extractSavedVehicles } from "@/lib/saved-vehicles";
-import { getOptionalSessionJson, getPublicJson, getSessionJson, isServerApiFailure } from "@/lib/server-api";
-import { labelizeEnum, mapBodyType, relativeListingAge } from "@/lib/vehicle-ui";
+import {
+  getOptionalSessionJson,
+  getPublicJson,
+  getSessionJson,
+  isServerApiFailure,
+} from "@/lib/server-api";
+import {
+  labelizeEnum,
+  mapBodyType,
+  relativeListingAge,
+} from "@/lib/vehicle-ui";
 
 // ─── Metadata (page title in the browser tab) ──────────────────────────────
 export async function generateMetadata({
@@ -40,7 +50,9 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const result = await getPublicJson<PublicListingDto>(ROUTES.catalogue.detail(id));
+  const result = await getPublicJson<PublicListingDto>(
+    ROUTES.catalogue.detail(id),
+  );
   if (isServerApiFailure(result)) {
     return { title: "Vehicle | BiSell AutoIQ" };
   }
@@ -60,10 +72,15 @@ function viewerState(
     | null,
 ) {
   if (!result || !result.ok) return "anonymous" as const;
-  return result.data.roles.includes("BUYER") ? "buyer" as const : "other" as const;
+  return result.data.roles.includes("BUYER")
+    ? ("buyer" as const)
+    : ("other" as const);
 }
 
-function readReturnHref(value: string | string[] | undefined, fallback: string) {
+function readReturnHref(
+  value: string | string[] | undefined,
+  fallback: string,
+) {
   const candidate = Array.isArray(value) ? value[0] : value;
   if (typeof candidate !== "string") return fallback;
   return candidate.startsWith("/vehicles") ? candidate : fallback;
@@ -79,7 +96,9 @@ export default async function VehicleDetailPage({
   const { id } = await params;
   const { return: returnParam } = await searchParams;
   const backHref = readReturnHref(returnParam, "/vehicles");
-  const listingResult = await getPublicJson<PublicListingDto>(ROUTES.catalogue.detail(id));
+  const listingResult = await getPublicJson<PublicListingDto>(
+    ROUTES.catalogue.detail(id),
+  );
   const meResult = await getOptionalSessionJson<MeResponse>(ROUTES.me.profile);
   const currentViewer = viewerState(meResult);
   const [referenceDataResult, savedResult] = await Promise.all([
@@ -87,15 +106,15 @@ export default async function VehicleDetailPage({
       ? getSessionJson<ReferenceDataResponse>(ROUTES.referenceData.all)
       : Promise.resolve(null),
     currentViewer === "buyer"
-      ? getOptionalSessionJson<SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>>(
-          ROUTES.me.savedVehicles,
-        )
+      ? getOptionalSessionJson<
+          SavedVehicleDto[] | OffsetPaginatedResponse<SavedVehicleDto>
+        >(ROUTES.me.savedVehicles)
       : Promise.resolve(null),
   ]);
 
   if (isServerApiFailure(listingResult)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {listingResult.error.statusCode === 404 ? (
           <EmptyState
             icon={ShieldCheck}
@@ -109,31 +128,38 @@ export default async function VehicleDetailPage({
             correlationId={listingResult.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
   const listing = listingResult.data;
-  const locations = referenceDataResult && referenceDataResult.ok
-    ? referenceDataResult.data.viewingLocations.filter((location) => location.active)
-    : [];
+  const locations =
+    referenceDataResult && referenceDataResult.ok
+      ? referenceDataResult.data.viewingLocations.filter(
+          (location) => location.active,
+        )
+      : [];
   const summary = listing.inspectionSummary;
   const savedVehicles =
-    savedResult !== null && savedResult.ok ? extractSavedVehicles(savedResult.data) : [];
-  const isSaved = savedVehicles.some((entry) => entry.listing.id === listing.id);
+    savedResult !== null && savedResult.ok
+      ? extractSavedVehicles(savedResult.data)
+      : [];
+  const isSaved = savedVehicles.some(
+    (entry) => entry.listing.id === listing.id,
+  );
   const buyerSignedIn = currentViewer === "buyer";
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Breadcrumb
         className="mb-4"
-        items={[
-          { label: "Catalogue", href: backHref },
-          { label: title },
-        ]}
+        items={[{ label: "Catalogue", href: backHref }, { label: title }]}
       />
-      <Link href={backHref} className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}>
+      <Link
+        href={backHref}
+        className={buttonVariants({ variant: "ghost", className: "mb-4 px-0" })}
+      >
         <ArrowLeft className="h-4 w-4" />
         Back to catalogue
       </Link>
@@ -149,7 +175,9 @@ export default async function VehicleDetailPage({
         <aside className="space-y-5">
           <header className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              {listing.bisellVerified ? <StatusBadge status="verified" /> : null}
+              {listing.bisellVerified ? (
+                <StatusBadge status="verified" />
+              ) : null}
               <Badge variant="outline">{labelizeEnum(listing.bodyType)}</Badge>
               {summary?.roadworthy ? (
                 <Badge variant="success">
@@ -174,7 +202,9 @@ export default async function VehicleDetailPage({
 
           <div className="rounded-2xl border border-[var(--ink-100)] bg-white p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
-              {listing.negotiable ? "Asking price · negotiable" : "Asking price · fixed"}
+              {listing.negotiable
+                ? "Asking price · negotiable"
+                : "Asking price · fixed"}
             </p>
             <p className="display mt-1 text-4xl text-[var(--ink-900)]">
               {formatPrice(listing.askPriceUsd, "USD")}
@@ -183,7 +213,11 @@ export default async function VehicleDetailPage({
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href="#contact"
-                className={buttonVariants({ variant: "amber", size: "sm", className: "flex-1 justify-center" })}
+                className={buttonVariants({
+                  variant: "amber",
+                  size: "sm",
+                  className: "flex-1 justify-center",
+                })}
               >
                 {buyerSignedIn ? "Request viewing" : "Sign in to contact"}
               </Link>
@@ -213,14 +247,18 @@ export default async function VehicleDetailPage({
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
                       BiSell health check
                     </p>
-                    <p className="display text-2xl">{summary.overallScore}/100</p>
+                    <p className="display text-2xl">
+                      {summary.overallScore}/100
+                    </p>
                     <p className="text-xs text-white/60">
                       Inspected {formatDate(summary.inspectionDate)}
                     </p>
                   </div>
                 </div>
                 {summary.inspectorNote ? (
-                  <p className="text-xs leading-5 text-white/72">{summary.inspectorNote}</p>
+                  <p className="text-xs leading-5 text-white/72">
+                    {summary.inspectorNote}
+                  </p>
                 ) : null}
               </div>
             ) : (
@@ -230,7 +268,8 @@ export default async function VehicleDetailPage({
                 </p>
                 <p className="display text-2xl">Summary pending</p>
                 <p className="text-xs leading-5 text-white/70">
-                  Inspection scheduled — buyer-safe summary hasn&apos;t been approved for publication yet.
+                  Inspection scheduled — buyer-safe summary hasn&apos;t been
+                  approved for publication yet.
                 </p>
               </div>
             )}
@@ -243,9 +282,12 @@ export default async function VehicleDetailPage({
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-start">
         <div className="space-y-6">
           <section className="rounded-2xl border border-[var(--ink-100)] bg-white p-5">
-            <h2 className="display text-xl text-[var(--ink-900)]">Seller disclosure</h2>
+            <h2 className="display text-xl text-[var(--ink-900)]">
+              Seller disclosure
+            </h2>
             <p className="mt-3 text-sm leading-6 text-[var(--ink-500)]">
-              {listing.sellerDisclosure || "The seller has not added a public disclosure yet."}
+              {listing.sellerDisclosure ||
+                "The seller has not added a public disclosure yet."}
             </p>
           </section>
 
@@ -265,19 +307,25 @@ export default async function VehicleDetailPage({
                     Seller contact unlocks on sign-in
                   </h2>
                   <p className="text-sm leading-6 text-[var(--ink-700)]">
-                    Contact details and viewing requests are only visible to signed-in
-                    buyers. Browsing stays open to everyone.
+                    Contact details and viewing requests are only visible to
+                    signed-in buyers. Browsing stays open to everyone.
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Link
                       href={`/auth/login?next=${encodeURIComponent(`/vehicles/${id}`)}`}
-                      className={buttonVariants({ variant: "amber", size: "sm" })}
+                      className={buttonVariants({
+                        variant: "amber",
+                        size: "sm",
+                      })}
                     >
                       Sign in to contact seller
                     </Link>
                     <Link
                       href={`/auth/signup?role=buyer&next=${encodeURIComponent(`/vehicles/${id}`)}`}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                      })}
                     >
                       Create buyer account
                     </Link>
@@ -289,15 +337,18 @@ export default async function VehicleDetailPage({
 
           <section className="rounded-2xl bg-[#FDE6CD] p-5">
             <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[#9A3412]" aria-hidden="true" />
+              <AlertTriangle
+                className="mt-0.5 h-5 w-5 shrink-0 text-[#9A3412]"
+                aria-hidden="true"
+              />
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#7C2D12]">
                   Avoid side deals
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[#9A3412]">
-                  Viewings and negotiations must stay inside BiSell. This protects both
-                  buyer and seller — the admin team can only step in when the interaction
-                  is recorded on-platform.
+                  Viewings and negotiations must stay inside BiSell. This
+                  protects both buyer and seller — the admin team can only step
+                  in when the interaction is recorded on-platform.
                 </p>
               </div>
             </div>
@@ -314,7 +365,9 @@ export default async function VehicleDetailPage({
         </div>
 
         <aside className="rounded-2xl border border-[var(--ink-100)] bg-white p-5 lg:sticky lg:top-24 lg:self-start">
-          <h2 className="display text-xl text-[var(--ink-900)]">Inspection summary</h2>
+          <h2 className="display text-xl text-[var(--ink-900)]">
+            Inspection summary
+          </h2>
           {summary ? (
             <div className="mt-4 space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-400)]">
@@ -330,7 +383,8 @@ export default async function VehicleDetailPage({
             </div>
           ) : (
             <p className="mt-3 text-sm leading-6 text-[var(--ink-500)]">
-              Inspection category details will appear once admin publishes the buyer-safe summary.
+              Inspection category details will appear once admin publishes the
+              buyer-safe summary.
             </p>
           )}
         </aside>
@@ -339,6 +393,6 @@ export default async function VehicleDetailPage({
       <Suspense fallback={null}>
         <SimilarVehicles listing={listing} signedIn={buyerSignedIn} />
       </Suspense>
-    </main>
+    </WorkspacePage>
   );
 }

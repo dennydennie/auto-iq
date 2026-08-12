@@ -95,7 +95,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         Skip to content
       </a>
 
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[calc(var(--container-wide)+20rem)]">
         <aside className="sticky top-0 hidden min-h-screen w-72 shrink-0 border-r border-white/60 bg-white/72 px-6 py-6 backdrop-blur lg:flex lg:flex-col">
           <Link
             href="/admin"

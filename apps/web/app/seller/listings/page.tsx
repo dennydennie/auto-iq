@@ -11,9 +11,14 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { buttonVariants } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
+import {
+  getSessionJson,
+  isServerApiFailure,
+  withQuery,
+} from "@/lib/server-api";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -32,7 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function readValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function listingsQuery(filters: { page: number; status: string }) {
@@ -50,7 +55,9 @@ function listingsHref(
   return query ? `/seller/listings?${query}` : "/seller/listings";
 }
 
-function mapStatus(status: ListingStatus): Parameters<typeof SellerListingCard>[0]["status"] {
+function mapStatus(
+  status: ListingStatus,
+): Parameters<typeof SellerListingCard>[0]["status"] {
   switch (status) {
     case "PUBLISHED":
       return "published";
@@ -75,7 +82,9 @@ function mapStatus(status: ListingStatus): Parameters<typeof SellerListingCard>[
   }
 }
 
-function mapBodyType(bodyType: BodyType): Parameters<typeof SellerListingCard>[0]["bodyType"] {
+function mapBodyType(
+  bodyType: BodyType,
+): Parameters<typeof SellerListingCard>[0]["bodyType"] {
   switch (bodyType) {
     case "BAKKIE":
       return "bakkie";
@@ -97,7 +106,9 @@ export default async function SellerListingsPage({
   const page = Number(readValue(params.page) || "1") || 1;
   const status = readValue(params.status);
   const currentFilters = { page, status };
-  const result = await getSessionJson<OffsetPaginatedResponse<SellerListingSummaryDto>>(
+  const result = await getSessionJson<
+    OffsetPaginatedResponse<SellerListingSummaryDto>
+  >(
     withQuery(ROUTES.listings.list, {
       page,
       limit: 12,
@@ -107,7 +118,7 @@ export default async function SellerListingsPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={Plus}
@@ -116,9 +127,12 @@ export default async function SellerListingsPage({
             cta={{ label: "Go to login", href: "/auth/login" }}
           />
         ) : (
-          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+          <ErrorBanner
+            message={result.error.message}
+            correlationId={result.error.correlationId}
+          />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
@@ -138,7 +152,7 @@ export default async function SellerListingsPage({
       : `/seller/listings/${id}`;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="All listings"
         title="Your listings"
@@ -152,7 +166,10 @@ export default async function SellerListingsPage({
           />
         }
         actions={
-          <Link href="/seller/listings/new" className={buttonVariants({ variant: "amber", size: "sm" })}>
+          <Link
+            href="/seller/listings/new"
+            className={buttonVariants({ variant: "amber", size: "sm" })}
+          >
             <Plus className="h-4 w-4" />
             New listing
           </Link>
@@ -169,7 +186,9 @@ export default async function SellerListingsPage({
           >
             <option value="">All statuses</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+              <option key={value} value={value}>
+                {label}
+              </option>
             ))}
           </Select>
         </div>
@@ -181,26 +200,32 @@ export default async function SellerListingsPage({
       </div>
 
       <div className="mt-6 space-y-4">
-        {listings.data.length > 0 ? listings.data.map((listing) => (
-          <SellerListingCard
-            key={listing.id}
-            href={buildDetailHref(listing.id)}
-            id={listing.id}
-            year={listing.year}
-            make={listing.make}
-            model={listing.model}
-            price={listing.askPriceUsd}
-            status={mapStatus(listing.status)}
-            bodyType={mapBodyType(listing.bodyType)}
-            views={listing.viewCount}
-            viewings={listing.viewingCount}
-            quotes={listing.quoteCount}
-            note={listing.changesNote}
-          />
-        )) : (
+        {listings.data.length > 0 ? (
+          listings.data.map((listing) => (
+            <SellerListingCard
+              key={listing.id}
+              href={buildDetailHref(listing.id)}
+              id={listing.id}
+              year={listing.year}
+              make={listing.make}
+              model={listing.model}
+              price={listing.askPriceUsd}
+              status={mapStatus(listing.status)}
+              bodyType={mapBodyType(listing.bodyType)}
+              views={listing.viewCount}
+              viewings={listing.viewingCount}
+              quotes={listing.quoteCount}
+              note={listing.changesNote}
+            />
+          ))
+        ) : (
           <EmptyState
             icon={Plus}
-            headline={chips.length > 0 ? "No listings match this filter" : "No listings yet"}
+            headline={
+              chips.length > 0
+                ? "No listings match this filter"
+                : "No listings yet"
+            }
             body={
               chips.length > 0
                 ? "Try removing the status filter to see every listing."
@@ -221,9 +246,11 @@ export default async function SellerListingsPage({
           totalPages={listings.meta.totalPages}
           limit={listings.meta.limit}
           total={listings.meta.total}
-          buildHref={(targetPage) => listingsHref({ page: targetPage }, currentFilters)}
+          buildHref={(targetPage) =>
+            listingsHref({ page: targetPage }, currentFilters)
+          }
         />
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

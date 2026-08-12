@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/shared/skeleton";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 
 export function StatCardSkeleton() {
   return (
@@ -31,14 +32,14 @@ export function ListItemSkeleton() {
 
 export function DetailPageSkeleton() {
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Skeleton className="h-4 w-44" />
       <Skeleton className="mt-6 h-52 w-full" />
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Skeleton className="h-96 w-full" />
         <Skeleton className="h-72 w-full" />
       </div>
-    </main>
+    </WorkspacePage>
   );
 }
 
@@ -52,7 +53,7 @@ export function AvatarSkeleton() {
 
 export function DashboardPageSkeleton() {
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Skeleton className="h-5 w-32" />
       <Skeleton className="mt-5 h-12 w-80 max-w-full" />
       <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -65,6 +66,6 @@ export function DashboardPageSkeleton() {
         <ListItemSkeleton />
         <ListItemSkeleton />
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

@@ -8,6 +8,7 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDate } from "@/lib/format";
-import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
+import {
+  getSessionJson,
+  isServerApiFailure,
+  withQuery,
+} from "@/lib/server-api";
 import { viewingStatusTone } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -28,10 +33,15 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function readValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-function viewingsQuery(filters: { page: number; status: string; date: string; search: string }) {
+function viewingsQuery(filters: {
+  page: number;
+  status: string;
+  date: string;
+  search: string;
+}) {
   const params = new URLSearchParams();
   if (filters.page > 1) params.set("page", String(filters.page));
   if (filters.status) params.set("status", filters.status);
@@ -41,7 +51,12 @@ function viewingsQuery(filters: { page: number; status: string; date: string; se
 }
 
 function viewingsHref(
-  overrides: Partial<{ page: number; status: string; date: string; search: string }>,
+  overrides: Partial<{
+    page: number;
+    status: string;
+    date: string;
+    search: string;
+  }>,
   current: { page: number; status: string; date: string; search: string },
 ) {
   const query = viewingsQuery({ ...current, ...overrides });
@@ -49,7 +64,9 @@ function viewingsHref(
 }
 
 function participants(viewing: ViewingDto) {
-  return viewing.participants.map((participant) => participant.name).join(" · ");
+  return viewing.participants
+    .map((participant) => participant.name)
+    .join(" · ");
 }
 
 function slotLabel(viewing: ViewingDto) {
@@ -79,7 +96,7 @@ export default async function AdminViewingsPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <WorkspacePage>
         {result.error.statusCode === 401 || result.error.statusCode === 403 ? (
           <EmptyState
             icon={CalendarClock}
@@ -88,9 +105,12 @@ export default async function AdminViewingsPage({
             cta={{ label: "Go to admin login", href: "/admin/login" }}
           />
         ) : (
-          <ErrorBanner message={result.error.message} correlationId={result.error.correlationId} />
+          <ErrorBanner
+            message={result.error.message}
+            correlationId={result.error.correlationId}
+          />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
@@ -100,9 +120,15 @@ export default async function AdminViewingsPage({
     returnQuery
       ? `/admin/viewings/${id}?return=${encodeURIComponent(`/admin/viewings?${returnQuery}`)}`
       : `/admin/viewings/${id}`;
-  const confirmedCount = viewings.data.filter((item) => item.status === "CONFIRMED").length;
-  const requestedCount = viewings.data.filter((item) => item.status === "REQUESTED").length;
-  const rescheduledCount = viewings.data.filter((item) => item.status === "RESCHEDULED").length;
+  const confirmedCount = viewings.data.filter(
+    (item) => item.status === "CONFIRMED",
+  ).length;
+  const requestedCount = viewings.data.filter(
+    (item) => item.status === "REQUESTED",
+  ).length;
+  const rescheduledCount = viewings.data.filter(
+    (item) => item.status === "RESCHEDULED",
+  ).length;
 
   const chips: FilterChip[] = [];
   if (status) {
@@ -125,7 +151,7 @@ export default async function AdminViewingsPage({
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="Viewing operations"
         title="Viewing scheduler"
@@ -133,9 +159,21 @@ export default async function AdminViewingsPage({
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Confirmed" value={confirmedCount} period="Current page" />
-        <StatCard label="Requested" value={requestedCount} period="Current page" />
-        <StatCard label="Rescheduled" value={rescheduledCount} period="Current page" />
+        <StatCard
+          label="Confirmed"
+          value={confirmedCount}
+          period="Current page"
+        />
+        <StatCard
+          label="Requested"
+          value={requestedCount}
+          period="Current page"
+        />
+        <StatCard
+          label="Rescheduled"
+          value={rescheduledCount}
+          period="Current page"
+        />
       </div>
 
       <form className="mt-6 grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_14rem_12rem_auto]">
@@ -156,11 +194,7 @@ export default async function AdminViewingsPage({
           aria-label="Viewing date"
           defaultValue={date}
         />
-        <Select
-          name="status"
-          aria-label="Viewing status"
-          defaultValue={status}
-        >
+        <Select name="status" aria-label="Viewing status" defaultValue={status}>
           <option value="">All statuses</option>
           <option value="REQUESTED">Requested</option>
           <option value="PENDING_SELLER_CONFIRMATION">Pending seller</option>
@@ -175,51 +209,75 @@ export default async function AdminViewingsPage({
       </div>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
-        {viewings.data.length > 0 ? viewings.data.map((event) => (
-          <Link
-            key={event.id}
-            href={buildDetailHref(event.id)}
-            className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)] rounded-[1.5rem]"
-          >
-            <Card className="transition hover:shadow-[0_24px_60px_-30px_rgba(22,31,58,0.35)]">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <Badge variant={viewingStatusTone(event.status)}>
-                    {event.status}
-                  </Badge>
-                  <span className="text-right text-sm font-semibold text-[var(--ink-500)]">{slotLabel(event)}</span>
-                </div>
-                <CardTitle className="mt-3">
-                  {event.listingSnapshot.year} {event.listingSnapshot.make} {event.listingSnapshot.model}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
-                  {participants(event)}
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPinned className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
-                  {event.location ? `${event.location.name}, ${event.location.city}` : "Location pending"}
-                </div>
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-[var(--amber-dark)]" aria-hidden="true" />
-                  Buyer: {event.buyerName}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        )) : (
+        {viewings.data.length > 0 ? (
+          viewings.data.map((event) => (
+            <Link
+              key={event.id}
+              href={buildDetailHref(event.id)}
+              className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)] rounded-[1.5rem]"
+            >
+              <Card className="transition hover:shadow-[0_24px_60px_-30px_rgba(22,31,58,0.35)]">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <Badge variant={viewingStatusTone(event.status)}>
+                      {event.status}
+                    </Badge>
+                    <span className="text-right text-sm font-semibold text-[var(--ink-500)]">
+                      {slotLabel(event)}
+                    </span>
+                  </div>
+                  <CardTitle className="mt-3">
+                    {event.listingSnapshot.year} {event.listingSnapshot.make}{" "}
+                    {event.listingSnapshot.model}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-[var(--ink-500)]">
+                  <div className="flex items-center gap-2">
+                    <Users
+                      className="h-4 w-4 text-[var(--amber-dark)]"
+                      aria-hidden="true"
+                    />
+                    {participants(event)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPinned
+                      className="h-4 w-4 text-[var(--amber-dark)]"
+                      aria-hidden="true"
+                    />
+                    {event.location
+                      ? `${event.location.name}, ${event.location.city}`
+                      : "Location pending"}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarClock
+                      className="h-4 w-4 text-[var(--amber-dark)]"
+                      aria-hidden="true"
+                    />
+                    Buyer: {event.buyerName}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))
+        ) : (
           <div className="lg:col-span-3">
             <EmptyState
               icon={CalendarClock}
-              headline={chips.length > 0 ? "No viewings match these filters" : "No scheduled viewings"}
+              headline={
+                chips.length > 0
+                  ? "No viewings match these filters"
+                  : "No scheduled viewings"
+              }
               body={
                 chips.length > 0
                   ? "Try removing one of the active filters to widen the search."
                   : "Confirmed and pending viewings show up here once buyers request slots."
               }
-              cta={chips.length > 0 ? { label: "Clear filters", href: "/admin/viewings" } : undefined}
+              cta={
+                chips.length > 0
+                  ? { label: "Clear filters", href: "/admin/viewings" }
+                  : undefined
+              }
             />
           </div>
         )}
@@ -231,9 +289,11 @@ export default async function AdminViewingsPage({
           totalPages={viewings.meta.totalPages}
           limit={viewings.meta.limit}
           total={viewings.meta.total}
-          buildHref={(targetPage) => viewingsHref({ page: targetPage }, currentFilters)}
+          buildHref={(targetPage) =>
+            viewingsHref({ page: targetPage }, currentFilters)
+          }
         />
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

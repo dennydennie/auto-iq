@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatPrice } from "@/lib/format";
@@ -32,7 +33,7 @@ export default async function VehicleRequestsPage({
   ]);
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="Buyer sourcing"
         title="Request a vehicle"
@@ -115,7 +116,7 @@ export default async function VehicleRequestsPage({
           }
         />
       ) : null}
-    </main>
+    </WorkspacePage>
   );
 }
 

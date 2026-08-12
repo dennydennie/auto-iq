@@ -1,5 +1,8 @@
 import Link from "next/link";
-import type { AdminDashboardDto, AdminListingDto } from "@auto-iq/contracts/admin";
+import type {
+  AdminDashboardDto,
+  AdminListingDto,
+} from "@auto-iq/contracts/admin";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { Filter, Search } from "lucide-react";
@@ -8,6 +11,7 @@ import { ErrorBanner } from "@/components/shared/error-banner";
 import { FilterChips, type FilterChip } from "@/components/shared/filter-chips";
 import { PageHeader } from "@/components/shared/page-header";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +19,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDate, formatPrice } from "@/lib/format";
-import { getSessionJson, isServerApiFailure, withQuery } from "@/lib/server-api";
+import {
+  getSessionJson,
+  isServerApiFailure,
+  withQuery,
+} from "@/lib/server-api";
 import { mapListingStatus } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -48,7 +56,7 @@ type QueueFilters = {
 };
 
 function readValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function readSort(value: string | string[] | undefined) {
@@ -65,10 +73,7 @@ function listingsQuery(filters: QueueFilters) {
   return params.toString();
 }
 
-function listingsHref(
-  overrides: Partial<QueueFilters>,
-  current: QueueFilters,
-) {
+function listingsHref(overrides: Partial<QueueFilters>, current: QueueFilters) {
   const query = listingsQuery({ ...current, ...overrides });
   return query ? `/admin/listings?${query}` : "/admin/listings";
 }
@@ -104,16 +109,20 @@ export default async function AdminListingsPage({
 
   if (isServerApiFailure(dashboardResult)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        <ErrorBanner message={dashboardResult.error.message} correlationId={dashboardResult.error.correlationId} />
-      </main>
+      <WorkspacePage>
+        <ErrorBanner
+          message={dashboardResult.error.message}
+          correlationId={dashboardResult.error.correlationId}
+        />
+      </WorkspacePage>
     );
   }
 
   if (isServerApiFailure(queueResult)) {
     return (
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
-        {queueResult.error.statusCode === 401 || queueResult.error.statusCode === 403 ? (
+      <WorkspacePage>
+        {queueResult.error.statusCode === 401 ||
+        queueResult.error.statusCode === 403 ? (
           <EmptyState
             icon={Search}
             headline="Admin sign-in required"
@@ -121,9 +130,12 @@ export default async function AdminListingsPage({
             cta={{ label: "Go to admin login", href: "/admin/login" }}
           />
         ) : (
-          <ErrorBanner message={queueResult.error.message} correlationId={queueResult.error.correlationId} />
+          <ErrorBanner
+            message={queueResult.error.message}
+            correlationId={queueResult.error.correlationId}
+          />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
@@ -150,7 +162,7 @@ export default async function AdminListingsPage({
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage className="space-y-6">
       <PageHeader
         eyebrow="Admin listings queue"
         title="Moderation queue"
@@ -160,10 +172,26 @@ export default async function AdminListingsPage({
       <div className="space-y-6">
         {/* Trend deltas not yet exposed by /admin/dashboard. Add `trend` props when the API ships period diffs. */}
         <div className="grid gap-3 md:grid-cols-4">
-          <StatCard label="Pending review" value={dashboard.queues.pendingReview} period="Live count" />
-          <StatCard label="Changes requested" value={dashboard.queues.changesRequested} period="Live count" />
-          <StatCard label="Inspection pending" value={dashboard.queues.inspectionPending} period="Live count" />
-          <StatCard label="Ready to publish" value={dashboard.queues.readyToPublish} period="Live count" />
+          <StatCard
+            label="Pending review"
+            value={dashboard.queues.pendingReview}
+            period="Live count"
+          />
+          <StatCard
+            label="Changes requested"
+            value={dashboard.queues.changesRequested}
+            period="Live count"
+          />
+          <StatCard
+            label="Inspection pending"
+            value={dashboard.queues.inspectionPending}
+            period="Live count"
+          />
+          <StatCard
+            label="Ready to publish"
+            value={dashboard.queues.readyToPublish}
+            period="Live count"
+          />
         </div>
 
         <form className="grid gap-3 rounded-[1.6rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4 md:grid-cols-[1fr_13rem_13rem_auto]">
@@ -182,7 +210,10 @@ export default async function AdminListingsPage({
             />
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-[var(--ink-200)] bg-white px-3">
-            <Filter className="h-4 w-4 text-[var(--ink-400)]" aria-hidden="true" />
+            <Filter
+              className="h-4 w-4 text-[var(--ink-400)]"
+              aria-hidden="true"
+            />
             <Select
               name="status"
               aria-label="Listing status"
@@ -191,7 +222,9 @@ export default async function AdminListingsPage({
             >
               <option value="">All statuses</option>
               <option value="SUBMITTED">Submitted</option>
-              <option value="OWNERSHIP_VERIFICATION_PENDING">Ownership pending</option>
+              <option value="OWNERSHIP_VERIFICATION_PENDING">
+                Ownership pending
+              </option>
               <option value="INSPECTION_PENDING">Inspection pending</option>
               <option value="CHANGES_REQUESTED">Changes requested</option>
               <option value="APPROVED">Approved</option>
@@ -208,54 +241,86 @@ export default async function AdminListingsPage({
             <option value="submittedAt:DESC">Newest submitted</option>
             <option value="submittedAt:ASC">Oldest submitted</option>
           </Select>
-          <button className={buttonVariants({ variant: "amber" })}>Apply</button>
+          <button className={buttonVariants({ variant: "amber" })}>
+            Apply
+          </button>
         </form>
 
         <FilterChips chips={chips} clearAllHref="/admin/listings" />
 
         <div className="space-y-4">
-          {queue.data.length > 0 ? queue.data.map((item) => (
-            <Card key={item.id}>
-              <CardHeader>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <CardTitle>
-                      {item.specs.year} {item.specs.make} {item.specs.model}
-                    </CardTitle>
-                    <p className="mt-2 text-sm text-[var(--ink-500)]">
-                      {item.id} · {item.slug} · {formatPrice(item.pricing.askPriceUsd, "USD")}
+          {queue.data.length > 0 ? (
+            queue.data.map((item) => (
+              <Card key={item.id}>
+                <CardHeader>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle>
+                        {item.specs.year} {item.specs.make} {item.specs.model}
+                      </CardTitle>
+                      <p className="mt-2 text-sm text-[var(--ink-500)]">
+                        {item.id} · {item.slug} ·{" "}
+                        {formatPrice(item.pricing.askPriceUsd, "USD")}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        item.status === "PUBLISHED"
+                          ? "success"
+                          : item.status === "SUBMITTED"
+                            ? "warning"
+                            : "outline"
+                      }
+                    >
+                      {mapListingStatus(item.status)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1 text-sm leading-6 text-[var(--ink-500)]">
+                    <p>
+                      {item.sellerDisclosure ||
+                        item.changesNote ||
+                        "No public disclosure or admin change note recorded yet."}
+                    </p>
+                    <p>
+                      Submitted{" "}
+                      {item.submittedAt
+                        ? formatDate(item.submittedAt)
+                        : "not yet"}{" "}
+                      · Published{" "}
+                      {item.publishedAt
+                        ? formatDate(item.publishedAt)
+                        : "not yet"}
                     </p>
                   </div>
-                  <Badge variant={item.status === "PUBLISHED" ? "success" : item.status === "SUBMITTED" ? "warning" : "outline"}>
-                    {mapListingStatus(item.status)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1 text-sm leading-6 text-[var(--ink-500)]">
-                  <p>
-                    {item.sellerDisclosure || item.changesNote || "No public disclosure or admin change note recorded yet."}
-                  </p>
-                  <p>
-                    Submitted {item.submittedAt ? formatDate(item.submittedAt) : "not yet"} · Published{" "}
-                    {item.publishedAt ? formatDate(item.publishedAt) : "not yet"}
-                  </p>
-                </div>
-                <Link href={buildDetailHref(item.id)} className={buttonVariants({ variant: "ghost" })}>
-                  Open review
-                </Link>
-              </CardContent>
-            </Card>
-          )) : (
+                  <Link
+                    href={buildDetailHref(item.id)}
+                    className={buttonVariants({ variant: "ghost" })}
+                  >
+                    Open review
+                  </Link>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
             <EmptyState
               icon={Search}
-              headline={chips.length > 0 ? "No listings match these filters" : "No listings in the moderation queue"}
+              headline={
+                chips.length > 0
+                  ? "No listings match these filters"
+                  : "No listings in the moderation queue"
+              }
               body={
                 chips.length > 0
                   ? "Try removing one of the active filters to broaden the queue view."
                   : "There are no submitted listings to review right now. Newly submitted listings will appear here."
               }
-              cta={chips.length > 0 ? { label: "Clear filters", href: "/admin/listings" } : undefined}
+              cta={
+                chips.length > 0
+                  ? { label: "Clear filters", href: "/admin/listings" }
+                  : undefined
+              }
             />
           )}
         </div>
@@ -265,9 +330,11 @@ export default async function AdminListingsPage({
           totalPages={queue.meta.totalPages}
           limit={queue.meta.limit}
           total={queue.meta.total}
-          buildHref={(targetPage) => listingsHref({ page: targetPage }, currentFilters)}
+          buildHref={(targetPage) =>
+            listingsHref({ page: targetPage }, currentFilters)
+          }
         />
       </div>
-    </main>
+    </WorkspacePage>
   );
 }

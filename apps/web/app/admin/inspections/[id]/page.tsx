@@ -8,6 +8,7 @@ import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { NoticeBanner } from "@/components/shared/notice-banner";
+import { WorkspacePage } from "@/components/shared/workspace-page";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +30,7 @@ export default async function AdminInspectionDetailPage({
 
   if (isServerApiFailure(result)) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <WorkspacePage>
         {result.error.statusCode === 404 ? (
           <EmptyState
             icon={ClipboardCheck}
@@ -43,7 +44,7 @@ export default async function AdminInspectionDetailPage({
             correlationId={result.error.correlationId}
           />
         )}
-      </main>
+      </WorkspacePage>
     );
   }
 
@@ -51,7 +52,7 @@ export default async function AdminInspectionDetailPage({
   const title = `${task.listingSnapshot.year} ${task.listingSnapshot.make} ${task.listingSnapshot.model}`;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+    <WorkspacePage>
       <Breadcrumb
         className="mb-4"
         items={[
@@ -86,14 +87,25 @@ export default async function AdminInspectionDetailPage({
               </div>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Detail label="Inspector" value={task.assignedInspectorName ?? "Unassigned"} />
+              <Detail
+                label="Inspector"
+                value={task.assignedInspectorName ?? "Unassigned"}
+              />
               <Detail
                 label="Scheduled"
-                value={task.scheduledAt ? formatDate(task.scheduledAt) : "Not scheduled"}
+                value={
+                  task.scheduledAt
+                    ? formatDate(task.scheduledAt)
+                    : "Not scheduled"
+                }
               />
               <Detail
                 label="Completed"
-                value={task.completedAt ? formatDate(task.completedAt) : "Not completed"}
+                value={
+                  task.completedAt
+                    ? formatDate(task.completedAt)
+                    : "Not completed"
+                }
               />
               <Detail
                 label="Location"
@@ -123,8 +135,14 @@ export default async function AdminInspectionDetailPage({
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">{labelizeEnum(finding.category)}</Badge>
-                          <Badge variant={finding.rating === "PASS" ? "success" : "warning"}>
+                          <Badge variant="outline">
+                            {labelizeEnum(finding.category)}
+                          </Badge>
+                          <Badge
+                            variant={
+                              finding.rating === "PASS" ? "success" : "warning"
+                            }
+                          >
                             {labelizeEnum(finding.rating)}
                           </Badge>
                         </div>
@@ -136,14 +154,20 @@ export default async function AdminInspectionDetailPage({
                         </p>
                       </div>
                       {finding.photoUrl ? (
-                        <a href={finding.photoUrl} target="_blank" rel="noreferrer">
+                        <a
+                          href={finding.photoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           <Image
                             src={finding.photoUrl}
                             alt={`${finding.label} inspection evidence`}
                             width={128}
                             height={96}
                             className="h-24 w-32 rounded-xl object-cover"
-                            unoptimized={shouldBypassNextImageOptimization(finding.photoUrl)}
+                            unoptimized={shouldBypassNextImageOptimization(
+                              finding.photoUrl,
+                            )}
                           />
                         </a>
                       ) : null}
@@ -170,7 +194,9 @@ export default async function AdminInspectionDetailPage({
                     ariaLabel={`Inspection score ${report.overallScore} out of 100`}
                   />
                   <div>
-                    <p className="font-semibold">{report.roadworthy ? "Roadworthy" : "Not roadworthy"}</p>
+                    <p className="font-semibold">
+                      {report.roadworthy ? "Roadworthy" : "Not roadworthy"}
+                    </p>
                     <p className="mt-1 text-sm text-white/70">
                       Submitted by {report.submittedByInspectorName}
                     </p>
@@ -189,7 +215,10 @@ export default async function AdminInspectionDetailPage({
                 <CardTitle>Buyer-safe summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <AdminInspectionSummaryForm listingId={task.listingId} report={report} />
+                <AdminInspectionSummaryForm
+                  listingId={task.listingId}
+                  report={report}
+                />
               </CardContent>
             </Card>
           ) : null}
@@ -199,7 +228,7 @@ export default async function AdminInspectionDetailPage({
           ) : null}
         </div>
       </div>
-    </main>
+    </WorkspacePage>
   );
 }
 
@@ -214,7 +243,9 @@ function Detail({
 }) {
   return (
     <div className="rounded-[1.2rem] border border-[var(--ink-100)] bg-[var(--ink-50)]/70 p-4">
-      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">{label}</p>
+      <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-400)]">
+        {label}
+      </p>
       <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink-900)]">
         {icon ? <MapPin className="h-4 w-4 text-[var(--amber-dark)]" /> : null}
         {value}
