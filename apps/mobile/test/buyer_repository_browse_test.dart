@@ -62,9 +62,38 @@ void main() {
       'sortDir': 'DESC',
     });
   });
+
+  test('catalogue makes use public facets and include dependent models',
+      () async {
+    final apiClient = _RecordingApiClient(
+      responses: {
+        '/api/v1/listings/facets/makes': [
+          {'make': 'Toyota', 'count': 3},
+          {'make': 'Honda', 'count': 1},
+        ],
+        '/api/v1/listings/facets/models': [
+          {'make': 'Toyota', 'model': 'Hilux', 'count': 2},
+          {'make': 'Toyota', 'model': 'Corolla', 'count': 1},
+          {'make': 'Honda', 'model': 'Vezel', 'count': 1},
+        ],
+      },
+    );
+
+    final makes = await BuyerRepository(apiClient).catalogueMakes();
+
+    expect(apiClient.paths, contains('/api/v1/listings/facets/makes'));
+    expect(apiClient.paths, contains('/api/v1/listings/facets/models'));
+    expect(makes.map((make) => make.name), ['Toyota', 'Honda']);
+    expect(makes[0].popularModels, ['Hilux', 'Corolla']);
+    expect(makes[1].popularModels, ['Vezel']);
+  });
 }
 
 class _RecordingApiClient implements ApiClient {
+  _RecordingApiClient({this.responses = const {}});
+
+  final Map<String, dynamic> responses;
+  final List<String> paths = [];
   String? path;
   Map<String, dynamic>? queryParameters;
 
@@ -75,11 +104,14 @@ class _RecordingApiClient implements ApiClient {
     Map<String, dynamic>? queryParameters,
   }) async {
     this.path = path;
+    paths.add(path);
     this.queryParameters = queryParameters;
-    return parser({
-      'data': <dynamic>[],
-      'meta': {'nextCursor': null, 'hasMore': false},
-    });
+    final response = responses[path] ??
+        {
+          'data': <dynamic>[],
+          'meta': {'nextCursor': null, 'hasMore': false},
+        };
+    return parser(response);
   }
 
   @override

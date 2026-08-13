@@ -36,6 +36,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   late Future<List<ViewingItem>> _viewingsFuture;
   ListingFilterState _draftFilters = const ListingFilterState();
   ListingFilterState _appliedFilters = const ListingFilterState();
+  List<VehicleMake> _catalogueMakes = const [];
   final _searchController = TextEditingController();
   String _draftSearchText = '';
   String _appliedSearchText = '';
@@ -54,6 +55,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     _quotesFuture = _loadQuotes();
     _requestFuture = _loadRequests();
     _viewingsFuture = _loadViewings();
+    _loadCatalogueMakes();
   }
 
   @override
@@ -61,6 +63,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     final session = context.watch<SessionController>();
     final user = session.user!;
     final copy = AutoIqLocalizations.of(context);
+    final referenceMakes =
+        session.referenceData?.makes ?? const <VehicleMake>[];
+    final browseMakes =
+        referenceMakes.isEmpty ? _catalogueMakes : referenceMakes;
     final body = IndexedStack(
       index: _tabIndex,
       children: [
@@ -69,7 +75,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           searchController: _searchController,
           appliedSearchText: _appliedSearchText,
           filters: _draftFilters,
-          makes: session.referenceData?.makes ?? const [],
+          makes: browseMakes,
           cities: uniqueCities(
             session.referenceData?.viewingLocations ?? const [],
           ),
@@ -505,6 +511,16 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     final savedItems = await repository.savedVehicles();
     final savedIds = savedItems.map((item) => item.listing.id).toSet();
     return ListingViewState(listings: page.data, savedIds: savedIds);
+  }
+
+  Future<void> _loadCatalogueMakes() async {
+    try {
+      final makes = await context.read<BuyerRepository>().catalogueMakes();
+      if (!mounted) return;
+      setState(() => _catalogueMakes = makes);
+    } on ApiException {
+      // The authenticated reference data remains the primary source.
+    }
   }
 
   Future<List<SavedVehicleItem>> _loadSaved() {

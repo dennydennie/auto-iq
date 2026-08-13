@@ -3,6 +3,7 @@ import '../core/network/api_client.dart';
 import '../models/activity_models.dart';
 import '../models/listing_filters.dart';
 import '../models/listing_models.dart';
+import '../models/reference_data.dart';
 
 class BuyerRepository {
   BuyerRepository(this._apiClient);
@@ -21,6 +22,26 @@ class BuyerRepository {
         'sortDir': 'DESC',
         ...filters.catalogueQuery,
       },
+    );
+  }
+
+  Future<List<VehicleMake>> catalogueMakes() async {
+    final namesFuture = _catalogueMakeNames();
+    final modelsFuture = _catalogueModelsByMake();
+    return _toVehicleMakes(await namesFuture, await modelsFuture);
+  }
+
+  Future<List<String>> _catalogueMakeNames() {
+    return _apiClient.getJson<List<String>>(
+      ApiRoutes.catalogueMakeFacets,
+      _parseMakeNames,
+    );
+  }
+
+  Future<Map<String, List<String>>> _catalogueModelsByMake() {
+    return _apiClient.getJson<Map<String, List<String>>>(
+      ApiRoutes.catalogueModelFacets,
+      _parseModelsByMake,
     );
   }
 
@@ -164,4 +185,51 @@ class BuyerRepository {
         .toList(growable: false);
     return items;
   }
+}
+
+List<String> _parseMakeNames(dynamic json) {
+  final names = (json as List)
+      .map(_facetMap)
+      .map((item) => item['make']?.toString().trim() ?? '')
+      .where((value) => value.isNotEmpty);
+  return _uniqueCaseInsensitive(names);
+}
+
+Map<String, List<String>> _parseModelsByMake(dynamic json) {
+  final models = <String, List<String>>{};
+  for (final item in (json as List).map(_facetMap)) {
+    final make = item['make']?.toString().trim() ?? '';
+    final model = item['model']?.toString().trim() ?? '';
+    if (make.isEmpty || model.isEmpty) continue;
+    models.putIfAbsent(make.toLowerCase(), () => []).add(model);
+  }
+  return models.map(
+    (make, values) => MapEntry(make, _uniqueCaseInsensitive(values)),
+  );
+}
+
+List<VehicleMake> _toVehicleMakes(
+  List<String> makeNames,
+  Map<String, List<String>> modelsByMake,
+) {
+  return makeNames
+      .map(
+        (make) => VehicleMake(
+          id: make.toLowerCase().replaceAll(RegExp('[^a-z0-9]+'), '-'),
+          name: make,
+          popularModels: modelsByMake[make.toLowerCase()] ?? const [],
+        ),
+      )
+      .toList(growable: false);
+}
+
+Map<String, dynamic> _facetMap(dynamic value) {
+  return (value as Map).cast<String, dynamic>();
+}
+
+List<String> _uniqueCaseInsensitive(Iterable<String> values) {
+  final seen = <String>{};
+  return values
+      .where((value) => seen.add(value.toLowerCase()))
+      .toList(growable: false);
 }

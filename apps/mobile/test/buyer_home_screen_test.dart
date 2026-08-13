@@ -1,8 +1,15 @@
+import 'dart:typed_data';
+
+import 'package:autoiq_mobile/src/core/network/api_client.dart';
+import 'package:autoiq_mobile/src/models/app_user.dart';
 import 'package:autoiq_mobile/src/models/listing_filters.dart';
 import 'package:autoiq_mobile/src/models/reference_data.dart';
+import 'package:autoiq_mobile/src/repositories/buyer_repository.dart';
 import 'package:autoiq_mobile/src/screens/buyer/buyer_home_screen.dart';
+import 'package:autoiq_mobile/src/state/session_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   testWidgets('all mobile browse dropdowns apply the complete filter query',
@@ -262,6 +269,134 @@ void main() {
     expect(values.last, 1990);
     controller.dispose();
   });
+
+  testWidgets('public facets populate make and model without reference data',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final apiClient = _BuyerApiClient();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionController>.value(
+            value: _BuyerSession(),
+          ),
+          Provider<BuyerRepository>.value(
+            value: BuyerRepository(apiClient),
+          ),
+        ],
+        child: const MaterialApp(home: BuyerHomeScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final makeDropdown = _dynamicDropdownButton(tester, 'browse-filter-make');
+    expect(makeDropdown.items!.map(_itemText), contains('Toyota'));
+    makeDropdown.onChanged!('Toyota');
+    await tester.pumpAndSettle();
+
+    final modelDropdown = _dynamicDropdownButton(tester, 'browse-filter-model');
+    expect(modelDropdown.onChanged, isNotNull);
+    expect(modelDropdown.items!.map(_itemText), contains('Hilux'));
+  });
+}
+
+class _BuyerApiClient extends Fake implements ApiClient {
+  @override
+  Future<T> getJson<T>(
+    String path,
+    T Function(dynamic json) parser, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return parser(_responseFor(path));
+  }
+
+  dynamic _responseFor(String path) {
+    if (path == '/api/v1/listings/facets/makes') {
+      return [
+        {'make': 'Toyota', 'count': 1},
+      ];
+    }
+    if (path == '/api/v1/listings/facets/models') {
+      return [
+        {'make': 'Toyota', 'model': 'Hilux', 'count': 1},
+      ];
+    }
+    if (path == '/api/v1/listings') {
+      return {
+        'data': <dynamic>[],
+        'meta': {'nextCursor': null, 'hasMore': false},
+      };
+    }
+    return {'data': <dynamic>[]};
+  }
+
+  @override
+  Future<void> uploadBinary({
+    required String url,
+    required Uint8List bytes,
+    required String contentType,
+  }) async {}
+}
+
+class _BuyerSession extends ChangeNotifier implements SessionController {
+  @override
+  String? get errorMessage => null;
+
+  @override
+  bool get isAuthenticated => true;
+
+  @override
+  bool get isBooting => false;
+
+  @override
+  bool get isBusy => false;
+
+  @override
+  ReferenceDataSet? get referenceData => null;
+
+  @override
+  AppUser get user => AppUser(
+        id: 'buyer-1',
+        fullName: 'Test Buyer',
+        email: 'buyer@example.com',
+        phone: '+263771234567',
+        status: 'ACTIVE',
+        roles: const ['BUYER'],
+        phoneVerified: true,
+        emailVerified: true,
+        city: 'Harare',
+        buyerProfile: null,
+        sellerProfile: null,
+      );
+
+  @override
+  Future<void> bootstrap() async {}
+
+  @override
+  void clearError() {}
+
+  @override
+  Future<void> completeRequiredConsents() async {}
+
+  @override
+  Future<void> login({
+    required String identifier,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<void> refreshProfile() async {}
+
+  @override
+  Future<void> requestAccountDeletion() async {}
+
+  @override
+  Future<void> updateProfile(Map<String, dynamic> payload) async {}
 }
 
 Future<void> _select(

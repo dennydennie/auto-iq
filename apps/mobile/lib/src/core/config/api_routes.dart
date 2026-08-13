@@ -22,6 +22,8 @@ class ApiRoutes {
 
   static const referenceData = '$_base/reference-data';
   static const catalogue = '$_base/listings';
+  static const catalogueMakeFacets = '$_base/listings/facets/makes';
+  static const catalogueModelFacets = '$_base/listings/facets/models';
   static const vehicleRequests = '$_base/vehicle-requests';
   static const storageImagePresign = '$_base/storage/images/presign';
   static const storageDocumentPresign = '$_base/storage/documents/presign';
