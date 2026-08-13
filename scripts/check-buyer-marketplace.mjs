@@ -37,6 +37,12 @@ const quoteProxy = read(
   "apps/web/app/api/buyer/quotes/[listingId]/route.ts",
 );
 const requestProxy = read("apps/web/app/api/vehicle-requests/route.ts");
+const modelFields = read(
+  "apps/web/components/marketplace/make-model-fields.tsx",
+);
+const modelFacetsProxy = read(
+  "apps/web/app/api/catalogue/model-facets/route.ts",
+);
 const browserTest = read("apps/web/e2e/buyer-marketplace.spec.ts");
 
 for (const route of [
@@ -83,6 +89,26 @@ for (const proxy of [savedProxy, quoteProxy, requestProxy]) {
   requireText(proxy, "issueRemoteCsrfToken", "Buyer mutations must forward CSRF.");
   requireText(proxy, "readSessionCookie", "Buyer mutations must forward the HttpOnly session.");
 }
+
+for (const evidence of [
+  "setModel(\"\")",
+  "loadModels(nextMake)",
+  "AbortController",
+  "Loading available models",
+  "Retry models",
+]) {
+  requireText(modelFields, evidence, `Reactive model filter must include ${evidence}.`);
+}
+requireText(
+  modelFacetsProxy,
+  "ROUTES.catalogue.modelFacets",
+  "The web model-facet proxy must use the shared catalogue route.",
+);
+requireText(
+  modelFacetsProxy,
+  "proxyRemoteResponse",
+  "The web model-facet proxy must preserve API response handling.",
+);
 
 for (const evidence of [
   "Apply filters",

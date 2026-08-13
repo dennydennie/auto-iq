@@ -6,6 +6,7 @@ import type {
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { MakeModelFields } from "@/components/marketplace/make-model-fields";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { buttonVariants } from "@/components/ui/button";
@@ -116,49 +117,14 @@ export function FilterSidebar({
         </div>
 
         <Section title="Make and model">
-          <div className="space-y-2">
-            <Label
-              htmlFor={fieldId("make")}
-              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
-            >
-              Make
-            </Label>
-            <Select
-              id={fieldId("make")}
-              name="make"
-              defaultValue={filters.make}
-              className="h-11"
-            >
-              <option value="">Any make</option>
-              {includeCurrent(makeOptions, filters.make).map((make) => (
-                <option key={make} value={make}>
-                  {make}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label
-              htmlFor={fieldId("model")}
-              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
-            >
-              Model
-            </Label>
-            <Select
-              id={fieldId("model")}
-              name="model"
-              defaultValue={filters.model}
-              className="h-11"
-              disabled={!filters.make}
-            >
-              <option value="">Any model</option>
-              {models?.map((facet) => (
-                <option key={facet.model} value={facet.model}>
-                  {facet.model} ({facet.count})
-                </option>
-              ))}
-            </Select>
-          </div>
+          <MakeModelFields
+            key={`${idPrefix}:${filters.make}:${filters.model}`}
+            idPrefix={idPrefix}
+            initialMake={filters.make}
+            initialModel={filters.model}
+            initialModels={models ?? []}
+            makeOptions={includeCurrent(makeOptions, filters.make)}
+          />
         </Section>
 
         {makes && makes.length > 0 && buildMakeHref ? (

@@ -42,6 +42,7 @@ const requiredRouteFiles = [
   "apps/web/app/api/auth/register/route.ts",
   "apps/web/app/api/auth/reset-password/route.ts",
   "apps/web/app/api/me/saved-vehicles/[listingId]/route.ts",
+  "apps/web/app/api/catalogue/model-facets/route.ts",
   "apps/web/app/api/me/consents/route.ts",
   "apps/web/app/api/seller/storage/images/presign/route.ts",
   "apps/web/app/api/seller/viewings/[viewingId]/seller-confirm/route.ts",
