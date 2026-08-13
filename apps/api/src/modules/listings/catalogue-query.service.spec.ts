@@ -29,6 +29,19 @@ describe("CatalogueQueryService", () => {
     expect(builder.where).toHaveBeenCalledWith("vehicle.status = 'PUBLISHED'");
   });
 
+  it("applies inclusive minimum and maximum year filters", async () => {
+    const { builder, service } = createHarness();
+
+    await service.list({ yearMin: 2018, yearMax: 2024 });
+
+    expect(builder.andWhere).toHaveBeenCalledWith("specs.year >= :yearMin", {
+      yearMin: 2018,
+    });
+    expect(builder.andWhere).toHaveBeenCalledWith("specs.year <= :yearMax", {
+      yearMax: 2024,
+    });
+  });
+
   it("applies inclusive minimum and maximum price filters", async () => {
     const { builder, service } = createHarness();
 

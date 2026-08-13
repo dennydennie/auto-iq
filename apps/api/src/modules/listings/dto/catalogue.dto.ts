@@ -58,6 +58,21 @@ class ValidPriceRangeConstraint extends ValidNumericRangeConstraint {
   }
 }
 
+@ValidatorConstraint({ name: "validYearRange", async: false })
+class ValidYearRangeConstraint extends ValidNumericRangeConstraint {
+  protected minimum(query: CatalogueQueryDto) {
+    return query.yearMin;
+  }
+
+  protected maximum(query: CatalogueQueryDto) {
+    return query.yearMax;
+  }
+
+  defaultMessage() {
+    return "Minimum year cannot exceed maximum year";
+  }
+}
+
 function toArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
     return value.flatMap((entry) => String(entry).split(",")).map((entry) => entry.trim()).filter(Boolean);
@@ -117,12 +132,15 @@ export class CatalogueQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1900)
+  @Max(2100)
   yearMin?: number;
 
   @Type(() => Number)
   @IsOptional()
   @IsInt()
   @Min(1900)
+  @Max(2100)
+  @Validate(ValidYearRangeConstraint)
   yearMax?: number;
 
   @Type(() => Number)

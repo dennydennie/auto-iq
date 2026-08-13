@@ -41,6 +41,11 @@ import {
   normalizePriceValue,
   priceRangeLabel,
 } from "@/lib/catalogue-price";
+import {
+  isYearRangeValid,
+  normalizeYearValue,
+  yearRangeLabel,
+} from "@/lib/catalogue-year";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -98,6 +103,8 @@ export default async function VehiclesPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
+  const yearMin = normalizeYearValue(readValue(params.yearMin));
+  const requestedYearMax = normalizeYearValue(readValue(params.yearMax));
   const priceMin = normalizePriceValue(readValue(params.priceMin));
   const requestedPriceMax = normalizePriceValue(readValue(params.priceMax));
   const mileageMin = readValue(params.mileageMin);
@@ -110,8 +117,10 @@ export default async function VehiclesPage({
     fuelType: readValue(params.fuelType),
     transmission: readValue(params.transmission),
     verified: readValue(params.verified),
-    yearMin: readValue(params.yearMin),
-    yearMax: readValue(params.yearMax),
+    yearMin,
+    yearMax: isYearRangeValid(yearMin, requestedYearMax)
+      ? requestedYearMax
+      : "",
     priceMin,
     priceMax: isPriceRangeValid(priceMin, requestedPriceMax)
       ? requestedPriceMax
@@ -233,9 +242,8 @@ export default async function VehiclesPage({
       removeHref: vehiclesHref({ verified: "", cursor: "" }, filters),
     });
   if (filters.yearMin || filters.yearMax) {
-    const label = `Year ${filters.yearMin || "any"} – ${filters.yearMax || "any"}`;
     chips.push({
-      label,
+      label: `Year: ${yearRangeLabel(filters.yearMin, filters.yearMax)}`,
       removeHref: vehiclesHref(
         { yearMin: "", yearMax: "", cursor: "" },
         filters,

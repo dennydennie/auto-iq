@@ -3,6 +3,37 @@ import { validate } from "class-validator";
 import { CatalogueQueryDto } from "./catalogue.dto";
 
 describe("CatalogueQueryDto", () => {
+  it("accepts an inclusive year range", async () => {
+    const query = plainToInstance(CatalogueQueryDto, {
+      yearMin: "2018",
+      yearMax: "2024",
+    });
+
+    await expect(validate(query)).resolves.toHaveLength(0);
+  });
+
+  it("rejects a minimum year above the maximum", async () => {
+    const query = plainToInstance(CatalogueQueryDto, {
+      yearMin: "2025",
+      yearMax: "2020",
+    });
+
+    expect(JSON.stringify(await validate(query))).toContain(
+      "Minimum year cannot exceed maximum year",
+    );
+  });
+
+  it("rejects years outside the supported API bounds", async () => {
+    const query = plainToInstance(CatalogueQueryDto, {
+      yearMin: "1899",
+      yearMax: "2101",
+    });
+
+    const errors = JSON.stringify(await validate(query));
+    expect(errors).toContain("yearMin");
+    expect(errors).toContain("yearMax");
+  });
+
   it("accepts an inclusive price range", async () => {
     const query = plainToInstance(CatalogueQueryDto, {
       priceMin: "5000",

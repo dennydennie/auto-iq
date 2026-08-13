@@ -51,6 +51,10 @@ const priceFields = read(
   "apps/web/components/marketplace/price-range-fields.tsx",
 );
 const priceOptions = read("apps/web/lib/catalogue-price.ts");
+const yearFields = read(
+  "apps/web/components/marketplace/year-range-fields.tsx",
+);
+const yearOptions = read("apps/web/lib/catalogue-year.ts");
 const browserTest = read("apps/web/e2e/buyer-marketplace.spec.ts");
 
 for (const route of [
@@ -179,6 +183,26 @@ requireText(
   catalogueQuery,
   "pricing.ask_price_usd >= :priceMin",
   "Catalogue queries must apply the minimum price filter.",
+);
+
+for (const evidence of ['name: "yearMin"', 'name: "yearMax"']) {
+  requireText(
+    yearFields,
+    evidence,
+    `Year range control must include ${evidence}.`,
+  );
+}
+for (const evidence of [
+  "CATALOGUE_YEAR_MAX = 2026",
+  "CATALOGUE_YEAR_MIN = 1990",
+  "CATALOGUE_YEAR_MAX - index",
+]) {
+  requireText(yearOptions, evidence, `Year options must include ${evidence}.`);
+}
+requireText(
+  catalogueQuery,
+  "specs.year >= :yearMin",
+  "Catalogue queries must apply the minimum year filter.",
 );
 
 for (const evidence of [

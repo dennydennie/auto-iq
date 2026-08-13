@@ -5,10 +5,10 @@ import type {
 } from "@auto-iq/contracts/catalogue";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { Filter, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { MakeModelFields } from "@/components/marketplace/make-model-fields";
 import { MileageRangeFields } from "@/components/marketplace/mileage-range-fields";
 import { PriceRangeFields } from "@/components/marketplace/price-range-fields";
+import { YearRangeFields } from "@/components/marketplace/year-range-fields";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { buttonVariants } from "@/components/ui/button";
@@ -224,28 +224,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Year">
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              name="yearMin"
-              type="number"
-              min={1950}
-              max={2100}
-              defaultValue={filters.yearMin}
-              placeholder="From"
-              aria-label="Year from"
-              className="h-11"
-            />
-            <Input
-              name="yearMax"
-              type="number"
-              min={1950}
-              max={2100}
-              defaultValue={filters.yearMax}
-              placeholder="To"
-              aria-label="Year to"
-              className="h-11"
-            />
-          </div>
+          <YearRangeFields
+            key={`${idPrefix}:${filters.yearMin}:${filters.yearMax}`}
+            idPrefix={idPrefix}
+            initialMinimum={filters.yearMin}
+            initialMaximum={filters.yearMax}
+          />
         </Section>
 
         <Section title="Mileage" defaultOpen={false}>
