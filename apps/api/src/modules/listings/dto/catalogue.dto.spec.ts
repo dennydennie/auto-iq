@@ -3,6 +3,35 @@ import { validate } from "class-validator";
 import { CatalogueQueryDto } from "./catalogue.dto";
 
 describe("CatalogueQueryDto", () => {
+  it("accepts an inclusive price range", async () => {
+    const query = plainToInstance(CatalogueQueryDto, {
+      priceMin: "5000",
+      priceMax: "20000",
+    });
+
+    await expect(validate(query)).resolves.toHaveLength(0);
+  });
+
+  it("rejects a minimum price above the maximum", async () => {
+    const query = plainToInstance(CatalogueQueryDto, {
+      priceMin: "30000",
+      priceMax: "20000",
+    });
+
+    expect(JSON.stringify(await validate(query))).toContain(
+      "Minimum price cannot exceed maximum price",
+    );
+  });
+
+  it("rejects negative price bounds", async () => {
+    const query = plainToInstance(CatalogueQueryDto, {
+      priceMin: "-1",
+      priceMax: "10000",
+    });
+
+    expect(JSON.stringify(await validate(query))).toContain("priceMin");
+  });
+
   it("accepts an inclusive mileage range", async () => {
     const query = plainToInstance(CatalogueQueryDto, {
       mileageMin: "40000",

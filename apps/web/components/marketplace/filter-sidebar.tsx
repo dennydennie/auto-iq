@@ -8,6 +8,7 @@ import { Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MakeModelFields } from "@/components/marketplace/make-model-fields";
 import { MileageRangeFields } from "@/components/marketplace/mileage-range-fields";
+import { PriceRangeFields } from "@/components/marketplace/price-range-fields";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { buttonVariants } from "@/components/ui/button";
@@ -214,26 +215,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Price (USD)">
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              name="priceMin"
-              type="number"
-              min={0}
-              defaultValue={filters.priceMin}
-              placeholder="Min"
-              aria-label="Minimum price"
-              className="h-11"
-            />
-            <Input
-              name="priceMax"
-              type="number"
-              min={0}
-              defaultValue={filters.priceMax}
-              placeholder="Max"
-              aria-label="Maximum price"
-              className="h-11"
-            />
-          </div>
+          <PriceRangeFields
+            key={`${idPrefix}:${filters.priceMin}:${filters.priceMax}`}
+            idPrefix={idPrefix}
+            initialMinimum={filters.priceMin}
+            initialMaximum={filters.priceMax}
+          />
         </Section>
 
         <Section title="Year">

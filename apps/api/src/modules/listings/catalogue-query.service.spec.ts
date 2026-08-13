@@ -29,6 +29,21 @@ describe("CatalogueQueryService", () => {
     expect(builder.where).toHaveBeenCalledWith("vehicle.status = 'PUBLISHED'");
   });
 
+  it("applies inclusive minimum and maximum price filters", async () => {
+    const { builder, service } = createHarness();
+
+    await service.list({ priceMin: 5_000, priceMax: 20_000 });
+
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      "pricing.ask_price_usd >= :priceMin",
+      { priceMin: 5_000 },
+    );
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      "pricing.ask_price_usd <= :priceMax",
+      { priceMax: 20_000 },
+    );
+  });
+
   it("applies inclusive minimum and maximum mileage filters", async () => {
     const { builder, service } = createHarness();
 

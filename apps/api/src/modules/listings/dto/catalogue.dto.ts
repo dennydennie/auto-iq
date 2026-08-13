@@ -14,19 +14,47 @@ import {
   type ValidatorConstraintInterface,
 } from "class-validator";
 
-@ValidatorConstraint({ name: "validMileageRange", async: false })
-class ValidMileageRangeConstraint implements ValidatorConstraintInterface {
+abstract class ValidNumericRangeConstraint
+  implements ValidatorConstraintInterface
+{
+  protected abstract minimum(query: CatalogueQueryDto): number | undefined;
+  protected abstract maximum(query: CatalogueQueryDto): number | undefined;
+
   validate(_: unknown, arguments_: ValidationArguments) {
     const query = arguments_.object as CatalogueQueryDto;
-    return (
-      query.mileageMin === undefined ||
-      query.mileageMax === undefined ||
-      query.mileageMin <= query.mileageMax
-    );
+    const minimum = this.minimum(query);
+    const maximum = this.maximum(query);
+    return minimum === undefined || maximum === undefined || minimum <= maximum;
+  }
+}
+
+@ValidatorConstraint({ name: "validMileageRange", async: false })
+class ValidMileageRangeConstraint extends ValidNumericRangeConstraint {
+  protected minimum(query: CatalogueQueryDto) {
+    return query.mileageMin;
+  }
+
+  protected maximum(query: CatalogueQueryDto) {
+    return query.mileageMax;
   }
 
   defaultMessage() {
     return "Minimum mileage cannot exceed maximum mileage";
+  }
+}
+
+@ValidatorConstraint({ name: "validPriceRange", async: false })
+class ValidPriceRangeConstraint extends ValidNumericRangeConstraint {
+  protected minimum(query: CatalogueQueryDto) {
+    return query.priceMin;
+  }
+
+  protected maximum(query: CatalogueQueryDto) {
+    return query.priceMax;
+  }
+
+  defaultMessage() {
+    return "Minimum price cannot exceed maximum price";
   }
 }
 
@@ -107,6 +135,7 @@ export class CatalogueQueryDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Validate(ValidPriceRangeConstraint)
   priceMax?: number;
 
   @Type(() => Number)

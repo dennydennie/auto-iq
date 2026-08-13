@@ -47,6 +47,10 @@ const mileageFields = read(
   "apps/web/components/marketplace/mileage-range-fields.tsx",
 );
 const mileageOptions = read("apps/web/lib/catalogue-mileage.ts");
+const priceFields = read(
+  "apps/web/components/marketplace/price-range-fields.tsx",
+);
+const priceOptions = read("apps/web/lib/catalogue-price.ts");
 const browserTest = read("apps/web/e2e/buyer-marketplace.spec.ts");
 
 for (const route of [
@@ -114,7 +118,7 @@ requireText(
   "The web model-facet proxy must preserve API response handling.",
 );
 
-for (const evidence of ['name="mileageMin"', 'name="mileageMax"']) {
+for (const evidence of ['name: "mileageMin"', 'name: "mileageMax"']) {
   requireText(
     mileageFields,
     evidence,
@@ -137,6 +141,44 @@ requireText(
   catalogueQuery,
   "specs.mileage_km >= :mileageMin",
   "Catalogue queries must apply the minimum mileage filter.",
+);
+
+for (const evidence of ['name: "priceMin"', 'name: "priceMax"']) {
+  requireText(
+    priceFields,
+    evidence,
+    `Price range control must include ${evidence}.`,
+  );
+}
+for (const value of [
+  "2_000",
+  "3_000",
+  "5_000",
+  "6_000",
+  "7_000",
+  "8_000",
+  "9_000",
+  "10_000",
+  "15_000",
+  "20_000",
+  "25_000",
+  "30_000",
+  "35_000",
+  "40_000",
+  "45_000",
+  "50_000",
+  "60_000",
+  "70_000",
+  "80_000",
+  "90_000",
+  "100_000",
+]) {
+  requireText(priceOptions, value, `Price options must include ${value}.`);
+}
+requireText(
+  catalogueQuery,
+  "pricing.ask_price_usd >= :priceMin",
+  "Catalogue queries must apply the minimum price filter.",
 );
 
 for (const evidence of [

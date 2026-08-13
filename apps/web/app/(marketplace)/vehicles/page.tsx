@@ -36,6 +36,11 @@ import {
   isMileageRangeValid,
   mileageRangeLabel,
 } from "@/lib/catalogue-mileage";
+import {
+  isPriceRangeValid,
+  normalizePriceValue,
+  priceRangeLabel,
+} from "@/lib/catalogue-price";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -93,6 +98,8 @@ export default async function VehiclesPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
+  const priceMin = normalizePriceValue(readValue(params.priceMin));
+  const requestedPriceMax = normalizePriceValue(readValue(params.priceMax));
   const mileageMin = readValue(params.mileageMin);
   const requestedMileageMax = readValue(params.mileageMax);
   const filters: Filters = {
@@ -105,8 +112,10 @@ export default async function VehiclesPage({
     verified: readValue(params.verified),
     yearMin: readValue(params.yearMin),
     yearMax: readValue(params.yearMax),
-    priceMin: readValue(params.priceMin),
-    priceMax: readValue(params.priceMax),
+    priceMin,
+    priceMax: isPriceRangeValid(priceMin, requestedPriceMax)
+      ? requestedPriceMax
+      : "",
     mileageMin,
     mileageMax: isMileageRangeValid(mileageMin, requestedMileageMax)
       ? requestedMileageMax
@@ -234,9 +243,8 @@ export default async function VehiclesPage({
     });
   }
   if (filters.priceMin || filters.priceMax) {
-    const label = `Price $${filters.priceMin || "0"} – $${filters.priceMax || "∞"}`;
     chips.push({
-      label,
+      label: `Price: ${priceRangeLabel(filters.priceMin, filters.priceMax)}`,
       removeHref: vehiclesHref(
         { priceMin: "", priceMax: "", cursor: "" },
         filters,
