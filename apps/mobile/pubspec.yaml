@@ -1,6 +1,6 @@
 name: autoiq_mobile
 description: BiSell AutoIQ - Zimbabwe's trust-first vehicle marketplace
-version: 1.0.4+5
+version: 1.0.5+6
 publish_to: "none"
 
 environment:
