@@ -5,7 +5,7 @@ import { validateApkInspection } from "./assert-release-apk.mjs";
 const expected = {
   apiOrigin: "https://api-staging.example",
   packageName: "zw.co.bisell.autoiq.mobile",
-  versionName: "1.0.5",
+  versionName: "1.0.6",
 };
 
 const validInspection = {
@@ -26,7 +26,7 @@ const validInspection = {
     'android:host="reset-password"',
     "flutter_deeplinking_enabled",
   ].join("\n"),
-  summary: "zw.co.bisell.autoiq.mobile\t6\t1.0.5",
+  summary: "zw.co.bisell.autoiq.mobile\t7\t1.0.6",
 };
 
 test("accepts the expected release APK inspection", () => {
@@ -40,7 +40,7 @@ test("rejects a stale APK version", () => {
         {...validInspection, summary: "zw.co.bisell.autoiq.mobile\t1\t1.0.0"},
         expected,
       ),
-    /Expected version 1\.0\.5, received 1\.0\.0/,
+    /Expected version 1\.0\.6, received 1\.0\.0/,
   );
 });
 

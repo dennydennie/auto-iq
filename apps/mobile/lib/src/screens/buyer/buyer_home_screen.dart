@@ -78,20 +78,58 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             _draftFilters = _draftFilters.copyWith(
               make: value,
               model: null,
-              year: null,
             );
           }),
-          onModelChanged: (value) => setState(() {
-            _draftFilters = _draftFilters.copyWith(model: value, year: null);
-          }),
-          onYearChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(year: value),
+          onModelChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(model: value),
+          ),
+          onYearMinChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              yearMin: value,
+              yearMax: _validMax(value, _draftFilters.yearMax),
+            ),
+          ),
+          onYearMaxChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              yearMin: _validMin(_draftFilters.yearMin, value),
+              yearMax: value,
+            ),
           ),
           onCityChanged: (value) => setState(
             () => _draftFilters = _draftFilters.copyWith(city: value),
           ),
           onBodyTypeChanged: (value) => setState(
             () => _draftFilters = _draftFilters.copyWith(bodyType: value),
+          ),
+          onPriceMinChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              priceMin: value,
+              priceMax: _validMax(value, _draftFilters.priceMax),
+            ),
+          ),
+          onPriceMaxChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              priceMin: _validMin(_draftFilters.priceMin, value),
+              priceMax: value,
+            ),
+          ),
+          onMileageMinChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              mileageMin: value,
+              mileageMax: _validMax(value, _draftFilters.mileageMax),
+            ),
+          ),
+          onMileageMaxChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(
+              mileageMin: _validMin(_draftFilters.mileageMin, value),
+              mileageMax: value,
+            ),
+          ),
+          onTransmissionChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(transmission: value),
+          ),
+          onFuelTypeChanged: (value) => setState(
+            () => _draftFilters = _draftFilters.copyWith(fuelType: value),
           ),
           onToggleVerified: () => setState(
             () => _draftFilters = _draftFilters.copyWith(
@@ -112,6 +150,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             _browseFuture = _loadBrowse();
           }),
           bodyTypes: session.referenceData?.bodyTypes ?? const [],
+          transmissionTypes:
+              session.referenceData?.transmissionTypes ?? const [],
+          fuelTypes: session.referenceData?.fuelTypes ?? const [],
           onOpenListing: _openListing,
           onRefresh: _refreshBrowse,
         ),
@@ -194,6 +235,18 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         ],
       ),
     );
+  }
+
+  int? _validMax(int? minimum, int? maximum) {
+    return minimum != null && maximum != null && minimum > maximum
+        ? null
+        : maximum;
+  }
+
+  int? _validMin(int? minimum, int? maximum) {
+    return minimum != null && maximum != null && minimum > maximum
+        ? null
+        : minimum;
   }
 
   Future<void> _openListing(String listingId, {bool saved = false}) async {
@@ -528,13 +581,22 @@ class _BrowseTab extends StatelessWidget {
     required this.onSearchChanged,
     required this.onMakeChanged,
     required this.onModelChanged,
-    required this.onYearChanged,
+    required this.onYearMinChanged,
+    required this.onYearMaxChanged,
     required this.onCityChanged,
     required this.onToggleVerified,
     required this.onBodyTypeChanged,
+    required this.onPriceMinChanged,
+    required this.onPriceMaxChanged,
+    required this.onMileageMinChanged,
+    required this.onMileageMaxChanged,
+    required this.onTransmissionChanged,
+    required this.onFuelTypeChanged,
     required this.onSearch,
     required this.onClear,
     required this.bodyTypes,
+    required this.transmissionTypes,
+    required this.fuelTypes,
     required this.onOpenListing,
     required this.onRefresh,
   });
@@ -548,13 +610,22 @@ class _BrowseTab extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String?> onMakeChanged;
   final ValueChanged<String?> onModelChanged;
-  final ValueChanged<int?> onYearChanged;
+  final ValueChanged<int?> onYearMinChanged;
+  final ValueChanged<int?> onYearMaxChanged;
   final ValueChanged<String?> onCityChanged;
   final VoidCallback onToggleVerified;
   final ValueChanged<String?> onBodyTypeChanged;
+  final ValueChanged<int?> onPriceMinChanged;
+  final ValueChanged<int?> onPriceMaxChanged;
+  final ValueChanged<int?> onMileageMinChanged;
+  final ValueChanged<int?> onMileageMaxChanged;
+  final ValueChanged<String?> onTransmissionChanged;
+  final ValueChanged<String?> onFuelTypeChanged;
   final VoidCallback onSearch;
   final VoidCallback onClear;
   final List<ReferenceOption> bodyTypes;
+  final List<ReferenceOption> transmissionTypes;
+  final List<ReferenceOption> fuelTypes;
   final Future<void> Function(String listingId, {bool saved}) onOpenListing;
   final Future<void> Function() onRefresh;
 
@@ -600,12 +671,21 @@ class _BrowseTab extends StatelessWidget {
                 onSearchChanged: onSearchChanged,
                 onMakeChanged: onMakeChanged,
                 onModelChanged: onModelChanged,
-                onYearChanged: onYearChanged,
+                onYearMinChanged: onYearMinChanged,
+                onYearMaxChanged: onYearMaxChanged,
                 onCityChanged: onCityChanged,
                 onBodyTypeChanged: onBodyTypeChanged,
+                onPriceMinChanged: onPriceMinChanged,
+                onPriceMaxChanged: onPriceMaxChanged,
+                onMileageMinChanged: onMileageMinChanged,
+                onMileageMaxChanged: onMileageMaxChanged,
+                onTransmissionChanged: onTransmissionChanged,
+                onFuelTypeChanged: onFuelTypeChanged,
                 onToggleVerified: onToggleVerified,
                 onSearch: onSearch,
                 onClear: onClear,
+                transmissionTypes: transmissionTypes,
+                fuelTypes: fuelTypes,
               ),
               const SizedBox(height: 12),
               if (filtered.isEmpty)
@@ -649,12 +729,21 @@ class BrowseFilters extends StatelessWidget {
     required this.makes,
     required this.cities,
     required this.bodyTypes,
+    required this.transmissionTypes,
+    required this.fuelTypes,
     required this.onSearchChanged,
     required this.onMakeChanged,
     required this.onModelChanged,
-    required this.onYearChanged,
+    required this.onYearMinChanged,
+    required this.onYearMaxChanged,
     required this.onCityChanged,
     required this.onBodyTypeChanged,
+    required this.onPriceMinChanged,
+    required this.onPriceMaxChanged,
+    required this.onMileageMinChanged,
+    required this.onMileageMaxChanged,
+    required this.onTransmissionChanged,
+    required this.onFuelTypeChanged,
     required this.onToggleVerified,
     required this.onSearch,
     required this.onClear,
@@ -665,12 +754,21 @@ class BrowseFilters extends StatelessWidget {
   final List<VehicleMake> makes;
   final List<String> cities;
   final List<ReferenceOption> bodyTypes;
+  final List<ReferenceOption> transmissionTypes;
+  final List<ReferenceOption> fuelTypes;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String?> onMakeChanged;
   final ValueChanged<String?> onModelChanged;
-  final ValueChanged<int?> onYearChanged;
+  final ValueChanged<int?> onYearMinChanged;
+  final ValueChanged<int?> onYearMaxChanged;
   final ValueChanged<String?> onCityChanged;
   final ValueChanged<String?> onBodyTypeChanged;
+  final ValueChanged<int?> onPriceMinChanged;
+  final ValueChanged<int?> onPriceMaxChanged;
+  final ValueChanged<int?> onMileageMinChanged;
+  final ValueChanged<int?> onMileageMaxChanged;
+  final ValueChanged<String?> onTransmissionChanged;
+  final ValueChanged<String?> onFuelTypeChanged;
   final VoidCallback onToggleVerified;
   final VoidCallback onSearch;
   final VoidCallback onClear;
@@ -680,7 +778,6 @@ class BrowseFilters extends StatelessWidget {
     final copy = AutoIqLocalizations.of(context);
     final selectedMake = _makeFor(filters.make);
     final models = selectedMake?.popularModels ?? const <String>[];
-    final years = _years();
     return Column(
       children: [
         TextField(
@@ -730,28 +827,55 @@ class BrowseFilters extends StatelessWidget {
                 onChanged: selectedMake == null ? null : onModelChanged,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _FilterDropdown<int?>(
-                controlKey: 'browse-filter-year',
-                label: copy.year,
-                selectedValue: filters.year,
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(copy.anyYear),
-                  ),
-                  ...years.map(
-                    (year) => DropdownMenuItem(
-                      value: year,
-                      child: Text('$year'),
-                    ),
-                  ),
-                ],
-                onChanged: filters.model == null ? null : onYearChanged,
-              ),
-            ),
           ],
+        ),
+        const SizedBox(height: 12),
+        _RangeDropdowns(
+          title: copy.priceUsd,
+          minimumKey: 'browse-filter-price-min',
+          maximumKey: 'browse-filter-price-max',
+          minimum: filters.priceMin,
+          maximum: filters.priceMax,
+          values: cataloguePriceOptions,
+          minimumLabel: copy.minimum,
+          maximumLabel: copy.maximum,
+          anyMinimum: copy.anyMinimum,
+          anyMaximum: copy.anyMaximum,
+          formatValue: _formatUsd,
+          onMinimumChanged: onPriceMinChanged,
+          onMaximumChanged: onPriceMaxChanged,
+        ),
+        const SizedBox(height: 12),
+        _RangeDropdowns(
+          title: copy.year,
+          minimumKey: 'browse-filter-year-min',
+          maximumKey: 'browse-filter-year-max',
+          minimum: filters.yearMin,
+          maximum: filters.yearMax,
+          values: catalogueYearOptions,
+          minimumLabel: copy.yearFrom,
+          maximumLabel: copy.yearTo,
+          anyMinimum: copy.anyYear,
+          anyMaximum: copy.anyYear,
+          formatValue: (value) => '$value',
+          onMinimumChanged: onYearMinChanged,
+          onMaximumChanged: onYearMaxChanged,
+        ),
+        const SizedBox(height: 12),
+        _RangeDropdowns(
+          title: copy.mileage,
+          minimumKey: 'browse-filter-mileage-min',
+          maximumKey: 'browse-filter-mileage-max',
+          minimum: filters.mileageMin,
+          maximum: filters.mileageMax,
+          values: catalogueMileageOptions,
+          minimumLabel: copy.minimum,
+          maximumLabel: copy.maximum,
+          anyMinimum: copy.anyMinimum,
+          anyMaximum: copy.anyMaximum,
+          formatValue: _formatKm,
+          onMinimumChanged: onMileageMinChanged,
+          onMaximumChanged: onMileageMaxChanged,
         ),
         const SizedBox(height: 12),
         _FilterDropdown<String?>(
@@ -768,6 +892,52 @@ class BrowseFilters extends StatelessWidget {
             ),
           ],
           onChanged: onCityChanged,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _FilterDropdown<String?>(
+                controlKey: 'browse-filter-transmission',
+                label: copy.transmission,
+                selectedValue: filters.transmission,
+                items: [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text(copy.anyTransmission),
+                  ),
+                  ...transmissionTypes.map(
+                    (type) => DropdownMenuItem(
+                      value: type.value,
+                      child: Text(type.label),
+                    ),
+                  ),
+                ],
+                onChanged: onTransmissionChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _FilterDropdown<String?>(
+                controlKey: 'browse-filter-fuel-type',
+                label: copy.fuelType,
+                selectedValue: filters.fuelType,
+                items: [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text(copy.anyFuelType),
+                  ),
+                  ...fuelTypes.map(
+                    (type) => DropdownMenuItem(
+                      value: type.value,
+                      child: Text(type.label),
+                    ),
+                  ),
+                ],
+                onChanged: onFuelTypeChanged,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         Row(
@@ -832,9 +1002,110 @@ class BrowseFilters extends StatelessWidget {
     return null;
   }
 
-  List<int> _years() {
-    final currentYear = DateTime.now().year;
-    return [for (var year = currentYear; year >= 1990; year--) year];
+  String _formatUsd(int value) => 'USD ${_withSeparators(value)}';
+
+  String _formatKm(int value) => '${_withSeparators(value)} km';
+
+  String _withSeparators(int value) {
+    return value.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (_) => ',',
+        );
+  }
+}
+
+class _RangeDropdowns extends StatelessWidget {
+  const _RangeDropdowns({
+    required this.title,
+    required this.minimumKey,
+    required this.maximumKey,
+    required this.minimum,
+    required this.maximum,
+    required this.values,
+    required this.minimumLabel,
+    required this.maximumLabel,
+    required this.anyMinimum,
+    required this.anyMaximum,
+    required this.formatValue,
+    required this.onMinimumChanged,
+    required this.onMaximumChanged,
+  });
+
+  final String title;
+  final String minimumKey;
+  final String maximumKey;
+  final int? minimum;
+  final int? maximum;
+  final List<int> values;
+  final String minimumLabel;
+  final String maximumLabel;
+  final String anyMinimum;
+  final String anyMaximum;
+  final String Function(int value) formatValue;
+  final ValueChanged<int?> onMinimumChanged;
+  final ValueChanged<int?> onMaximumChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.ink900,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _FilterDropdown<int?>(
+                controlKey: minimumKey,
+                label: minimumLabel,
+                selectedValue: minimum,
+                items: _items(anyMinimum, isMinimum: true),
+                onChanged: onMinimumChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _FilterDropdown<int?>(
+                controlKey: maximumKey,
+                label: maximumLabel,
+                selectedValue: maximum,
+                items: _items(anyMaximum, isMinimum: false),
+                onChanged: onMaximumChanged,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<DropdownMenuItem<int?>> _items(
+    String emptyLabel, {
+    required bool isMinimum,
+  }) {
+    return [
+      DropdownMenuItem(value: null, child: Text(emptyLabel)),
+      ...values.map(
+        (value) => DropdownMenuItem(
+          value: value,
+          enabled: _isValid(value, isMinimum: isMinimum),
+          child: Text(formatValue(value)),
+        ),
+      ),
+    ];
+  }
+
+  bool _isValid(int value, {required bool isMinimum}) {
+    if (isMinimum) {
+      return maximum == null || value <= maximum!;
+    }
+    return minimum == null || value >= minimum!;
   }
 }
 
@@ -860,6 +1131,7 @@ class _FilterDropdown<T> extends StatelessWidget {
       child: DropdownButtonFormField<T>(
         key: ValueKey(selectedValue),
         initialValue: selectedValue,
+        isExpanded: true,
         decoration: InputDecoration(labelText: label),
         items: items,
         onChanged: onChanged,

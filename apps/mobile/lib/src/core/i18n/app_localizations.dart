@@ -53,7 +53,19 @@ class AutoIqLocalizations {
   String get model => _read('model');
   String get allModels => _read('allModels');
   String get year => _read('year');
+  String get yearFrom => _read('yearFrom');
+  String get yearTo => _read('yearTo');
   String get anyYear => _read('anyYear');
+  String get priceUsd => _read('priceUsd');
+  String get mileage => _read('mileage');
+  String get minimum => _read('minimum');
+  String get maximum => _read('maximum');
+  String get anyMinimum => _read('anyMinimum');
+  String get anyMaximum => _read('anyMaximum');
+  String get transmission => _read('transmission');
+  String get anyTransmission => _read('anyTransmission');
+  String get fuelType => _read('fuelType');
+  String get anyFuelType => _read('anyFuelType');
   String get location => _read('location');
   String get allLocations => _read('allLocations');
   String get bodyType => _read('bodyType');
@@ -128,7 +140,19 @@ const _messages = <String, Map<String, String>>{
     'model': 'Model',
     'allModels': 'All models',
     'year': 'Year',
+    'yearFrom': 'From',
+    'yearTo': 'To',
     'anyYear': 'Any year',
+    'priceUsd': 'Price (USD)',
+    'mileage': 'Mileage',
+    'minimum': 'Min',
+    'maximum': 'Max',
+    'anyMinimum': 'Any min',
+    'anyMaximum': 'Any max',
+    'transmission': 'Transmission',
+    'anyTransmission': 'Any transmission',
+    'fuelType': 'Fuel type',
+    'anyFuelType': 'Any fuel type',
     'location': 'Location',
     'allLocations': 'All locations',
     'bodyType': 'Body type',
@@ -168,7 +192,19 @@ const _messages = <String, Map<String, String>>{
     'model': 'Mhando',
     'allModels': 'Mhando dzese',
     'year': 'Gore',
+    'yearFrom': 'Kubva',
+    'yearTo': 'Kusvika',
     'anyYear': 'Gore ripi zvaro',
+    'priceUsd': 'Mutengo (USD)',
+    'mileage': 'Makiromita',
+    'minimum': 'Pasi',
+    'maximum': 'Pamusoro',
+    'anyMinimum': 'Pasi pese',
+    'anyMaximum': 'Pamusoro pese',
+    'transmission': 'Magiyabhokisi',
+    'anyTransmission': 'Magiyabhokisi ese',
+    'fuelType': 'Rudzi rwemafuta',
+    'anyFuelType': 'Mafuta ese',
     'location': 'Nzvimbo',
     'allLocations': 'Nzvimbo dzese',
     'bodyType': 'Rudzi rwemota',
@@ -208,7 +244,19 @@ const _messages = <String, Map<String, String>>{
     'model': 'الطراز',
     'allModels': 'كل الطرازات',
     'year': 'السنة',
+    'yearFrom': 'من',
+    'yearTo': 'إلى',
     'anyYear': 'أي سنة',
+    'priceUsd': 'السعر (دولار)',
+    'mileage': 'المسافة المقطوعة',
+    'minimum': 'الحد الأدنى',
+    'maximum': 'الحد الأقصى',
+    'anyMinimum': 'أي حد أدنى',
+    'anyMaximum': 'أي حد أقصى',
+    'transmission': 'ناقل الحركة',
+    'anyTransmission': 'أي ناقل حركة',
+    'fuelType': 'نوع الوقود',
+    'anyFuelType': 'أي نوع وقود',
     'location': 'الموقع',
     'allLocations': 'كل المواقع',
     'bodyType': 'نوع الهيكل',

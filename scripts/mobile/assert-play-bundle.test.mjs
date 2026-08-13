@@ -5,7 +5,7 @@ import { validatePlayBundleInspection } from "./assert-play-bundle.mjs";
 const expected = {
   apiOrigin: "https://api.autoiq.example",
   packageName: "zw.co.bisell.autoiq.mobile",
-  versionName: "1.0.5",
+  versionName: "1.0.6",
 };
 const validInspection = {
   appBinary: Buffer.from(

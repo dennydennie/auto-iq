@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('dependent dropdowns enable in order and Search applies filters',
+  testWidgets('all mobile browse dropdowns apply the complete filter query',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final controller = TextEditingController();
     var draft = const ListingFilterState();
     var applied = const ListingFilterState();
-    var draftSearch = '';
-    var appliedSearch = '';
     var searchCalls = 0;
 
     await tester.pumpWidget(
@@ -20,6 +20,18 @@ void main() {
           body: SingleChildScrollView(
             child: StatefulBuilder(
               builder: (context, setState) {
+                int? validMax(int? minimum, int? maximum) {
+                  return minimum != null && maximum != null && minimum > maximum
+                      ? null
+                      : maximum;
+                }
+
+                int? validMin(int? minimum, int? maximum) {
+                  return minimum != null && maximum != null && minimum > maximum
+                      ? null
+                      : minimum;
+                }
+
                 return BrowseFilters(
                   searchController: controller,
                   filters: draft,
@@ -39,41 +51,82 @@ void main() {
                   bodyTypes: const [
                     ReferenceOption(value: 'SUV', label: 'SUV'),
                   ],
-                  onSearchChanged: (value) => draftSearch = value,
+                  transmissionTypes: const [
+                    ReferenceOption(
+                      value: 'AUTOMATIC',
+                      label: 'Automatic',
+                    ),
+                  ],
+                  fuelTypes: const [
+                    ReferenceOption(value: 'DIESEL', label: 'Diesel'),
+                  ],
+                  onSearchChanged: (_) {},
                   onMakeChanged: (value) => setState(() {
-                    draft = draft.copyWith(
-                      make: value,
-                      model: null,
-                      year: null,
-                    );
+                    draft = draft.copyWith(make: value, model: null);
                   }),
                   onModelChanged: (value) => setState(() {
-                    draft = draft.copyWith(model: value, year: null);
+                    draft = draft.copyWith(model: value);
                   }),
-                  onYearChanged: (value) => setState(
-                    () => draft = draft.copyWith(year: value),
-                  ),
-                  onCityChanged: (value) => setState(
-                    () => draft = draft.copyWith(city: value),
-                  ),
-                  onBodyTypeChanged: (value) => setState(
-                    () => draft = draft.copyWith(bodyType: value),
-                  ),
-                  onToggleVerified: () => setState(
-                    () => draft = draft.copyWith(
+                  onYearMinChanged: (value) => setState(() {
+                    draft = draft.copyWith(
+                      yearMin: value,
+                      yearMax: validMax(value, draft.yearMax),
+                    );
+                  }),
+                  onYearMaxChanged: (value) => setState(() {
+                    draft = draft.copyWith(
+                      yearMin: validMin(draft.yearMin, value),
+                      yearMax: value,
+                    );
+                  }),
+                  onCityChanged: (value) => setState(() {
+                    draft = draft.copyWith(city: value);
+                  }),
+                  onBodyTypeChanged: (value) => setState(() {
+                    draft = draft.copyWith(bodyType: value);
+                  }),
+                  onPriceMinChanged: (value) => setState(() {
+                    draft = draft.copyWith(
+                      priceMin: value,
+                      priceMax: validMax(value, draft.priceMax),
+                    );
+                  }),
+                  onPriceMaxChanged: (value) => setState(() {
+                    draft = draft.copyWith(
+                      priceMin: validMin(draft.priceMin, value),
+                      priceMax: value,
+                    );
+                  }),
+                  onMileageMinChanged: (value) => setState(() {
+                    draft = draft.copyWith(
+                      mileageMin: value,
+                      mileageMax: validMax(value, draft.mileageMax),
+                    );
+                  }),
+                  onMileageMaxChanged: (value) => setState(() {
+                    draft = draft.copyWith(
+                      mileageMin: validMin(draft.mileageMin, value),
+                      mileageMax: value,
+                    );
+                  }),
+                  onTransmissionChanged: (value) => setState(() {
+                    draft = draft.copyWith(transmission: value);
+                  }),
+                  onFuelTypeChanged: (value) => setState(() {
+                    draft = draft.copyWith(fuelType: value);
+                  }),
+                  onToggleVerified: () => setState(() {
+                    draft = draft.copyWith(
                       verifiedOnly: !draft.verifiedOnly,
-                    ),
-                  ),
+                    );
+                  }),
                   onSearch: () => setState(() {
                     applied = draft;
-                    appliedSearch = draftSearch;
                     searchCalls++;
                   }),
                   onClear: () => setState(() {
                     draft = const ListingFilterState();
                     applied = const ListingFilterState();
-                    draftSearch = '';
-                    appliedSearch = '';
                     controller.clear();
                   }),
                 );
@@ -84,57 +137,42 @@ void main() {
       ),
     );
 
-    expect(find.text('Make'), findsOneWidget);
-    expect(find.text('Model'), findsOneWidget);
-    expect(find.text('Year'), findsOneWidget);
-    expect(find.text('Location'), findsOneWidget);
-    expect(
-      _dropdown<String?>(tester, 'browse-filter-model').onChanged,
-      isNull,
-    );
-    expect(
-      _dropdown<int?>(tester, 'browse-filter-year').onChanged,
-      isNull,
-    );
-
-    await tester.tap(find.text('All makes'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Toyota').last);
-    await tester.pumpAndSettle();
+    expect(_dropdown<String?>(tester, 'browse-filter-model').onChanged, isNull);
+    await _select(tester, 'browse-filter-make', 'All makes', 'Toyota');
     expect(
       _dropdown<String?>(tester, 'browse-filter-model').onChanged,
       isNotNull,
     );
+    await _select(tester, 'browse-filter-model', 'All models', 'Hilux');
 
-    await tester.tap(find.text('All models'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Hilux').last);
-    await tester.pumpAndSettle();
+    await _select(tester, 'browse-filter-price-min', 'Any min', 'USD 10,000');
+    await _select(tester, 'browse-filter-price-max', 'Any max', 'USD 25,000');
+    await _select(tester, 'browse-filter-year-min', 'Any year', '2019');
+    await _select(tester, 'browse-filter-year-max', 'Any year', '2021');
+    await _select(tester, 'browse-filter-mileage-min', 'Any min', '40,000 km');
+    await _select(
+      tester,
+      'browse-filter-mileage-max',
+      'Any max',
+      '150,000 km',
+    );
+    await _select(
+      tester,
+      'browse-filter-transmission',
+      'Any transmission',
+      'Automatic',
+    );
+    await _select(
+      tester,
+      'browse-filter-fuel-type',
+      'Any fuel type',
+      'Diesel',
+    );
+    await _select(tester, 'browse-filter-location', 'All locations', 'Harare');
+    await _select(tester, 'browse-filter-body-type', 'All body types', 'SUV');
 
-    final currentYear = DateTime.now().year;
-    await tester.tap(find.text('Any year'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('$currentYear').last);
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const Key('browse-filter-location')));
-    await tester.tap(find.text('All locations'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Harare').last);
-    await tester.pumpAndSettle();
-
-    await tester
-        .ensureVisible(find.byKey(const Key('browse-filter-body-type')));
-    await tester.tap(find.text('All body types'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('SUV').last);
-    await tester.pumpAndSettle();
-
+    await tester.ensureVisible(find.byKey(const Key('browse-filter-verified')));
     await tester.tap(find.byKey(const Key('browse-filter-verified')));
-    await tester.enterText(find.byType(TextField), 'work truck');
-    await tester.pump();
-
-    expect(searchCalls, 0);
     await tester.ensureVisible(find.text('Search').last);
     await tester.tap(find.text('Search').last);
     await tester.pump();
@@ -142,85 +180,121 @@ void main() {
     expect(searchCalls, 1);
     expect(
       applied,
-      ListingFilterState(
+      const ListingFilterState(
         make: 'Toyota',
         model: 'Hilux',
-        year: currentYear,
+        yearMin: 2019,
+        yearMax: 2021,
         city: 'Harare',
         bodyType: 'SUV',
+        priceMin: 10000,
+        priceMax: 25000,
+        mileageMin: 40000,
+        mileageMax: 150000,
+        transmission: 'AUTOMATIC',
+        fuelType: 'DIESEL',
         verifiedOnly: true,
       ),
     );
-    expect(appliedSearch, 'work truck');
 
-    await tester.ensureVisible(find.byKey(const Key('browse-filter-make')));
-    await tester.tap(find.text('Toyota'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Honda').last);
-    await tester.pumpAndSettle();
-
+    await _select(tester, 'browse-filter-make', 'Toyota', 'Honda');
     expect(draft.make, 'Honda');
     expect(draft.model, isNull);
-    expect(draft.year, isNull);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('browse-filter-model')),
-        matching: find.text('All models'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('browse-filter-year')),
-        matching: find.text('Any year'),
-      ),
-      findsOneWidget,
-    );
+    expect(draft.yearMin, 2019);
+    expect(draft.yearMax, 2021);
 
-    await tester.ensureVisible(find.text('Search').last);
-    await tester.tap(find.text('Search').last);
-    await tester.pump();
-
-    expect(searchCalls, 2);
-    expect(applied.make, 'Honda');
-    expect(applied.model, isNull);
-    expect(applied.year, isNull);
-
+    await tester.ensureVisible(find.text('Clear').last);
     await tester.tap(find.text('Clear').last);
     await tester.pumpAndSettle();
     expect(draft, const ListingFilterState());
     expect(applied, const ListingFilterState());
-    expect(controller.text, isEmpty);
-    expect(appliedSearch, isEmpty);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('browse-filter-make')),
-        matching: find.text('All makes'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('browse-filter-location')),
-        matching: find.text('All locations'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      _dropdown<String?>(tester, 'browse-filter-model').onChanged,
-      isNull,
-    );
-    expect(
-      tester
-          .widget<FilterChip>(
-            find.byKey(const Key('browse-filter-verified')),
-          )
-          .selected,
-      isFalse,
-    );
 
     controller.dispose();
   });
+
+  testWidgets('year controls contain every year from 2026 to 1990',
+      (tester) async {
+    final controller = TextEditingController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: BrowseFilters(
+              searchController: controller,
+              filters: const ListingFilterState(),
+              makes: const [],
+              cities: const [],
+              bodyTypes: const [],
+              transmissionTypes: const [],
+              fuelTypes: const [],
+              onSearchChanged: (_) {},
+              onMakeChanged: (_) {},
+              onModelChanged: (_) {},
+              onYearMinChanged: (_) {},
+              onYearMaxChanged: (_) {},
+              onCityChanged: (_) {},
+              onBodyTypeChanged: (_) {},
+              onPriceMinChanged: (_) {},
+              onPriceMaxChanged: (_) {},
+              onMileageMinChanged: (_) {},
+              onMileageMaxChanged: (_) {},
+              onTransmissionChanged: (_) {},
+              onFuelTypeChanged: (_) {},
+              onToggleVerified: () {},
+              onSearch: () {},
+              onClear: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final control = find.byKey(const Key('browse-filter-year-min'));
+    final dropdown = tester.widget<DropdownButton<int?>>(
+      find.descendant(
+        of: control,
+        matching: find.byType(DropdownButton<int?>),
+      ),
+    );
+    final values = dropdown.items!.skip(1).map((item) => item.value).toList();
+    expect(values, catalogueYearOptions);
+    expect(values.first, 2026);
+    expect(values.last, 1990);
+    controller.dispose();
+  });
+}
+
+Future<void> _select(
+  WidgetTester tester,
+  String key,
+  String _,
+  String nextLabel,
+) async {
+  final dropdown = _dynamicDropdownButton(tester, key);
+  final item = dropdown.items!.singleWhere(
+    (candidate) => _itemText(candidate) == nextLabel,
+  );
+  dropdown.onChanged!(item.value);
+  await tester.pumpAndSettle();
+}
+
+String _itemText(DropdownMenuItem<dynamic> item) {
+  final child = item.child;
+  return child is Text ? child.data ?? '' : '';
+}
+
+DropdownButton<dynamic> _dynamicDropdownButton(
+  WidgetTester tester,
+  String key,
+) {
+  return tester.widget<DropdownButton<dynamic>>(
+    find.descendant(
+      of: find.byKey(Key(key)),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is DropdownButton,
+      ),
+    ),
+  );
 }
 
 DropdownButtonFormField<T> _dropdown<T>(
