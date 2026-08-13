@@ -7,6 +7,7 @@ import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MakeModelFields } from "@/components/marketplace/make-model-fields";
+import { MileageRangeFields } from "@/components/marketplace/mileage-range-fields";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { buttonVariants } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export type CatalogueFilterState = {
   yearMax: string;
   priceMin: string;
   priceMax: string;
+  mileageMin: string;
   mileageMax: string;
   sortBy: string;
 };
@@ -260,23 +262,12 @@ export function FilterSidebar({
         </Section>
 
         <Section title="Mileage" defaultOpen={false}>
-          <div className="space-y-2">
-            <Label
-              htmlFor={fieldId("mileage")}
-              className="text-xs uppercase tracking-[0.1em] text-[var(--ink-400)]"
-            >
-              Max km
-            </Label>
-            <Input
-              id={fieldId("mileage")}
-              name="mileageMax"
-              type="number"
-              min={0}
-              defaultValue={filters.mileageMax}
-              placeholder="e.g. 150000"
-              className="h-11"
-            />
-          </div>
+          <MileageRangeFields
+            key={`${idPrefix}:${filters.mileageMin}:${filters.mileageMax}`}
+            idPrefix={idPrefix}
+            initialMinimum={filters.mileageMin}
+            initialMaximum={filters.mileageMax}
+          />
         </Section>
 
         <Section title="Transmission" defaultOpen={false}>

@@ -58,6 +58,9 @@ export class CatalogueQueryService {
     if (query.priceMax !== undefined) {
       builder.andWhere("pricing.ask_price_usd <= :priceMax", { priceMax: query.priceMax });
     }
+    if (query.mileageMin !== undefined) {
+      builder.andWhere("specs.mileage_km >= :mileageMin", { mileageMin: query.mileageMin });
+    }
     if (query.mileageMax !== undefined) {
       builder.andWhere("specs.mileage_km <= :mileageMax", { mileageMax: query.mileageMax });
     }

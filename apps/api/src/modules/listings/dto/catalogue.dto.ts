@@ -1,5 +1,34 @@
 import { Transform, Type } from "class-transformer";
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  Validate,
+  type ValidationArguments,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
+} from "class-validator";
+
+@ValidatorConstraint({ name: "validMileageRange", async: false })
+class ValidMileageRangeConstraint implements ValidatorConstraintInterface {
+  validate(_: unknown, arguments_: ValidationArguments) {
+    const query = arguments_.object as CatalogueQueryDto;
+    return (
+      query.mileageMin === undefined ||
+      query.mileageMax === undefined ||
+      query.mileageMin <= query.mileageMax
+    );
+  }
+
+  defaultMessage() {
+    return "Minimum mileage cannot exceed maximum mileage";
+  }
+}
 
 function toArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
@@ -84,6 +113,13 @@ export class CatalogueQueryDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  mileageMin?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Validate(ValidMileageRangeConstraint)
   mileageMax?: number;
 
   @IsOptional()

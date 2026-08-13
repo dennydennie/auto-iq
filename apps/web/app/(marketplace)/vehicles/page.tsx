@@ -32,6 +32,10 @@ import {
   withQuery,
 } from "@/lib/server-api";
 import { extractSavedVehicles } from "@/lib/saved-vehicles";
+import {
+  isMileageRangeValid,
+  mileageRangeLabel,
+} from "@/lib/catalogue-mileage";
 import { labelizeEnum } from "@/lib/vehicle-ui";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -55,6 +59,7 @@ function filtersToQuery(filters: Filters) {
   if (filters.yearMax) params.set("yearMax", filters.yearMax);
   if (filters.priceMin) params.set("priceMin", filters.priceMin);
   if (filters.priceMax) params.set("priceMax", filters.priceMax);
+  if (filters.mileageMin) params.set("mileageMin", filters.mileageMin);
   if (filters.mileageMax) params.set("mileageMax", filters.mileageMax);
   if (filters.sortBy && filters.sortBy !== "publishedAt")
     params.set("sortBy", filters.sortBy);
@@ -78,7 +83,7 @@ function activeFilterCount(filters: Filters) {
   if (filters.verified) count++;
   if (filters.yearMin || filters.yearMax) count++;
   if (filters.priceMin || filters.priceMax) count++;
-  if (filters.mileageMax) count++;
+  if (filters.mileageMin || filters.mileageMax) count++;
   return count;
 }
 
@@ -88,6 +93,8 @@ export default async function VehiclesPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
+  const mileageMin = readValue(params.mileageMin);
+  const requestedMileageMax = readValue(params.mileageMax);
   const filters: Filters = {
     make: readValue(params.make),
     model: readValue(params.model),
@@ -100,7 +107,10 @@ export default async function VehiclesPage({
     yearMax: readValue(params.yearMax),
     priceMin: readValue(params.priceMin),
     priceMax: readValue(params.priceMax),
-    mileageMax: readValue(params.mileageMax),
+    mileageMin,
+    mileageMax: isMileageRangeValid(mileageMin, requestedMileageMax)
+      ? requestedMileageMax
+      : "",
     sortBy: readValue(params.sortBy) || "publishedAt",
     cursor: readValue(params.cursor),
   };
@@ -118,6 +128,7 @@ export default async function VehiclesPage({
     yearMax: filters.yearMax ? Number(filters.yearMax) : undefined,
     priceMin: filters.priceMin ? Number(filters.priceMin) : undefined,
     priceMax: filters.priceMax ? Number(filters.priceMax) : undefined,
+    mileageMin: filters.mileageMin ? Number(filters.mileageMin) : undefined,
     mileageMax: filters.mileageMax ? Number(filters.mileageMax) : undefined,
     sortBy: filters.sortBy,
     sortDir: "DESC",
@@ -232,10 +243,13 @@ export default async function VehiclesPage({
       ),
     });
   }
-  if (filters.mileageMax) {
+  if (filters.mileageMin || filters.mileageMax) {
     chips.push({
-      label: `≤ ${filters.mileageMax} km`,
-      removeHref: vehiclesHref({ mileageMax: "", cursor: "" }, filters),
+      label: `Mileage: ${mileageRangeLabel(filters.mileageMin, filters.mileageMax)}`,
+      removeHref: vehiclesHref(
+        { mileageMin: "", mileageMax: "", cursor: "" },
+        filters,
+      ),
     });
   }
 
@@ -422,6 +436,11 @@ export default async function VehiclesPage({
               <input type="hidden" name="yearMax" value={filters.yearMax} />
               <input type="hidden" name="priceMin" value={filters.priceMin} />
               <input type="hidden" name="priceMax" value={filters.priceMax} />
+              <input
+                type="hidden"
+                name="mileageMin"
+                value={filters.mileageMin}
+              />
               <input
                 type="hidden"
                 name="mileageMax"

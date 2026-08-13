@@ -43,6 +43,10 @@ const modelFields = read(
 const modelFacetsProxy = read(
   "apps/web/app/api/catalogue/model-facets/route.ts",
 );
+const mileageFields = read(
+  "apps/web/components/marketplace/mileage-range-fields.tsx",
+);
+const mileageOptions = read("apps/web/lib/catalogue-mileage.ts");
 const browserTest = read("apps/web/e2e/buyer-marketplace.spec.ts");
 
 for (const route of [
@@ -108,6 +112,31 @@ requireText(
   modelFacetsProxy,
   "proxyRemoteResponse",
   "The web model-facet proxy must preserve API response handling.",
+);
+
+for (const evidence of ['name="mileageMin"', 'name="mileageMax"']) {
+  requireText(
+    mileageFields,
+    evidence,
+    `Mileage range control must include ${evidence}.`,
+  );
+}
+for (const value of [
+  "20_000",
+  "40_000",
+  "80_000",
+  "100_000",
+  "150_000",
+  "200_000",
+  "250_000",
+  "300_000",
+]) {
+  requireText(mileageOptions, value, `Mileage options must include ${value}.`);
+}
+requireText(
+  catalogueQuery,
+  "specs.mileage_km >= :mileageMin",
+  "Catalogue queries must apply the minimum mileage filter.",
 );
 
 for (const evidence of [

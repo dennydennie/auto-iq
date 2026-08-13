@@ -61,6 +61,7 @@ export interface CatalogueFilters extends CursorPaginationParams {
   yearMax?: number;
   priceMin?: number;
   priceMax?: number;
+  mileageMin?: number;
   mileageMax?: number;
   transmission?: TransmissionType;
   fuelType?: FuelType;
