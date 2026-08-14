@@ -23,6 +23,8 @@ import { UserEntity } from "./entity/user.entity";
 import { VehicleRequestEntity } from "./entity/vehicle-request.entity";
 import { VehicleDocumentEntity } from "./entity/vehicle-document.entity";
 import { VehicleImageEntity } from "./entity/vehicle-image.entity";
+import { VehicleMakeEntity } from "./entity/vehicle-make.entity";
+import { VehicleModelEntity } from "./entity/vehicle-model.entity";
 import { VehiclePricingEntity } from "./entity/vehicle-pricing.entity";
 import { VehicleSpecsEntity } from "./entity/vehicle-specs.entity";
 import { VehicleStatusHistoryEntity } from "./entity/vehicle-status-history.entity";
@@ -50,6 +52,7 @@ import { UserRepository } from "./repository/user.repository";
 import { VehicleRequestRepository } from "./repository/vehicle-request.repository";
 import { VehicleDocumentRepository } from "./repository/vehicle-document.repository";
 import { VehicleImageRepository } from "./repository/vehicle-image.repository";
+import { VehicleMakeRepository } from "./repository/vehicle-make.repository";
 import { VehiclePricingRepository } from "./repository/vehicle-pricing.repository";
 import { VehicleSpecsRepository } from "./repository/vehicle-specs.repository";
 import { VehicleStatusHistoryRepository } from "./repository/vehicle-status-history.repository";
@@ -76,6 +79,8 @@ const ENTITIES = [
   TenantEntity,
   TenantMembershipEntity,
   VehicleEntity,
+  VehicleMakeEntity,
+  VehicleModelEntity,
   VehicleSpecsEntity,
   VehiclePricingEntity,
   VehicleImageEntity,
@@ -106,6 +111,7 @@ const REPOSITORIES = [
   NotificationRepository,
   NotificationAttemptRepository,
   VehicleRepository,
+  VehicleMakeRepository,
   VehicleSpecsRepository,
   VehiclePricingRepository,
   VehicleImageRepository,

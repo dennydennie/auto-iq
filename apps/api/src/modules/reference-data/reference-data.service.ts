@@ -2,21 +2,24 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { ApprovedViewingLocationRepository } from "../../db/repository/approved-viewing-location.repository";
 import type { ReferenceOptionCategory } from "../../db/entity/reference-option.entity";
 import { ReferenceOptionRepository } from "../../db/repository/reference-option.repository";
+import { VehicleMakeRepository } from "../../db/repository/vehicle-make.repository";
 
 @Injectable()
 export class ReferenceDataService {
   constructor(
     private readonly locationRepository: ApprovedViewingLocationRepository,
     private readonly optionRepository: ReferenceOptionRepository,
+    private readonly makeRepository: VehicleMakeRepository,
   ) {}
 
   async getAll() {
-    const [locations, options] = await Promise.all([
+    const [locations, options, makes] = await Promise.all([
       this.locationRepository.findActive(),
       this.optionRepository.findActive(),
+      this.getMakes(),
     ]);
     return {
-      makes: this.getMakes(),
+      makes,
       bodyTypes: selectOptions(options, "BODY_TYPE"),
       fuelTypes: selectOptions(options, "FUEL_TYPE"),
       transmissionTypes: selectOptions(options, "TRANSMISSION_TYPE"),
@@ -36,13 +39,14 @@ export class ReferenceDataService {
     };
   }
 
-  getMakes() {
-    return [
-      { id: "toyota", name: "Toyota", logoUrl: null, popularModels: ["Hilux", "Corolla", "Fortuner"] },
-      { id: "honda", name: "Honda", logoUrl: null, popularModels: ["CR-V", "Civic", "Fit"] },
-      { id: "mazda", name: "Mazda", logoUrl: null, popularModels: ["Demio", "CX-5", "BT-50"] },
-      { id: "nissan", name: "Nissan", logoUrl: null, popularModels: ["X-Trail", "Navara", "Note"] },
-    ];
+  async getMakes() {
+    const makes = await this.makeRepository.findActiveCatalogue();
+    return makes.map((make) => ({
+      id: make.code,
+      name: make.name,
+      logoUrl: make.logoUrl,
+      popularModels: make.models.map((model) => model.name),
+    }));
   }
 
   async assertActive(category: ReferenceOptionCategory, values: Array<string | undefined>) {

@@ -11,10 +11,21 @@ function createService() {
     ]),
     findActiveCodes: jest.fn(),
   };
+  const makes = {
+    findActiveCatalogue: jest.fn().mockResolvedValue([
+      {
+        code: "honda",
+        name: "Honda",
+        logoUrl: null,
+        models: [{ name: "Vezel" }, { name: "Fit" }],
+      },
+    ]),
+  };
   return {
     locations,
     options,
-    service: new ReferenceDataService(locations as never, options as never),
+    makes,
+    service: new ReferenceDataService(locations as never, options as never, makes as never),
   };
 }
 
@@ -25,6 +36,9 @@ describe("ReferenceDataService", () => {
     expect(result.bodyTypes).toEqual([{ value: "SUV", label: "SUV" }]);
     expect(result.fuelTypes).toEqual([{ value: "HYDROGEN", label: "Hydrogen" }]);
     expect(result.conditionGrades).toEqual([{ value: "GOOD", label: "Good" }]);
+    expect(result.makes).toEqual([
+      { id: "honda", name: "Honda", logoUrl: null, popularModels: ["Vezel", "Fit"] },
+    ]);
   });
 
   it("rejects inactive or unknown values", async () => {

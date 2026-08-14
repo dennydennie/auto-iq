@@ -84,7 +84,7 @@ function requestDependencies() {
     audit: { record: jest.fn() },
     rateLimit: { consume: jest.fn() },
     referenceData: {
-      getMakes: jest.fn(() => [{ id: "toyota", name: "Toyota" }]),
+      getMakes: jest.fn().mockResolvedValue([{ id: "toyota", name: "Toyota" }]),
       assertActive: jest.fn(),
     },
     vehicles: {},
