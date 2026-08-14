@@ -3,6 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
   moduleFileExtensions: ["js", "json", "ts"],
   rootDir: "src",
+  setupFiles: ["reflect-metadata"],
   testEnvironment: "node",
   testRegex: ".*\\.spec\\.ts$",
   transform: {

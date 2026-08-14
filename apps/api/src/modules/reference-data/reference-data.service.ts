@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ApprovedViewingLocationRepository } from "../../db/repository/approved-viewing-location.repository";
+import { VehicleMakeRepository } from "../../db/repository/vehicle-make.repository";
 import {
   BODY_TYPES,
   DRIVE_TYPES,
@@ -9,12 +10,18 @@ import {
 
 @Injectable()
 export class ReferenceDataService {
-  constructor(private readonly locationRepository: ApprovedViewingLocationRepository) {}
+  constructor(
+    private readonly locationRepository: ApprovedViewingLocationRepository,
+    private readonly makeRepository: VehicleMakeRepository,
+  ) {}
 
   async getAll() {
-    const locations = await this.locationRepository.findActive();
+    const [locations, makes] = await Promise.all([
+      this.locationRepository.findActive(),
+      this.getMakes(),
+    ]);
     return {
-      makes: this.getMakes(),
+      makes,
       bodyTypes: BODY_TYPES.map((value) => ({ value, label: labelize(value) })),
       fuelTypes: FUEL_TYPES.map((value) => ({ value, label: labelize(value) })),
       transmissionTypes: TRANSMISSION_TYPES.map((value) => ({ value, label: labelize(value) })),
@@ -33,13 +40,14 @@ export class ReferenceDataService {
     };
   }
 
-  getMakes() {
-    return [
-      { id: "toyota", name: "Toyota", logoUrl: null, popularModels: ["Hilux", "Corolla", "Fortuner"] },
-      { id: "honda", name: "Honda", logoUrl: null, popularModels: ["CR-V", "Civic", "Fit"] },
-      { id: "mazda", name: "Mazda", logoUrl: null, popularModels: ["Demio", "CX-5", "BT-50"] },
-      { id: "nissan", name: "Nissan", logoUrl: null, popularModels: ["X-Trail", "Navara", "Note"] },
-    ];
+  async getMakes() {
+    const makes = await this.makeRepository.findActiveCatalogue();
+    return makes.map((make) => ({
+      id: make.code,
+      name: make.name,
+      logoUrl: make.logoUrl,
+      popularModels: make.models.map((model) => model.name),
+    }));
   }
 }
 

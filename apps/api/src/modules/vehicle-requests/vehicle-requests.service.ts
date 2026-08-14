@@ -50,7 +50,7 @@ export class VehicleRequestsService {
       outcome: "success",
       correlationId,
     });
-    return this.toDto(hydrated ?? request);
+    return this.toDto(hydrated ?? request, await this.referenceDataService.getMakes());
   }
 
   async listBuyer(userId: string, query: VehicleRequestListQueryDto) {
@@ -64,7 +64,8 @@ export class VehicleRequestsService {
       sortBy: query.sortBy ?? "createdAt",
       sortDir: query.sortDir ?? "DESC",
     });
-    return this.toPage(rows, page, limit, total);
+    const makes = await this.referenceDataService.getMakes();
+    return this.toPage(rows, page, limit, total, makes);
   }
 
   async listAdmin(query: VehicleRequestListQueryDto) {
@@ -78,7 +79,8 @@ export class VehicleRequestsService {
       sortBy: query.sortBy ?? "createdAt",
       sortDir: query.sortDir ?? "DESC",
     });
-    return this.toPage(rows, page, limit, total);
+    const makes = await this.referenceDataService.getMakes();
+    return this.toPage(rows, page, limit, total, makes);
   }
 
   async updateAdmin(adminUserId: string, correlationId: string | undefined, requestId: string, body: UpdateVehicleRequestDto) {
@@ -114,7 +116,7 @@ export class VehicleRequestsService {
       entityId: saved.id,
       note: saved.adminNote,
     });
-    return this.toDto(saved);
+    return this.toDto(saved, await this.referenceDataService.getMakes());
   }
 
   transition(current: string, next: NonNullable<UpdateVehicleRequestDto["status"]>) {
@@ -136,9 +138,9 @@ export class VehicleRequestsService {
     return next;
   }
 
-  private toPage(rows: any[], page: number, limit: number, total: number) {
+  private toPage(rows: any[], page: number, limit: number, total: number, makes: MakeOption[]) {
     return {
-      data: rows.map((row) => this.toDto(row)),
+      data: rows.map((row) => this.toDto(row, makes)),
       meta: {
         page,
         limit,
@@ -148,8 +150,7 @@ export class VehicleRequestsService {
     };
   }
 
-  private toDto(request: any) {
-    const makes = this.referenceDataService.getMakes();
+  private toDto(request: any, makes: MakeOption[]) {
     const makeName = request.makeId
       ? makes.find((entry) => entry.id === request.makeId)?.name ?? request.makeId
       : undefined;
@@ -179,3 +180,5 @@ export class VehicleRequestsService {
     };
   }
 }
+
+type MakeOption = { id: string; name: string };
