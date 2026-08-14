@@ -108,6 +108,11 @@ class AppUser {
 
   bool get isBuyer => roles.contains('BUYER');
   bool get isSeller => roles.contains('SELLER');
+  bool get isInspector => roles.contains('INSPECTOR');
+
+  List<String> get mobileRoles => const ['BUYER', 'SELLER', 'INSPECTOR']
+      .where((role) => roles.contains(role))
+      .toList(growable: false);
 
   /// True when the account has captured all consents required for its role.
   ///
@@ -136,21 +141,23 @@ class AppUser {
       roles: asStringList(json, 'roles'),
       phoneVerified: asBool(json, 'phoneVerified'),
       emailVerified: asBool(json, 'emailVerified'),
-      city: sellerProfileJson is Map
-          ? asString((sellerProfileJson).cast<String, dynamic>(), 'city')
-          : buyerProfileJson is Map
-          ? asString((buyerProfileJson).cast<String, dynamic>(), 'city')
-          : '',
+      city: asNullableString(json, 'city') ??
+          (sellerProfileJson is Map
+              ? asString((sellerProfileJson).cast<String, dynamic>(), 'city')
+              : buyerProfileJson is Map
+                  ? asString((buyerProfileJson).cast<String, dynamic>(), 'city')
+                  : ''),
       buyerProfile: buyerProfileJson is Map<String, dynamic>
           ? BuyerProfile.fromJson(buyerProfileJson)
           : buyerProfileJson is Map
-          ? BuyerProfile.fromJson(buyerProfileJson.cast<String, dynamic>())
-          : null,
+              ? BuyerProfile.fromJson(buyerProfileJson.cast<String, dynamic>())
+              : null,
       sellerProfile: sellerProfileJson is Map<String, dynamic>
           ? SellerProfile.fromJson(sellerProfileJson)
           : sellerProfileJson is Map
-          ? SellerProfile.fromJson(sellerProfileJson.cast<String, dynamic>())
-          : null,
+              ? SellerProfile.fromJson(
+                  sellerProfileJson.cast<String, dynamic>())
+              : null,
     );
   }
 }

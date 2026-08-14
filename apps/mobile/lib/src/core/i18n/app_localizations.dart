@@ -73,6 +73,48 @@ class AutoIqLocalizations {
   String get verified => _read('verified');
   String get clear => _read('clear');
   String get search => _read('search');
+  String get chooseWorkspace => _read('chooseWorkspace');
+  String get chooseWorkspaceDescription => _read('chooseWorkspaceDescription');
+  String get buyerWorkspace => _read('buyerWorkspace');
+  String get sellerWorkspace => _read('sellerWorkspace');
+  String get inspectorWorkspace => _read('inspectorWorkspace');
+  String get switchWorkspace => _read('switchWorkspace');
+  String get dashboard => _read('dashboard');
+  String get tasks => _read('tasks');
+  String get fullName => _read('fullName');
+  String get city => _read('city');
+  String get businessName => _read('businessName');
+  String get verifiedStatus => _read('verifiedStatus');
+  String get notVerifiedStatus => _read('notVerifiedStatus');
+  String get saveProfile => _read('saveProfile');
+  String get profileUpdated => _read('profileUpdated');
+  String get logout => _read('logout');
+  String get fullNameRequired => _read('fullNameRequired');
+  String get cityRequired => _read('cityRequired');
+  String get assignedInspections => _read('assignedInspections');
+  String get allStatuses => _read('allStatuses');
+  String get inspectionsUnavailable => _read('inspectionsUnavailable');
+  String get noInspectionTasks => _read('noInspectionTasks');
+  String get noInspectionTasksMessage => _read('noInspectionTasksMessage');
+  String get openTask => _read('openTask');
+  String get notScheduled => _read('notScheduled');
+  String get inspectionReport => _read('inspectionReport');
+  String get computedScore => _read('computedScore');
+  String get observationNote => _read('observationNote');
+  String get addEvidencePhoto => _read('addEvidencePhoto');
+  String get uploadingEvidence => _read('uploadingEvidence');
+  String get inspectorSummary => _read('inspectorSummary');
+  String get roadworthy => _read('roadworthy');
+  String get submitInspectionReport => _read('submitInspectionReport');
+  String get reportSubmitted => _read('reportSubmitted');
+  String get awaitingAdminReview => _read('awaitingAdminReview');
+  String get summaryApproved => _read('summaryApproved');
+  String get viewingRequests => _read('viewingRequests');
+  String get viewingRequestsUnavailable => _read('viewingRequestsUnavailable');
+  String get noViewingRequests => _read('noViewingRequests');
+  String get buyer => _read('buyer');
+  String get acknowledgeRequest => _read('acknowledgeRequest');
+  String get viewingAcknowledged => _read('viewingAcknowledged');
 
   String vehicleCount(int count) {
     return Intl.plural(
@@ -112,7 +154,7 @@ const _messages = <String, Map<String, String>>{
   'en': {
     'appName': 'BiSell AutoIQ',
     'unsupportedRole':
-        'This mobile build is wired for buyer and seller workflows.',
+        'This mobile build supports buyer, seller, and inspector workflows.',
     'greeting': 'Hello, {name}',
     'refreshProfile': 'Refresh profile',
     'browse': 'Browse',
@@ -162,6 +204,49 @@ const _messages = <String, Map<String, String>>{
     'search': 'Search',
     'vehicleCountOne': '1 vehicle',
     'vehicleCountOther': '{count} vehicles',
+    'chooseWorkspace': 'Choose your workspace',
+    'chooseWorkspaceDescription':
+        'Open the tools for the role you are using right now.',
+    'buyerWorkspace': 'Buyer',
+    'sellerWorkspace': 'Seller',
+    'inspectorWorkspace': 'Inspector',
+    'switchWorkspace': 'Switch workspace',
+    'dashboard': 'Dashboard',
+    'tasks': 'Tasks',
+    'fullName': 'Full name',
+    'city': 'City',
+    'businessName': 'Business name',
+    'verifiedStatus': 'Verified',
+    'notVerifiedStatus': 'Not verified',
+    'saveProfile': 'Save profile',
+    'profileUpdated': 'Profile updated.',
+    'logout': 'Logout',
+    'fullNameRequired': 'Full name is required.',
+    'cityRequired': 'City is required.',
+    'assignedInspections': 'Assigned inspections',
+    'allStatuses': 'All statuses',
+    'inspectionsUnavailable': 'Inspections unavailable',
+    'noInspectionTasks': 'No inspection tasks',
+    'noInspectionTasksMessage': 'No assigned tasks match the selected status.',
+    'openTask': 'Open task',
+    'notScheduled': 'Not scheduled',
+    'inspectionReport': 'Inspection report',
+    'computedScore': 'Computed score',
+    'observationNote': 'Observation note',
+    'addEvidencePhoto': 'Add evidence photo',
+    'uploadingEvidence': 'Uploading evidence…',
+    'inspectorSummary': 'Inspector summary',
+    'roadworthy': 'Vehicle is roadworthy',
+    'submitInspectionReport': 'Submit inspection report',
+    'reportSubmitted': 'Inspection report submitted.',
+    'awaitingAdminReview': 'Awaiting admin review',
+    'summaryApproved': 'Summary approved',
+    'viewingRequests': 'Viewing requests',
+    'viewingRequestsUnavailable': 'Viewing requests unavailable',
+    'noViewingRequests': 'No viewing requests',
+    'buyer': 'Buyer',
+    'acknowledgeRequest': 'Acknowledge request',
+    'viewingAcknowledged': 'Viewing acknowledged.',
   },
   'sn': {
     'appName': 'BiSell AutoIQ',

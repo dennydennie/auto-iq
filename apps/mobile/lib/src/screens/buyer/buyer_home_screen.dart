@@ -21,7 +21,9 @@ import '../../widgets/vehicle_image.dart';
 import 'listing_detail_screen.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
-  const BuyerHomeScreen({super.key});
+  const BuyerHomeScreen({super.key, this.onSwitchWorkspace});
+
+  final VoidCallback? onSwitchWorkspace;
 
   @override
   State<BuyerHomeScreen> createState() => _BuyerHomeScreenState();
@@ -201,6 +203,12 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       appBar: AppBar(
         title: Text(copy.greeting(user.fullName.split(' ').first)),
         actions: [
+          if (widget.onSwitchWorkspace != null)
+            IconButton(
+              tooltip: copy.switchWorkspace,
+              onPressed: widget.onSwitchWorkspace,
+              icon: const Icon(Icons.swap_horiz),
+            ),
           IconButton(
             tooltip: copy.refreshProfile,
             onPressed: session.isBusy ? null : session.refreshProfile,

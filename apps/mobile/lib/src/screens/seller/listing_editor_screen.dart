@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/price_display.dart';
 import '../../core/files/file_type_sniffer.dart';
+import '../../core/files/local_upload.dart';
 import '../../core/i18n/app_formatters.dart';
 import '../../core/network/api_exception.dart';
 import '../../models/reference_data.dart';
@@ -87,10 +88,10 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
     _selectedFuelType ??= referenceData.fuelTypes.first.value;
     _selectedTransmission ??= referenceData.transmissionTypes.first.value;
     _selectedDriveType ??= referenceData.driveTypes.first.value;
-    _selectedCondition ??= referenceData.conditionGrades
-            .any((option) => option.value == 'GOOD')
-        ? 'GOOD'
-        : referenceData.conditionGrades.first.value;
+    _selectedCondition ??=
+        referenceData.conditionGrades.any((option) => option.value == 'GOOD')
+            ? 'GOOD'
+            : referenceData.conditionGrades.first.value;
 
     return Scaffold(
       appBar: AppBar(

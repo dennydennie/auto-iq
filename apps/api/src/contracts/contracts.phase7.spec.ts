@@ -65,6 +65,7 @@ describe("Phase 7 contracts", () => {
       fullName: "Buyer One",
       email: "buyer@example.com",
       phone: "+263771234567",
+      city: "Harare",
       status: "ACTIVE",
       roles: ["BUYER"],
       phoneVerified: true,

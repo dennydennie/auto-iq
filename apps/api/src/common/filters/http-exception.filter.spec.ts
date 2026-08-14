@@ -5,7 +5,12 @@ jest.mock("@sentry/nestjs", () => ({
 }));
 
 import * as Sentry from "@sentry/nestjs";
-import { HttpException, HttpStatus, NotFoundException } from "@nestjs/common";
+import {
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { HttpExceptionFilter } from "./http-exception.filter";
 
 describe("HttpExceptionFilter", () => {
@@ -80,5 +85,21 @@ describe("HttpExceptionFilter", () => {
     filter.catch(new HttpException("down", HttpStatus.INTERNAL_SERVER_ERROR), host);
 
     expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("returns actionable validation messages instead of the generic 422 label", () => {
+    const filter = new HttpExceptionFilter();
+    const { host, json } = createHost();
+
+    filter.catch(new UnprocessableEntityException({
+      code: "VALIDATION_FAILED",
+      message: ["property vehiclePurpose should not exist", "budgetMin must not be less than 0"],
+    }), host);
+
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({
+      code: "VALIDATION_FAILED",
+      message: "property vehiclePurpose should not exist; budgetMin must not be less than 0",
+      statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+    }));
   });
 });

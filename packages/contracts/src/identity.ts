@@ -157,6 +157,7 @@ export interface MeResponse extends TimestampFields {
   fullName: string;
   email: string;
   phone: string;
+  city: string;
   status: UserStatus;
   roles: UserRole[];
   phoneVerified: boolean;

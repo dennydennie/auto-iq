@@ -137,6 +137,7 @@ class ViewingItem {
   ViewingItem({
     required this.id,
     required this.listingId,
+    required this.buyerName,
     required this.status,
     required this.preferredSlot,
     required this.confirmedSlot,
@@ -149,6 +150,7 @@ class ViewingItem {
 
   final String id;
   final String listingId;
+  final String buyerName;
   final String status;
   final String preferredSlot;
   final String? confirmedSlot;
@@ -164,6 +166,7 @@ class ViewingItem {
     return ViewingItem(
       id: asString(json, 'id'),
       listingId: asString(json, 'listingId'),
+      buyerName: asString(json, 'buyerName'),
       status: asString(json, 'status'),
       preferredSlot: asString(json, 'preferredSlot'),
       confirmedSlot: asNullableString(json, 'confirmedSlot'),

@@ -4,19 +4,23 @@ import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/price_display.dart';
 import '../../core/i18n/app_formatters.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/network/api_exception.dart';
+import '../../models/activity_models.dart';
 import '../../models/seller_models.dart';
 import '../../repositories/seller_repository.dart';
 import '../../state/session_controller.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/account_deletion_card.dart';
+import '../../widgets/role_account_tab.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/vehicle_image.dart';
 import 'listing_editor_screen.dart';
 
 class SellerHomeScreen extends StatefulWidget {
-  const SellerHomeScreen({super.key});
+  const SellerHomeScreen({super.key, this.onSwitchWorkspace});
+
+  final VoidCallback? onSwitchWorkspace;
 
   @override
   State<SellerHomeScreen> createState() => _SellerHomeScreenState();
@@ -25,11 +29,13 @@ class SellerHomeScreen extends StatefulWidget {
 class _SellerHomeScreenState extends State<SellerHomeScreen> {
   int _tabIndex = 0;
   Future<List<SellerListingSummary>>? _listingsFuture;
+  Future<List<ViewingItem>>? _viewingsFuture;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final session = context.read<SessionController>();
+    _viewingsFuture ??= _loadViewings();
     if (session.user?.consentsComplete == true && _listingsFuture == null) {
       _listingsFuture = _loadListings();
     }
@@ -39,22 +45,38 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final user = session.user!;
-    final body = _tabIndex == 0
-        ? _SellerDashboardTab(
-            future: _listingsFuture,
-            consentsComplete: user.consentsComplete,
-            onRefresh: _refreshListings,
-            onOpenListing: _openEditor,
-            onCompleteConsents: session.completeRequiredConsents,
-          )
-        : _SellerAccountTab(
-            businessName: user.sellerProfile?.businessName,
-            city: user.sellerProfile?.city ?? user.city,
-          );
+    final copy = AutoIqLocalizations.of(context);
+    final body = IndexedStack(
+      index: _tabIndex,
+      children: [
+        _SellerDashboardTab(
+          future: _listingsFuture,
+          consentsComplete: user.consentsComplete,
+          onRefresh: _refreshListings,
+          onOpenListing: _openEditor,
+          onCompleteConsents: session.completeRequiredConsents,
+        ),
+        _SellerViewingsTab(
+          future: _viewingsFuture,
+          onRefresh: _refreshViewings,
+          onAcknowledge: _acknowledgeViewing,
+        ),
+        RoleAccountTab(user: user, includeBusinessName: true),
+      ],
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Seller · ${user.fullName.split(' ').first}'),
+        title:
+            Text('${copy.sellerWorkspace} · ${user.fullName.split(' ').first}'),
+        actions: [
+          if (widget.onSwitchWorkspace != null)
+            IconButton(
+              tooltip: copy.switchWorkspace,
+              onPressed: widget.onSwitchWorkspace,
+              icon: const Icon(Icons.swap_horiz),
+            ),
+        ],
       ),
       body: body,
       floatingActionButton: _tabIndex == 0
@@ -67,16 +89,21 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (index) => setState(() => _tabIndex = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: copy.dashboard,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Account',
+            icon: const Icon(Icons.event_note_outlined),
+            selectedIcon: const Icon(Icons.event_note),
+            label: copy.viewings,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: copy.account,
           ),
         ],
       ),
@@ -87,9 +114,23 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
     return context.read<SellerRepository>().listings();
   }
 
+  Future<List<ViewingItem>> _loadViewings() {
+    return context.read<SellerRepository>().viewings();
+  }
+
   Future<void> _refreshListings() async {
     setState(() => _listingsFuture = _loadListings());
     await _listingsFuture;
+  }
+
+  Future<void> _refreshViewings() async {
+    setState(() => _viewingsFuture = _loadViewings());
+    await _viewingsFuture;
+  }
+
+  Future<void> _acknowledgeViewing(String viewingId) async {
+    await context.read<SellerRepository>().acknowledgeViewing(viewingId);
+    await _refreshViewings();
   }
 
   Future<void> _openEditor([String? listingId]) async {
@@ -307,108 +348,135 @@ class _StatBlock extends StatelessWidget {
   }
 }
 
-class _SellerAccountTab extends StatefulWidget {
-  const _SellerAccountTab({
-    required this.businessName,
-    required this.city,
+class _SellerViewingsTab extends StatelessWidget {
+  const _SellerViewingsTab({
+    required this.future,
+    required this.onRefresh,
+    required this.onAcknowledge,
   });
 
-  final String? businessName;
-  final String city;
-
-  @override
-  State<_SellerAccountTab> createState() => _SellerAccountTabState();
-}
-
-class _SellerAccountTabState extends State<_SellerAccountTab> {
-  late final TextEditingController _businessController;
-  late final TextEditingController _cityController;
-
-  @override
-  void initState() {
-    super.initState();
-    _businessController =
-        TextEditingController(text: widget.businessName ?? '');
-    _cityController = TextEditingController(text: widget.city);
-  }
-
-  @override
-  void dispose() {
-    _businessController.dispose();
-    _cityController.dispose();
-    super.dispose();
-  }
+  final Future<List<ViewingItem>>? future;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function(String viewingId) onAcknowledge;
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionController>();
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _businessController,
-                decoration: const InputDecoration(labelText: 'Business name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _cityController,
-                decoration: const InputDecoration(labelText: 'City'),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: session.isBusy ? null : () => _save(context),
-                      child: const Text('Save profile'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton(
-                    onPressed: session.isBusy ? null : session.logout,
-                    child: const Text('Logout'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed:
-                    session.isBusy ? null : session.completeRequiredConsents,
-                child: const Text('Replay consents'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        const AccountDeletionCard(),
-      ],
+    return FutureBuilder<List<ViewingItem>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) return _error(context);
+        return _content(context, snapshot.data ?? const []);
+      },
     );
   }
 
-  Future<void> _save(BuildContext context) async {
-    final session = context.read<SessionController>();
+  Widget _error(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return EmptyState(
+      title: copy.viewingRequestsUnavailable,
+      message: copy.catalogueUnavailableMessage,
+      action: ElevatedButton(onPressed: onRefresh, child: Text(copy.retry)),
+    );
+  }
+
+  Widget _content(BuildContext context, List<ViewingItem> items) {
+    final copy = AutoIqLocalizations.of(context);
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(copy.viewingRequests,
+              style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 16),
+          if (items.isEmpty)
+            EmptyState(
+              title: copy.noViewingRequests,
+              message: copy.noViewingRequests,
+            )
+          else
+            ...items.map((item) =>
+                _ViewingCard(item: item, onAcknowledge: onAcknowledge)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewingCard extends StatefulWidget {
+  const _ViewingCard({required this.item, required this.onAcknowledge});
+
+  final ViewingItem item;
+  final Future<void> Function(String viewingId) onAcknowledge;
+
+  @override
+  State<_ViewingCard> createState() => _ViewingCardState();
+}
+
+class _ViewingCardState extends State<_ViewingCard> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    final item = widget.item;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              StatusChip(label: item.status),
+              const Spacer(),
+              Text(_viewingDate(context, item)),
+            ]),
+            const SizedBox(height: 10),
+            Text(item.snapshotTitle,
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text('${copy.buyer}: ${item.buyerName}'),
+            if (item.location != null) ...[
+              const SizedBox(height: 4),
+              Text('${item.location!.name}, ${item.location!.city}'),
+            ],
+            if (item.status == 'REQUESTED') ...[
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _busy ? null : _acknowledge,
+                child: Text(copy.acknowledgeRequest),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _acknowledge() async {
+    setState(() => _busy = true);
     try {
-      await session.updateProfile({
-        'businessName': _businessController.text.trim(),
-        'city': _cityController.text.trim(),
-      });
-      if (!context.mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seller profile updated.')),
-      );
+      await widget.onAcknowledge(widget.item.id);
+      if (mounted) _show(AutoIqLocalizations.of(context).viewingAcknowledged);
     } on ApiException catch (error) {
-      if (!context.mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      if (mounted) _show(error.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _show(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _viewingDate(BuildContext context, ViewingItem item) {
+    final value = DateTime.tryParse(item.confirmedSlot ?? item.preferredSlot);
+    return value == null
+        ? ''
+        : AppFormatters.dateTime(context, value.toLocal());
   }
 }

@@ -63,6 +63,29 @@ void main() {
     expect(apiClient.includeCsrf, isTrue);
     expect(apiClient.sessionCleared, isTrue);
   });
+
+  test('profile updates use PATCH with CSRF and preserve nullable clears',
+      () async {
+    final apiClient = _RecordingApiClient();
+    final repository = AuthRepository(apiClient);
+    final payload = {
+      'fullName': 'Tariro Moyo',
+      'city': 'Harare',
+      'vehiclePurpose': null,
+      'searchRadiusKm': null,
+      'preferredFuelTypes': <String>[],
+      'preferredTransmissions': <String>[],
+      'budgetMin': null,
+      'budgetMax': null,
+    };
+
+    await repository.updateProfile(payload);
+
+    expect(apiClient.method, 'PATCH');
+    expect(apiClient.path, '/api/v1/me');
+    expect(apiClient.body, payload);
+    expect(apiClient.includeCsrf, isTrue);
+  });
 }
 
 class _RecordingApiClient implements ApiClient {
@@ -70,6 +93,7 @@ class _RecordingApiClient implements ApiClient {
   dynamic body;
   bool includeCsrf = false;
   bool sessionCleared = false;
+  String? method;
 
   @override
   Future<T> postJson<T>(
@@ -78,6 +102,7 @@ class _RecordingApiClient implements ApiClient {
     T Function(dynamic json) parser, {
     bool includeCsrf = false,
   }) async {
+    method = 'POST';
     this.path = path;
     this.body = body;
     this.includeCsrf = includeCsrf;
@@ -110,8 +135,13 @@ class _RecordingApiClient implements ApiClient {
     dynamic body,
     T Function(dynamic json) parser, {
     bool includeCsrf = false,
-  }) =>
-      throw UnimplementedError();
+  }) async {
+    method = 'PATCH';
+    this.path = path;
+    this.body = body;
+    this.includeCsrf = includeCsrf;
+    return parser(_userResponse);
+  }
 
   @override
   Future<T> putJson<T>(
@@ -130,3 +160,17 @@ class _RecordingApiClient implements ApiClient {
   }) =>
       throw UnimplementedError();
 }
+
+const _userResponse = {
+  'id': 'buyer-1',
+  'fullName': 'Tariro Moyo',
+  'email': 'buyer@example.com',
+  'phone': '+263771234567',
+  'city': 'Harare',
+  'status': 'ACTIVE',
+  'roles': ['BUYER'],
+  'phoneVerified': true,
+  'emailVerified': true,
+  'buyerProfile': null,
+  'sellerProfile': null,
+};

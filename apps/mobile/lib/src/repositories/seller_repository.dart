@@ -1,21 +1,8 @@
-import 'dart:typed_data';
-
 import '../core/config/api_routes.dart';
-import '../core/files/file_type_sniffer.dart';
+import '../core/files/local_upload.dart';
 import '../core/network/api_client.dart';
+import '../models/activity_models.dart';
 import '../models/seller_models.dart';
-
-class LocalUpload {
-  LocalUpload({
-    required this.bytes,
-    required this.fileType,
-    required this.name,
-  });
-
-  final Uint8List bytes;
-  final SniffedFileType fileType;
-  final String name;
-}
 
 class SellerRepository {
   SellerRepository(this._apiClient);
@@ -77,6 +64,25 @@ class SellerRepository {
       ApiRoutes.listingDetail(listingId),
       (json) =>
           SellerListingDetail.fromJson((json as Map).cast<String, dynamic>()),
+    );
+  }
+
+  Future<List<ViewingItem>> viewings() {
+    return _apiClient.getJson<List<ViewingItem>>(
+      ApiRoutes.meSellerViewings,
+      (json) => _offsetData(json, ViewingItem.fromJson),
+      queryParameters: const {'page': 1, 'limit': 50},
+    );
+  }
+
+  Future<ViewingItem> acknowledgeViewing(String viewingId) {
+    return _apiClient.postJson<ViewingItem>(
+      ApiRoutes.sellerViewingConfirm(viewingId),
+      const {},
+      (json) => ViewingItem.fromJson(
+        (json as Map).cast<String, dynamic>(),
+      ),
+      includeCsrf: true,
     );
   }
 
@@ -289,5 +295,15 @@ class SellerRepository {
       (_) {},
       includeCsrf: true,
     );
+  }
+
+  List<T> _offsetData<T>(
+    dynamic json,
+    T Function(Map<String, dynamic> value) parser,
+  ) {
+    final data = ((json as Map)['data'] as List).cast<dynamic>();
+    return data
+        .map((value) => parser((value as Map).cast<String, dynamic>()))
+        .toList(growable: false);
   }
 }

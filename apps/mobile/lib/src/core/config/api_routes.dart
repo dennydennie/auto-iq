@@ -18,7 +18,9 @@ class ApiRoutes {
   static const meQuotes = '$_base/me/quotes';
   static const meVehicleRequests = '$_base/me/vehicle-requests';
   static const meViewings = '$_base/me/viewings';
+  static const meSellerViewings = '$_base/me/seller-viewings';
   static const meListings = '$_base/me/listings';
+  static const inspectorTasks = '$_base/inspectors/inspection-tasks';
 
   static const referenceData = '$_base/reference-data';
   static const catalogue = '$_base/listings';
@@ -42,6 +44,17 @@ class ApiRoutes {
 
   static String createViewing(String listingId) =>
       '$_base/listings/$listingId/viewings';
+
+  static String sellerViewingConfirm(String viewingId) =>
+      '$_base/me/viewings/$viewingId/seller-confirm';
+
+  static String inspectorTask(String taskId) => '$inspectorTasks/$taskId';
+
+  static String inspectorReport(String taskId) =>
+      '$inspectorTasks/$taskId/report';
+
+  static String inspectorPhotoPresign(String taskId) =>
+      '$inspectorTasks/$taskId/photos/presign';
 
   static String listingDetail(String listingId) => '$_base/listings/$listingId';
 

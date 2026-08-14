@@ -9,6 +9,7 @@ export function toMeResponse(user: UserEntity) {
     fullName: user.fullName,
     email: user.email,
     phone: user.phone,
+    city: user.city,
     status: user.status,
     roles: user.roles.map((role) => role.role),
     phoneVerified: user.phoneVerified,
