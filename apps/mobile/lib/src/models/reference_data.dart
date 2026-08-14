@@ -88,27 +88,31 @@ class ReferenceDataSet {
 
   factory ReferenceDataSet.fromJson(Map<String, dynamic> json) {
     return ReferenceDataSet(
-      makes: asMapList(json['makes'])
+      makes: _optionalMapList(json['makes'])
           .map(VehicleMake.fromJson)
           .toList(growable: false),
-      bodyTypes: asMapList(json['bodyTypes'])
+      bodyTypes: _optionalMapList(json['bodyTypes'])
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
-      fuelTypes: asMapList(json['fuelTypes'])
+      fuelTypes: _optionalMapList(json['fuelTypes'])
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
-      transmissionTypes: asMapList(json['transmissionTypes'])
+      transmissionTypes: _optionalMapList(json['transmissionTypes'])
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
-      driveTypes: asMapList(json['driveTypes'])
+      driveTypes: _optionalMapList(json['driveTypes'])
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
-      conditionGrades: asMapList(json['conditionGrades'])
+      conditionGrades: _optionalMapList(json['conditionGrades'])
           .map(ReferenceOption.fromJson)
           .toList(growable: false),
-      viewingLocations: asMapList(json['viewingLocations'])
+      viewingLocations: _optionalMapList(json['viewingLocations'])
           .map(ViewingLocation.fromJson)
           .toList(growable: false),
     );
   }
+}
+
+List<Map<String, dynamic>> _optionalMapList(dynamic value) {
+  return value is List ? asMapList(value) : const [];
 }
