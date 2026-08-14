@@ -9,6 +9,13 @@ test("admin manages tenant user access", async ({ page }) => {
   await page.goto("/admin/users");
   await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
   await expect(page.getByText("buyer@example.test")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Grant Inspector role for Buyer One" })
+    .click();
+  await expect(page.getByText("Inspector role granted")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Revoke Inspector role for Buyer One" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Suspend" }).click();
   await expect(page.getByText("Access suspended")).toBeVisible();
   await expect(page.getByRole("button", { name: "Restore" })).toBeVisible();

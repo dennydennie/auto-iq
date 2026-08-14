@@ -150,6 +150,7 @@ export interface AdminUserDto {
   phone: string;
   city: string;
   role: UserRole;
+  roles: UserRole[];
   accountStatus: UserStatus;
   accessActive: boolean;
   emailVerified: boolean;
@@ -167,6 +168,10 @@ export interface AdminUserListParams extends OffsetPaginationParams {
 
 export interface UpdateAdminUserAccessRequest {
   active: boolean;
+}
+
+export interface UpdateAdminInspectorRoleRequest {
+  granted: boolean;
 }
 
 export type AccountDeletionRequestStatus =

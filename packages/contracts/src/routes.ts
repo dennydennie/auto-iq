@@ -183,6 +183,8 @@ export const ROUTES = {
     // Secondary operations
     users: `${BASE}/admin/users`,
     userAccess: (userId: string) => `${BASE}/admin/users/${userId}/access`,
+    userInspectorRole: (userId: string) =>
+      `${BASE}/admin/users/${userId}/roles/inspector`,
     accountDeletionRequests: `${BASE}/admin/account-deletion-requests`,
     accountDeletionRequest: (requestId: string) =>
       `${BASE}/admin/account-deletion-requests/${requestId}`,

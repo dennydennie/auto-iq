@@ -3,7 +3,7 @@ import { TenantEntity } from "./tenant.entity";
 import { UserEntity } from "./user.entity";
 
 @Entity({ name: "tenant_memberships" })
-@Unique("uq_tenant_memberships_user_tenant", ["userId", "tenantId"])
+@Unique("uq_tenant_memberships_user_tenant_role", ["userId", "tenantId", "role"])
 export class TenantMembershipEntity {
   @PrimaryGeneratedColumn("uuid")
   id!: string;

@@ -30,6 +30,7 @@ import {
   CreateAdminViewingLocationDto,
   CreateAdminReferenceOptionDto,
   ProcessAdminAccountDeletionRequestDto,
+  UpdateAdminInspectorRoleDto,
   UpdateAdminUserAccessDto,
   UpdateAdminViewingLocationDto,
   UpdateAdminReferenceOptionDto,
@@ -82,6 +83,22 @@ export class AdminSecondaryController {
     @Body() body: UpdateAdminUserAccessDto,
   ) {
     return this.users.updateAccess(
+      admin.id,
+      request.correlationId,
+      userId,
+      body,
+    );
+  }
+
+  @Patch("users/:userId/roles/inspector")
+  @UseGuards(CsrfGuard)
+  updateInspectorRole(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Req() request: CorrelatedRequest,
+    @Param("userId") userId: string,
+    @Body() body: UpdateAdminInspectorRoleDto,
+  ) {
+    return this.users.updateInspectorRole(
       admin.id,
       request.correlationId,
       userId,

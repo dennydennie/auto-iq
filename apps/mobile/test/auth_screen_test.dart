@@ -59,6 +59,32 @@ void main() {
     expect(find.widgetWithText(TextField, 'OTP code'), findsOneWidget);
     expect(find.textContaining('Resend in'), findsOneWidget);
   });
+
+  testWidgets('public registration offers Buyer and Seller but not Inspector',
+      (tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionController>.value(
+            value: _PendingVerificationSession(),
+          ),
+          Provider<AuthRepository>.value(value: _UnusedAuthRepository()),
+        ],
+        child: const MaterialApp(home: AuthScreen()),
+      ),
+    );
+
+    await tester.tap(find.text('Register'));
+    await tester.pumpAndSettle();
+    final rolePicker = find.byType(DropdownButtonFormField<String>);
+    await tester.ensureVisible(rolePicker);
+    await tester.tap(rolePicker);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Browse and buy vehicles'), findsWidgets);
+    expect(find.text('List and sell a vehicle'), findsOneWidget);
+    expect(find.textContaining('Inspector'), findsNothing);
+  });
 }
 
 class _PendingVerificationSession extends ChangeNotifier

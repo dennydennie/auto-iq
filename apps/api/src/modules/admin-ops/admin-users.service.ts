@@ -7,6 +7,7 @@ import { DataSource, type EntityManager } from "typeorm";
 import { AuditService } from "../audit/audit.service";
 import {
   AdminUserListQueryDto,
+  UpdateAdminInspectorRoleDto,
   UpdateAdminUserAccessDto,
 } from "./dto/admin-secondary.dto";
 
@@ -17,6 +18,7 @@ interface AdminUserRow {
   phone: string;
   city: string;
   role: string;
+  roles: string[];
   account_status: string;
   access_active: boolean;
   email_verified: boolean;
@@ -35,18 +37,16 @@ export class AdminUsersService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const filter = buildUserFilter(query);
-    const countRows = await this.dataSource.query(
-      `SELECT COUNT(*)::int AS total ${USER_FROM} ${filter.where}`,
-      filter.params,
-    );
-    const rows = await this.dataSource.query(
-      `${USER_SELECT} ${USER_FROM} ${filter.where} ${userOrder(query)} LIMIT $${filter.params.length + 1} OFFSET $${filter.params.length + 2}`,
-      [...filter.params, limit, (page - 1) * limit],
-    );
-    const total = Number(countRows[0]?.total ?? 0);
+    const total = await this.countUsers(filter);
+    const rows = await this.listUsers(query, filter, page, limit);
     return {
-      data: (rows as AdminUserRow[]).map(toAdminUser),
-      meta: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      data: rows.map(toAdminUser),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 
@@ -56,62 +56,184 @@ export class AdminUsersService {
     userId: string,
     body: UpdateAdminUserAccessDto,
   ) {
-    if (!body.active && adminUserId === userId) {
-      throw new ConflictException({
-        code: "VALIDATION_FAILED",
-        message: "You cannot suspend your own admin access",
-      });
-    }
+    this.assertNotSelfSuspension(adminUserId, userId, body.active);
     await this.dataSource.transaction((manager) =>
-      this.updateMembership(manager, userId, body.active),
+      this.updateMembershipAccess(manager, userId, body.active),
     );
     await this.auditAccess(adminUserId, correlationId, userId, body.active);
     return this.requireUser(this.dataSource, userId);
   }
 
-  private async updateMembership(
+  async updateInspectorRole(
+    adminUserId: string,
+    correlationId: string | undefined,
+    userId: string,
+    body: UpdateAdminInspectorRoleDto,
+  ) {
+    await this.dataSource.transaction((manager) =>
+      this.changeInspectorRole(manager, userId, body.granted),
+    );
+    await this.auditInspectorRole(
+      adminUserId,
+      correlationId,
+      userId,
+      body.granted,
+    );
+    return this.requireUser(this.dataSource, userId);
+  }
+
+  private async countUsers(filter: UserFilter): Promise<number> {
+    const rows = await this.dataSource.query(
+      `SELECT COUNT(*)::int AS total ${USER_FROM} ${filter.where}`,
+      filter.params,
+    );
+    return Number(rows[0]?.total ?? 0);
+  }
+
+  private async listUsers(
+    query: AdminUserListQueryDto,
+    filter: UserFilter,
+    page: number,
+    limit: number,
+  ): Promise<AdminUserRow[]> {
+    return this.dataSource.query(
+      `${USER_SELECT} ${USER_FROM} ${filter.where} ${userOrder(query)} LIMIT $${filter.params.length + 1} OFFSET $${filter.params.length + 2}`,
+      [...filter.params, limit, (page - 1) * limit],
+    );
+  }
+
+  private assertNotSelfSuspension(
+    adminUserId: string,
+    userId: string,
+    active: boolean,
+  ) {
+    if (active || adminUserId !== userId) return;
+    throw new ConflictException({
+      code: "VALIDATION_FAILED",
+      message: "You cannot suspend your own admin access",
+    });
+  }
+
+  private async updateMembershipAccess(
     manager: EntityManager,
     userId: string,
     active: boolean,
   ) {
-    const user = await this.requireUser(manager, userId, true);
-    if (!active && user.role === "ADMIN") {
+    const user = await this.lockUser(manager, userId);
+    if (!active && user.roles.includes("ADMIN")) {
       await this.assertAnotherAdmin(manager);
     }
     await manager.query(
-      `UPDATE tenant_memberships SET active = $1 WHERE user_id = $2 AND tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid`,
+      "UPDATE tenant_memberships SET active = $1 WHERE user_id = $2",
       [active, userId],
     );
   }
 
+  private async changeInspectorRole(
+    manager: EntityManager,
+    userId: string,
+    granted: boolean,
+  ) {
+    const user = await this.lockUser(manager, userId);
+    if (granted) {
+      await this.grantInspectorRole(manager, userId);
+      return;
+    }
+    await this.revokeInspectorRole(manager, userId, user.roles);
+  }
+
+  private async lockUser(manager: EntityManager, userId: string) {
+    const rows = await manager.query(
+      "SELECT id FROM tenant_memberships WHERE user_id = $1 FOR UPDATE",
+      [userId],
+    );
+    if (!rows[0]) this.userNotFound();
+    return this.requireUser(manager, userId);
+  }
+
+  private async grantInspectorRole(manager: EntityManager, userId: string) {
+    await manager.query(
+      `INSERT INTO user_roles (user_id, role) VALUES ($1, 'INSPECTOR')
+       ON CONFLICT (user_id, role) DO NOTHING`,
+      [userId],
+    );
+    await manager.query(
+      `${INSPECTOR_MEMBERSHIP_INSERT}
+       ON CONFLICT (user_id, tenant_id, role)
+       DO UPDATE SET active = EXCLUDED.active`,
+      [userId],
+    );
+  }
+
+  private async revokeInspectorRole(
+    manager: EntityManager,
+    userId: string,
+    roles: string[],
+  ) {
+    if (!roles.includes("INSPECTOR")) return;
+    if (roles.length === 1) this.rejectOnlyRoleRemoval();
+    await this.assertNoOpenInspectionTasks(manager, userId);
+    await manager.query(
+      "DELETE FROM tenant_memberships WHERE user_id = $1 AND role = 'INSPECTOR'",
+      [userId],
+    );
+    await manager.query(
+      "DELETE FROM user_roles WHERE user_id = $1 AND role = 'INSPECTOR'",
+      [userId],
+    );
+  }
+
+  private async assertNoOpenInspectionTasks(
+    manager: EntityManager,
+    userId: string,
+  ) {
+    const rows = await manager.query(
+      `SELECT COUNT(*)::int AS total FROM inspection_tasks
+       WHERE assigned_inspector_id = $1 AND status IN ('SCHEDULED', 'IN_PROGRESS')`,
+      [userId],
+    );
+    if (Number(rows[0]?.total ?? 0) === 0) return;
+    throw new ConflictException({
+      code: "VALIDATION_FAILED",
+      message: "Reassign open inspection tasks before revoking Inspector",
+    });
+  }
+
   private async assertAnotherAdmin(manager: EntityManager) {
     const rows = await manager.query(
-      `SELECT COUNT(*)::int AS total FROM tenant_memberships WHERE role = 'ADMIN' AND active = true`,
+      "SELECT COUNT(*)::int AS total FROM tenant_memberships WHERE role = 'ADMIN' AND active = true",
     );
-    if (Number(rows[0]?.total ?? 0) <= 1) {
-      throw new ConflictException({
-        code: "VALIDATION_FAILED",
-        message: "At least one active admin must remain",
-      });
-    }
+    if (Number(rows[0]?.total ?? 0) > 1) return;
+    throw new ConflictException({
+      code: "VALIDATION_FAILED",
+      message: "At least one active admin must remain",
+    });
   }
 
   private async requireUser(
     queryable: Pick<DataSource, "query"> | Pick<EntityManager, "query">,
     userId: string,
-    lock = false,
   ) {
     const rows = await queryable.query(
-      `${USER_SELECT} ${USER_FROM} WHERE tm.user_id = $1${lock ? " FOR UPDATE OF tm" : ""}`,
+      `${USER_SELECT} ${USER_FROM} WHERE tm.user_id = $1`,
       [userId],
     );
-    if (!rows[0]) {
-      throw new NotFoundException({
-        code: "RESOURCE_NOT_FOUND",
-        message: "User not found",
-      });
-    }
+    if (!rows[0]) this.userNotFound();
     return toAdminUser(rows[0] as AdminUserRow);
+  }
+
+  private userNotFound(): never {
+    throw new NotFoundException({
+      code: "RESOURCE_NOT_FOUND",
+      message: "User not found",
+    });
+  }
+
+  private rejectOnlyRoleRemoval(): never {
+    throw new ConflictException({
+      code: "VALIDATION_FAILED",
+      message: "Assign another role before revoking Inspector",
+    });
   }
 
   private async auditAccess(
@@ -120,8 +242,39 @@ export class AdminUsersService {
     userId: string,
     active: boolean,
   ) {
+    await this.auditRoleChange(
+      "user.access.update",
+      adminUserId,
+      correlationId,
+      userId,
+      active ? "Tenant access restored" : "Tenant access suspended",
+    );
+  }
+
+  private async auditInspectorRole(
+    adminUserId: string,
+    correlationId: string | undefined,
+    userId: string,
+    granted: boolean,
+  ) {
+    await this.auditRoleChange(
+      "user.inspector-role.update",
+      adminUserId,
+      correlationId,
+      userId,
+      granted ? "Inspector role granted" : "Inspector role revoked",
+    );
+  }
+
+  private async auditRoleChange(
+    action: string,
+    adminUserId: string,
+    correlationId: string | undefined,
+    userId: string,
+    note: string,
+  ) {
     await this.auditService.record({
-      action: "user.access.update",
+      action,
       actorUserId: adminUserId,
       entityType: "user",
       entityId: userId,
@@ -129,36 +282,87 @@ export class AdminUsersService {
       correlationId,
     });
     await this.auditService.recordAdminAction({
-      action: "user.access.update",
+      action,
       adminId: adminUserId,
       entityType: "user",
       entityId: userId,
-      note: active ? "Tenant access restored" : "Tenant access suspended",
+      note,
     });
   }
 }
 
+const ROLE_ORDER = `CASE role
+  WHEN 'ADMIN' THEN 1
+  WHEN 'SELLER' THEN 2
+  WHEN 'BUYER' THEN 3
+  ELSE 4
+END`;
 const USER_SELECT = `SELECT u.id, u.full_name, u.email, u.phone, u.city,
   u.status AS account_status, u.email_verified, u.phone_verified,
-  u.created_at, tm.role, tm.active AS access_active`;
-const USER_FROM = `FROM tenant_memberships tm JOIN users u ON u.id = tm.user_id`;
+  u.created_at, tm.role, tm.roles, tm.access_active`;
+const USER_FROM = `FROM (
+  SELECT user_id,
+    (array_agg(role ORDER BY ${ROLE_ORDER}))[1] AS role,
+    array_agg(role ORDER BY ${ROLE_ORDER}) AS roles,
+    bool_or(active) AS access_active
+  FROM tenant_memberships
+  GROUP BY user_id
+) tm JOIN users u ON u.id = tm.user_id`;
+const INSPECTOR_MEMBERSHIP_INSERT = `INSERT INTO tenant_memberships
+  (tenant_id, user_id, role, active)
+  SELECT NULLIF(current_setting('app.tenant_id', true), '')::uuid,
+    $1, 'INSPECTOR', bool_or(active)
+  FROM tenant_memberships
+  WHERE user_id = $1
+  GROUP BY user_id`;
 
-function buildUserFilter(query: AdminUserListQueryDto) {
+interface UserFilter {
+  where: string;
+  params: unknown[];
+}
+
+function buildUserFilter(query: AdminUserListQueryDto): UserFilter {
   const conditions: string[] = [];
   const params: unknown[] = [];
-  if (query.search?.trim()) {
-    params.push(`%${query.search.trim()}%`);
-    conditions.push(`(u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length} OR u.phone ILIKE $${params.length})`);
-  }
-  if (query.role) {
-    params.push(query.role);
-    conditions.push(`tm.role = $${params.length}`);
-  }
-  if (query.access) {
-    params.push(query.access === "ACTIVE");
-    conditions.push(`tm.active = $${params.length}`);
-  }
-  return { where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "", params };
+  addSearchFilter(query.search, conditions, params);
+  addRoleFilter(query.role, conditions, params);
+  addAccessFilter(query.access, conditions, params);
+  return {
+    where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
+    params,
+  };
+}
+
+function addSearchFilter(
+  search: string | undefined,
+  conditions: string[],
+  params: unknown[],
+) {
+  if (!search?.trim()) return;
+  params.push(`%${search.trim()}%`);
+  conditions.push(
+    `(u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length} OR u.phone ILIKE $${params.length})`,
+  );
+}
+
+function addRoleFilter(
+  role: string | undefined,
+  conditions: string[],
+  params: unknown[],
+) {
+  if (!role) return;
+  params.push(role);
+  conditions.push(`$${params.length} = ANY(tm.roles)`);
+}
+
+function addAccessFilter(
+  access: "ACTIVE" | "SUSPENDED" | undefined,
+  conditions: string[],
+  params: unknown[],
+) {
+  if (!access) return;
+  params.push(access === "ACTIVE");
+  conditions.push(`tm.access_active = $${params.length}`);
 }
 
 function userOrder(query: AdminUserListQueryDto) {
@@ -174,6 +378,7 @@ function toAdminUser(row: AdminUserRow) {
     phone: row.phone,
     city: row.city,
     role: row.role,
+    roles: row.roles ?? [row.role],
     accountStatus: row.account_status,
     accessActive: row.access_active,
     emailVerified: row.email_verified,

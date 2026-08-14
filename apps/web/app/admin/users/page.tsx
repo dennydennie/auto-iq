@@ -2,6 +2,7 @@ import type { AdminUserDto } from "@auto-iq/contracts/admin";
 import type { OffsetPaginatedResponse } from "@auto-iq/contracts/pagination";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { Users } from "lucide-react";
+import { InspectorRoleAction } from "@/components/admin/inspector-role-action";
 import { UserAccessAction } from "@/components/admin/user-access-action";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorBanner } from "@/components/shared/error-banner";
@@ -59,7 +60,7 @@ export default async function AdminUsersPage({
       <PageHeader
         eyebrow="Tenant access"
         title="Users"
-        description="Search tenant members and suspend or restore access with audited, deny-by-default controls."
+        description="Manage tenant access and grant the protected Inspector workspace role through audited admin controls."
       />
       <form className="grid gap-3 rounded-3xl border border-[var(--ink-100)] bg-white p-4 md:grid-cols-[1fr_12rem_12rem_auto]">
         <Input
@@ -89,14 +90,14 @@ export default async function AdminUsersPage({
         />
       ) : (
         <div className="overflow-x-auto rounded-3xl border border-[var(--ink-100)] bg-white">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[940px] text-left text-sm">
             <thead className="bg-[var(--ink-50)] text-xs uppercase tracking-wider text-[var(--ink-500)]">
               <tr>
                 <th className="p-4">Member</th>
                 <th className="p-4">Role</th>
                 <th className="p-4">Verification</th>
                 <th className="p-4">Joined</th>
-                <th className="p-4 text-right">Access</th>
+                <th className="p-4 text-right">Controls</th>
               </tr>
             </thead>
             <tbody>
@@ -111,7 +112,13 @@ export default async function AdminUsersPage({
                     </p>
                   </td>
                   <td className="p-4">
-                    <Badge variant="outline">{labelizeEnum(user.role)}</Badge>
+                    <div className="flex flex-wrap gap-2">
+                      {user.roles.map((role) => (
+                        <Badge key={role} variant="outline">
+                          {labelizeEnum(role)}
+                        </Badge>
+                      ))}
+                    </div>
                   </td>
                   <td className="p-4">
                     {user.emailVerified ? "Email" : "—"}
@@ -119,7 +126,10 @@ export default async function AdminUsersPage({
                   </td>
                   <td className="p-4">{formatDate(user.createdAt)}</td>
                   <td className="p-4 text-right">
-                    <UserAccessAction user={user} />
+                    <div className="flex justify-end gap-2">
+                      <InspectorRoleAction user={user} />
+                      <UserAccessAction user={user} />
+                    </div>
                   </td>
                 </tr>
               ))}

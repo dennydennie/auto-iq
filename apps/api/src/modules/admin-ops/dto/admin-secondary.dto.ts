@@ -65,6 +65,11 @@ export class UpdateAdminUserAccessDto {
   active!: boolean;
 }
 
+export class UpdateAdminInspectorRoleDto {
+  @IsBoolean()
+  granted!: boolean;
+}
+
 export class AdminAccountDeletionRequestListQueryDto {
   @IsOptional()
   @Type(() => Number)

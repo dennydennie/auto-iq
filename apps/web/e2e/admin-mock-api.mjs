@@ -143,7 +143,7 @@ let referenceOptions = initialReferenceOptions();
 function initialAdminUsers() {
   return [{
     id: "buyer-1", fullName: "Buyer One", email: "buyer@example.test", phone: "+263771000001",
-    city: "Harare", role: "BUYER", accountStatus: "ACTIVE", accessActive: true,
+    city: "Harare", role: "BUYER", roles: ["BUYER"], accountStatus: "ACTIVE", accessActive: true,
     emailVerified: true, phoneVerified: true, createdAt: now,
   }];
 }
@@ -304,6 +304,16 @@ async function handle(request, response) {
     const user = adminUsers.find((entry) => entry.id === userAccessMatch[1]);
     if (!user) return send(response, 404, apiError("User not found", 404));
     user.accessActive = Boolean((await readBody(request)).active);
+    return send(response, 200, user);
+  }
+  const inspectorRoleMatch = url.pathname.match(/^\/api\/v1\/admin\/users\/([^/]+)\/roles\/inspector$/);
+  if (inspectorRoleMatch && request.method === "PATCH") {
+    const user = adminUsers.find((entry) => entry.id === inspectorRoleMatch[1]);
+    if (!user) return send(response, 404, apiError("User not found", 404));
+    const { granted } = await readBody(request);
+    user.roles = granted
+      ? [...new Set([...user.roles, "INSPECTOR"])]
+      : user.roles.filter((role) => role !== "INSPECTOR");
     return send(response, 200, user);
   }
   if (url.pathname === "/api/v1/admin/reports/operations") {
