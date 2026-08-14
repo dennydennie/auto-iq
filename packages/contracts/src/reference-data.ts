@@ -1,4 +1,10 @@
-import type { BodyType, FuelType, TransmissionType, DriveType } from './enums.js';
+import type {
+  BodyType,
+  ConditionGrade,
+  DriveType,
+  FuelType,
+  TransmissionType,
+} from './enums.js';
 
 /**
  * Seeded reference data returned by the API.
@@ -32,6 +38,11 @@ export interface DriveTypeDto {
   label: string;
 }
 
+export interface ConditionGradeDto {
+  value: ConditionGrade;
+  label: string;
+}
+
 export interface ApprovedViewingLocationDto {
   id: string;
   name: string;
@@ -49,5 +60,6 @@ export interface ReferenceDataResponse {
   fuelTypes: FuelTypeDto[];
   transmissionTypes: TransmissionTypeDto[];
   driveTypes: DriveTypeDto[];
+  conditionGrades: ConditionGradeDto[];
   viewingLocations: ApprovedViewingLocationDto[];
 }

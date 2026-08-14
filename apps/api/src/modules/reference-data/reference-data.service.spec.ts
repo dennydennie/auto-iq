@@ -20,5 +20,11 @@ describe("ReferenceDataService", () => {
     expect(result.makes).toEqual([
       { id: "honda", name: "Honda", logoUrl: null, popularModels: ["Vezel", "Fit"] },
     ]);
+    expect(result.conditionGrades).toEqual([
+      { value: "EXCELLENT", label: "Excellent" },
+      { value: "GOOD", label: "Good" },
+      { value: "FAIR", label: "Fair" },
+      { value: "POOR", label: "Poor" },
+    ]);
   });
 });

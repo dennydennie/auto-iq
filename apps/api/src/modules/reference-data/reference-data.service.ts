@@ -3,6 +3,7 @@ import { ApprovedViewingLocationRepository } from "../../db/repository/approved-
 import { VehicleMakeRepository } from "../../db/repository/vehicle-make.repository";
 import {
   BODY_TYPES,
+  CONDITION_GRADES,
   DRIVE_TYPES,
   FUEL_TYPES,
   TRANSMISSION_TYPES,
@@ -26,6 +27,7 @@ export class ReferenceDataService {
       fuelTypes: FUEL_TYPES.map((value) => ({ value, label: labelize(value) })),
       transmissionTypes: TRANSMISSION_TYPES.map((value) => ({ value, label: labelize(value) })),
       driveTypes: DRIVE_TYPES.map((value) => ({ value, label: labelize(value) })),
+      conditionGrades: CONDITION_GRADES.map((value) => ({ value, label: labelize(value) })),
       viewingLocations: locations.map((location) => ({
         id: location.id,
         name: location.name,
