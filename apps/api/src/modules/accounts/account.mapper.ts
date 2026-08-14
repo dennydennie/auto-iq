@@ -9,18 +9,24 @@ export function toMeResponse(user: UserEntity) {
     fullName: user.fullName,
     email: user.email,
     phone: user.phone,
+    city: user.city,
     status: user.status,
     roles: user.roles.map((role) => role.role),
     phoneVerified: user.phoneVerified,
     emailVerified: user.emailVerified,
     buyerProfile: user.buyerProfile ? toBuyerProfile(user.buyerProfile) : null,
-    sellerProfile: user.sellerProfile ? toSellerProfile(user.sellerProfile) : null,
+    sellerProfile: user.sellerProfile
+      ? toSellerProfile(user.sellerProfile)
+      : null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
 }
 
-export function toConsentsResponse(consents: UserConsentEntity[], complete: boolean) {
+export function toConsentsResponse(
+  consents: UserConsentEntity[],
+  complete: boolean,
+) {
   return {
     consents: consents.map((consent) => ({
       id: consent.id,
@@ -38,8 +44,18 @@ function toBuyerProfile(profile: BuyerProfileEntity) {
   return {
     id: profile.id,
     city: profile.city,
+    vehiclePurpose: profile.vehiclePurpose,
+    searchRadiusKm: profile.searchRadiusKm,
+    deliveryPreference: profile.deliveryPreference,
+    paymentPreference: profile.paymentPreference,
     preferredBodyTypes: profile.preferredBodyTypes,
     preferredMakes: profile.preferredMakes,
+    preferredFuelTypes: profile.preferredFuelTypes,
+    preferredTransmissions: profile.preferredTransmissions,
+    minSeats: profile.minSeats,
+    maxMileageKm: profile.maxMileageKm,
+    yearMin: profile.yearMin,
+    yearMax: profile.yearMax,
     budgetMin: profile.budgetMin === null ? null : Number(profile.budgetMin),
     budgetMax: profile.budgetMax === null ? null : Number(profile.budgetMax),
   };

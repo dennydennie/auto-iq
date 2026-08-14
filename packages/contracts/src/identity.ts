@@ -1,9 +1,15 @@
-import type { UserRole, UserStatus, ConsentType } from './enums.js';
+import type {
+  ConsentType,
+  FuelType,
+  TransmissionType,
+  UserRole,
+  UserStatus,
+} from "./enums.js";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
 export interface TimestampFields {
-  createdAt: string;  // ISO 8601
+  createdAt: string; // ISO 8601
   updatedAt: string;
 }
 
@@ -17,7 +23,7 @@ export interface RegisterRequest {
   phone: string;
   /** Plaintext — hashed server-side */
   password: string;
-  role: Extract<UserRole, 'BUYER' | 'SELLER'>;
+  role: Extract<UserRole, "BUYER" | "SELLER">;
   city: string;
 }
 
@@ -34,7 +40,7 @@ export interface RegisterResponse {
 
 export interface CsrfResponse {
   token: string;
-  headerName: 'X-CSRF-Token';
+  headerName: "X-CSRF-Token";
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -113,11 +119,32 @@ export interface ResetPasswordRequest {
 export interface BuyerProfileDto {
   id: string;
   city: string;
+  vehiclePurpose: VehiclePurpose | null;
+  searchRadiusKm: number | null;
+  deliveryPreference: DeliveryPreference | null;
+  paymentPreference: PaymentPreference | null;
   preferredBodyTypes: string[];
   preferredMakes: string[];
+  preferredFuelTypes: FuelType[];
+  preferredTransmissions: TransmissionType[];
+  minSeats: number | null;
+  maxMileageKm: number | null;
+  yearMin: number | null;
+  yearMax: number | null;
   budgetMin: number | null;
   budgetMax: number | null;
 }
+
+export type VehiclePurpose =
+  | "PERSONAL"
+  | "FAMILY"
+  | "BUSINESS"
+  | "RIDE_HAILING"
+  | "DELIVERY"
+  | "OTHER";
+
+export type DeliveryPreference = "PICKUP" | "DELIVERY" | "EITHER";
+export type PaymentPreference = "CASH" | "FINANCE" | "EITHER";
 
 export interface SellerProfileDto {
   id: string;
@@ -133,6 +160,7 @@ export interface MeResponse extends TimestampFields {
   fullName: string;
   email: string;
   phone: string;
+  city: string;
   status: UserStatus;
   roles: UserRole[];
   phoneVerified: boolean;
@@ -145,12 +173,22 @@ export interface UpdateMeRequest {
   fullName?: string;
   city?: string;
   /** Buyer preferences */
+  vehiclePurpose?: VehiclePurpose | null;
+  searchRadiusKm?: number | null;
+  deliveryPreference?: DeliveryPreference | null;
+  paymentPreference?: PaymentPreference | null;
   preferredBodyTypes?: string[];
   preferredMakes?: string[];
-  budgetMin?: number;
-  budgetMax?: number;
+  preferredFuelTypes?: FuelType[];
+  preferredTransmissions?: TransmissionType[];
+  minSeats?: number | null;
+  maxMileageKm?: number | null;
+  yearMin?: number | null;
+  yearMax?: number | null;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
   /** Seller info */
-  businessName?: string;
+  businessName?: string | null;
 }
 
 // ─── Consents ─────────────────────────────────────────────────────────────────

@@ -1,6 +1,9 @@
 import type { PublicListingDto } from "../../../../packages/contracts/src/catalogue";
 import type { ApiError } from "../../../../packages/contracts/src/error";
-import type { CsrfResponse, MeResponse } from "../../../../packages/contracts/src/identity";
+import type {
+  CsrfResponse,
+  MeResponse,
+} from "../../../../packages/contracts/src/identity";
 import { ROUTES } from "../../../../packages/contracts/src/routes";
 
 describe("Phase 7 contracts", () => {
@@ -65,6 +68,7 @@ describe("Phase 7 contracts", () => {
       fullName: "Buyer One",
       email: "buyer@example.com",
       phone: "+263771234567",
+      city: "Harare",
       status: "ACTIVE",
       roles: ["BUYER"],
       phoneVerified: true,
@@ -72,8 +76,18 @@ describe("Phase 7 contracts", () => {
       buyerProfile: {
         id: "buyer-profile-1",
         city: "Harare",
+        vehiclePurpose: "FAMILY",
+        searchRadiusKm: 100,
+        deliveryPreference: "EITHER",
+        paymentPreference: "FINANCE",
         preferredBodyTypes: ["SUV"],
         preferredMakes: ["Toyota"],
+        preferredFuelTypes: ["HYBRID"],
+        preferredTransmissions: ["AUTOMATIC"],
+        minSeats: 5,
+        maxMileageKm: 100000,
+        yearMin: 2018,
+        yearMax: 2026,
         budgetMin: 10000,
         budgetMax: 20000,
       },

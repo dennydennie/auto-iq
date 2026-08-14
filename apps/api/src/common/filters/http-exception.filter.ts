@@ -27,9 +27,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<CorrelatedRequest>();
-    const response = ctx.getResponse<{ status: (code: number) => { json: (body: unknown) => void } }>();
+    const response = ctx.getResponse<{
+      status: (code: number) => { json: (body: unknown) => void };
+    }>();
     const statusCode = getStatusCode(exception);
-    const route = request.originalUrl ?? request.url ?? request.route?.path ?? "";
+    const route =
+      request.originalUrl ?? request.url ?? request.route?.path ?? "";
 
     if (shouldReportException(exception, statusCode, route)) {
       Sentry.withScope((scope) => {
@@ -38,7 +41,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         if (request.currentUser) {
           scope.setUser({ id: request.currentUser.id });
         }
-        Sentry.captureException(exception instanceof Error ? exception : new Error(getErrorMessage(exception)));
+        Sentry.captureException(
+          exception instanceof Error
+            ? exception
+            : new Error(getErrorMessage(exception)),
+        );
       });
     }
 
@@ -52,11 +59,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 }
 
-function shouldReportException(exception: unknown, statusCode: number, route: string): boolean {
+function shouldReportException(
+  exception: unknown,
+  statusCode: number,
+  route: string,
+): boolean {
   if (route.startsWith("/api/v1/health/")) {
     return false;
   }
-  if (exception instanceof HttpException && statusCode < HttpStatus.INTERNAL_SERVER_ERROR) {
+  if (
+    exception instanceof HttpException &&
+    statusCode < HttpStatus.INTERNAL_SERVER_ERROR
+  ) {
     return false;
   }
   return statusCode >= HttpStatus.INTERNAL_SERVER_ERROR;
@@ -74,13 +88,18 @@ function getErrorCode(exception: unknown, statusCode: number): string {
   if (isRecord(body) && typeof body.code === "string") {
     return body.code;
   }
-  return statusCode === HttpStatus.INTERNAL_SERVER_ERROR ? "INTERNAL_ERROR" : "HTTP_ERROR";
+  return statusCode === HttpStatus.INTERNAL_SERVER_ERROR
+    ? "INTERNAL_ERROR"
+    : "HTTP_ERROR";
 }
 
 function getErrorMessage(exception: unknown): string {
   const body = getExceptionBody(exception);
   if (isRecord(body) && typeof body.message === "string") {
     return body.message;
+  }
+  if (isRecord(body) && Array.isArray(body.message)) {
+    return body.message.map(String).join("; ");
   }
   if (exception instanceof Error) {
     return exception.message;
@@ -101,11 +120,18 @@ function getDetails(exception: unknown): FieldError[] | undefined {
   if (!Array.isArray(body.message)) {
     return undefined;
   }
-  return body.message.map((message) => ({ field: "request", message: String(message) }));
+  return body.message.map((message) => ({
+    field: "request",
+    message: String(message),
+  }));
 }
 
 function normalizeFieldError(value: unknown): FieldError | null {
-  if (!isRecord(value) || typeof value.field !== "string" || typeof value.message !== "string") {
+  if (
+    !isRecord(value) ||
+    typeof value.field !== "string" ||
+    typeof value.message !== "string"
+  ) {
     return null;
   }
 

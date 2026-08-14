@@ -1,11 +1,18 @@
 jest.mock("@sentry/nestjs", () => ({
   captureException: jest.fn(),
-  withScope: jest.fn((callback: (scope: { setTag: jest.Mock; setUser: jest.Mock }) => void) =>
-    callback({ setTag: jest.fn(), setUser: jest.fn() })),
+  withScope: jest.fn(
+    (callback: (scope: { setTag: jest.Mock; setUser: jest.Mock }) => void) =>
+      callback({ setTag: jest.fn(), setUser: jest.fn() }),
+  ),
 }));
 
 import * as Sentry from "@sentry/nestjs";
-import { HttpException, HttpStatus, NotFoundException } from "@nestjs/common";
+import {
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { HttpExceptionFilter } from "./http-exception.filter";
 
 describe("HttpExceptionFilter", () => {
@@ -19,7 +26,11 @@ describe("HttpExceptionFilter", () => {
       json,
       host: {
         switchToHttp: () => ({
-          getRequest: () => ({ correlationId: "corr-1", originalUrl: "/api/v1/listings", ...request }),
+          getRequest: () => ({
+            correlationId: "corr-1",
+            originalUrl: "/api/v1/listings",
+            ...request,
+          }),
           getResponse: () => ({
             status: (_code: number) => ({ json }),
           }),
@@ -35,21 +46,26 @@ describe("HttpExceptionFilter", () => {
     filter.catch(new Error("boom"), host);
 
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(json).toHaveBeenCalledWith(expect.objectContaining({
-      code: "INTERNAL_ERROR",
-      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      correlationId: "corr-1",
-    }));
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "INTERNAL_ERROR",
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        correlationId: "corr-1",
+      }),
+    );
   });
 
   it("does not report expected 404 exceptions", () => {
     const filter = new HttpExceptionFilter();
     const { host } = createHost();
 
-    filter.catch(new NotFoundException({
-      code: "RESOURCE_NOT_FOUND",
-      message: "Missing",
-    }), host);
+    filter.catch(
+      new NotFoundException({
+        code: "RESOURCE_NOT_FOUND",
+        message: "Missing",
+      }),
+      host,
+    );
 
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
@@ -58,8 +74,36 @@ describe("HttpExceptionFilter", () => {
     const filter = new HttpExceptionFilter();
     const { host } = createHost({ originalUrl: "/api/v1/health/ready" });
 
-    filter.catch(new HttpException("down", HttpStatus.INTERNAL_SERVER_ERROR), host);
+    filter.catch(
+      new HttpException("down", HttpStatus.INTERNAL_SERVER_ERROR),
+      host,
+    );
 
     expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("returns actionable validation messages instead of a generic 422 label", () => {
+    const filter = new HttpExceptionFilter();
+    const { host, json } = createHost();
+
+    filter.catch(
+      new UnprocessableEntityException({
+        code: "VALIDATION_FAILED",
+        message: [
+          "property vehiclePurpose should not exist",
+          "budgetMin must not be less than 0",
+        ],
+      }),
+      host,
+    );
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "VALIDATION_FAILED",
+        message:
+          "property vehiclePurpose should not exist; budgetMin must not be less than 0",
+        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+      }),
+    );
   });
 });
