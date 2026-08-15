@@ -47,6 +47,12 @@ class AutoIqLocalizations {
   String get noPublishedVehicles => _read('noPublishedVehicles');
   String get noPublishedVehiclesMessage => _read('noPublishedVehiclesMessage');
   String get clearFilters => _read('clearFilters');
+  String get filters => _read('filters');
+  String get clearSearch => _read('clearSearch');
+  String get closeFilters => _read('closeFilters');
+  String get applyFilters => _read('applyFilters');
+  String get back => _read('back');
+  String get next => _read('next');
   String get searchHint => _read('searchHint');
   String get make => _read('make');
   String get allMakes => _read('allMakes');
@@ -71,6 +77,18 @@ class AutoIqLocalizations {
   String get bodyType => _read('bodyType');
   String get allBodyTypes => _read('allBodyTypes');
   String get verified => _read('verified');
+  String get verifiedOnly => _read('verifiedOnly');
+  String get vehicleFilterStep => _read('vehicleFilterStep');
+  String get vehicleFilterStepDescription =>
+      _read('vehicleFilterStepDescription');
+  String get budgetFilterStep => _read('budgetFilterStep');
+  String get budgetFilterStepDescription =>
+      _read('budgetFilterStepDescription');
+  String get usageFilterStep => _read('usageFilterStep');
+  String get usageFilterStepDescription => _read('usageFilterStepDescription');
+  String get locationFilterStep => _read('locationFilterStep');
+  String get locationFilterStepDescription =>
+      _read('locationFilterStepDescription');
   String get clear => _read('clear');
   String get search => _read('search');
   String get chooseWorkspace => _read('chooseWorkspace');
@@ -115,6 +133,41 @@ class AutoIqLocalizations {
   String get buyer => _read('buyer');
   String get acknowledgeRequest => _read('acknowledgeRequest');
   String get viewingAcknowledged => _read('viewingAcknowledged');
+
+  String filterStep(int current, int total) {
+    return _read('filterStep')
+        .replaceAll('{current}', '$current')
+        .replaceAll('{total}', '$total');
+  }
+
+  String filtersApplied(int count) {
+    return Intl.plural(
+      count,
+      one: _read('filterCountOne'),
+      other: _read('filterCountOther').replaceAll('{count}', '$count'),
+      locale: locale.toLanguageTag(),
+      name: 'filtersApplied',
+      args: [count],
+    );
+  }
+
+  String removeFilter(String label) {
+    return _read('removeFilter').replaceAll('{label}', label);
+  }
+
+  String filterValue(String label, String value) {
+    return _read('filterValue')
+        .replaceAll('{label}', label)
+        .replaceAll('{value}', value);
+  }
+
+  String minimumFilterValue(String value) {
+    return _read('minimumFilterValue').replaceAll('{value}', value);
+  }
+
+  String maximumFilterValue(String value) {
+    return _read('maximumFilterValue').replaceAll('{value}', value);
+  }
 
   String vehicleCount(int count) {
     return Intl.plural(
@@ -176,6 +229,12 @@ const _messages = <String, Map<String, String>>{
     'noPublishedVehiclesMessage':
         'Seed a published listing or widen the current filters.',
     'clearFilters': 'Clear filters',
+    'filters': 'Filters',
+    'clearSearch': 'Clear search',
+    'closeFilters': 'Close filters',
+    'applyFilters': 'Apply filters',
+    'back': 'Back',
+    'next': 'Next',
     'searchHint': 'Search by make, model, or city',
     'make': 'Make',
     'allMakes': 'All makes',
@@ -200,6 +259,25 @@ const _messages = <String, Map<String, String>>{
     'bodyType': 'Body type',
     'allBodyTypes': 'All body types',
     'verified': 'Verified',
+    'verifiedOnly': 'Verified vehicles only',
+    'vehicleFilterStep': 'Choose the vehicle',
+    'vehicleFilterStepDescription':
+        'Start with a make, then narrow the model and body type.',
+    'budgetFilterStep': 'Set budget and year',
+    'budgetFilterStepDescription': 'Choose only the limits that matter to you.',
+    'usageFilterStep': 'Refine usage and specs',
+    'usageFilterStepDescription':
+        'Narrow mileage, transmission, and fuel type.',
+    'locationFilterStep': 'Choose location and trust',
+    'locationFilterStepDescription':
+        'Finish with a location and optional verified-only results.',
+    'filterStep': 'Step {current} of {total}',
+    'filterCountOne': '1 filter applied',
+    'filterCountOther': '{count} filters applied',
+    'removeFilter': 'Remove {label}',
+    'filterValue': '{label}: {value}',
+    'minimumFilterValue': 'From {value}',
+    'maximumFilterValue': 'Up to {value}',
     'clear': 'Clear',
     'search': 'Search',
     'vehicleCountOne': '1 vehicle',
@@ -271,6 +349,12 @@ const _messages = <String, Map<String, String>>{
     'noPublishedVehicles': 'Hapana mota dzakaburitswa',
     'noPublishedVehiclesMessage': 'Wedzera mota kana kuderedza mafirita.',
     'clearFilters': 'Bvisa mafirita',
+    'filters': 'Mafirita',
+    'clearSearch': 'Bvisa zvatsvagwa',
+    'closeFilters': 'Vhara mafirita',
+    'applyFilters': 'Shandisa mafirita',
+    'back': 'Kudzoka',
+    'next': 'Enderera',
     'searchHint': 'Tsvaga nemugadziri, mhando, kana guta',
     'make': 'Mugadziri',
     'allMakes': 'Vagadziri vese',
@@ -295,6 +379,25 @@ const _messages = <String, Map<String, String>>{
     'bodyType': 'Rudzi rwemota',
     'allBodyTypes': 'Mhando dzese dzemiviri',
     'verified': 'Yakasimbiswa',
+    'verifiedOnly': 'Mota dzakasimbiswa chete',
+    'vehicleFilterStep': 'Sarudza mota',
+    'vehicleFilterStepDescription':
+        'Tanga nemugadziri, wozosarudza mhando nerudzi rwemota.',
+    'budgetFilterStep': 'Sarudza bhajeti negore',
+    'budgetFilterStepDescription': 'Sarudza miganhu ine basa kwauri chete.',
+    'usageFilterStep': 'Sarudza makiromita nezvimiro',
+    'usageFilterStepDescription':
+        'Sarudza makiromita, magiyabhokisi, nerudzi rwemafuta.',
+    'locationFilterStep': 'Sarudza nzvimbo nekusimbiswa',
+    'locationFilterStepDescription':
+        'Pedzisa nenzvimbo uye mota dzakasimbiswa chete kana uchida.',
+    'filterStep': 'Danho {current} pa{total}',
+    'filterCountOne': 'Firita 1 yashandiswa',
+    'filterCountOther': 'Mafirita {count} ashandiswa',
+    'removeFilter': 'Bvisa {label}',
+    'filterValue': '{label}: {value}',
+    'minimumFilterValue': 'Kubva {value}',
+    'maximumFilterValue': 'Kusvika {value}',
     'clear': 'Bvisa',
     'search': 'Tsvaga',
     'vehicleCountOne': 'Mota 1',
@@ -323,6 +426,12 @@ const _messages = <String, Map<String, String>>{
     'noPublishedVehicles': 'لا توجد مركبات منشورة',
     'noPublishedVehiclesMessage': 'وسّع عوامل التصفية الحالية.',
     'clearFilters': 'مسح عوامل التصفية',
+    'filters': 'عوامل التصفية',
+    'clearSearch': 'مسح البحث',
+    'closeFilters': 'إغلاق عوامل التصفية',
+    'applyFilters': 'تطبيق عوامل التصفية',
+    'back': 'رجوع',
+    'next': 'التالي',
     'searchHint': 'ابحث حسب الصانع أو الطراز أو المدينة',
     'make': 'الصانع',
     'allMakes': 'كل الشركات',
@@ -347,6 +456,23 @@ const _messages = <String, Map<String, String>>{
     'bodyType': 'نوع الهيكل',
     'allBodyTypes': 'كل أنواع الهيكل',
     'verified': 'موثقة',
+    'verifiedOnly': 'المركبات الموثقة فقط',
+    'vehicleFilterStep': 'اختر المركبة',
+    'vehicleFilterStepDescription': 'ابدأ بالصانع، ثم حدّد الطراز ونوع الهيكل.',
+    'budgetFilterStep': 'حدّد الميزانية والسنة',
+    'budgetFilterStepDescription': 'اختر الحدود المهمة لك فقط.',
+    'usageFilterStep': 'حدّد الاستخدام والمواصفات',
+    'usageFilterStepDescription': 'حدّد المسافة وناقل الحركة ونوع الوقود.',
+    'locationFilterStep': 'اختر الموقع والتوثيق',
+    'locationFilterStepDescription':
+        'اختم بالموقع، واختر المركبات الموثقة فقط إن رغبت.',
+    'filterStep': 'الخطوة {current} من {total}',
+    'filterCountOne': 'تم تطبيق عامل تصفية واحد',
+    'filterCountOther': 'تم تطبيق {count} عوامل تصفية',
+    'removeFilter': 'إزالة {label}',
+    'filterValue': '{label}: {value}',
+    'minimumFilterValue': 'من {value}',
+    'maximumFilterValue': 'حتى {value}',
     'clear': 'مسح',
     'search': 'بحث',
     'vehicleCountOne': 'مركبة واحدة',

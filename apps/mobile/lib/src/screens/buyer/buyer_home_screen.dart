@@ -36,11 +36,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   late Future<List<QuoteItem>> _quotesFuture;
   late Future<List<VehicleRequestItem>> _requestFuture;
   late Future<List<ViewingItem>> _viewingsFuture;
-  ListingFilterState _draftFilters = const ListingFilterState();
   ListingFilterState _appliedFilters = const ListingFilterState();
   List<VehicleMake> _catalogueMakes = const [];
   final _searchController = TextEditingController();
-  String _draftSearchText = '';
   String _appliedSearchText = '';
 
   @override
@@ -76,87 +74,14 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           future: _browseFuture,
           searchController: _searchController,
           appliedSearchText: _appliedSearchText,
-          filters: _draftFilters,
+          filters: _appliedFilters,
           makes: browseMakes,
           cities: uniqueCities(
             session.referenceData?.viewingLocations ?? const [],
           ),
-          onSearchChanged: (value) => setState(() => _draftSearchText = value),
-          onMakeChanged: (value) => setState(() {
-            _draftFilters = _draftFilters.copyWith(
-              make: value,
-              model: null,
-            );
-          }),
-          onModelChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(model: value),
-          ),
-          onYearMinChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              yearMin: value,
-              yearMax: _validMax(value, _draftFilters.yearMax),
-            ),
-          ),
-          onYearMaxChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              yearMin: _validMin(_draftFilters.yearMin, value),
-              yearMax: value,
-            ),
-          ),
-          onCityChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(city: value),
-          ),
-          onBodyTypeChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(bodyType: value),
-          ),
-          onPriceMinChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              priceMin: value,
-              priceMax: _validMax(value, _draftFilters.priceMax),
-            ),
-          ),
-          onPriceMaxChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              priceMin: _validMin(_draftFilters.priceMin, value),
-              priceMax: value,
-            ),
-          ),
-          onMileageMinChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              mileageMin: value,
-              mileageMax: _validMax(value, _draftFilters.mileageMax),
-            ),
-          ),
-          onMileageMaxChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              mileageMin: _validMin(_draftFilters.mileageMin, value),
-              mileageMax: value,
-            ),
-          ),
-          onTransmissionChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(transmission: value),
-          ),
-          onFuelTypeChanged: (value) => setState(
-            () => _draftFilters = _draftFilters.copyWith(fuelType: value),
-          ),
-          onToggleVerified: () => setState(
-            () => _draftFilters = _draftFilters.copyWith(
-              verifiedOnly: !_draftFilters.verifiedOnly,
-            ),
-          ),
-          onSearch: () => setState(() {
-            _appliedFilters = _draftFilters;
-            _appliedSearchText = _draftSearchText;
-            _browseFuture = _loadBrowse();
-          }),
-          onClear: () => setState(() {
-            _draftFilters = const ListingFilterState();
-            _appliedFilters = const ListingFilterState();
-            _searchController.clear();
-            _draftSearchText = '';
-            _appliedSearchText = '';
-            _browseFuture = _loadBrowse();
-          }),
+          onApplyFilters: _applyFilters,
+          onSearch: _applySearch,
+          onClearFilters: _clearFilters,
           bodyTypes: session.referenceData?.bodyTypes ?? const [],
           transmissionTypes:
               session.referenceData?.transmissionTypes ?? const [],
@@ -251,16 +176,22 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
   }
 
-  int? _validMax(int? minimum, int? maximum) {
-    return minimum != null && maximum != null && minimum > maximum
-        ? null
-        : maximum;
+  void _applyFilters(ListingFilterState filters) {
+    setState(() {
+      _appliedFilters = filters;
+      _browseFuture = _loadBrowse();
+    });
   }
 
-  int? _validMin(int? minimum, int? maximum) {
-    return minimum != null && maximum != null && minimum > maximum
-        ? null
-        : minimum;
+  void _applySearch() {
+    setState(() {
+      _appliedSearchText = _searchController.text.trim();
+      _browseFuture = _loadBrowse();
+    });
+  }
+
+  void _clearFilters() {
+    _applyFilters(const ListingFilterState());
   }
 
   Future<void> _openListing(String listingId, {bool saved = false}) async {
@@ -602,22 +533,9 @@ class _BrowseTab extends StatelessWidget {
     required this.filters,
     required this.makes,
     required this.cities,
-    required this.onSearchChanged,
-    required this.onMakeChanged,
-    required this.onModelChanged,
-    required this.onYearMinChanged,
-    required this.onYearMaxChanged,
-    required this.onCityChanged,
-    required this.onToggleVerified,
-    required this.onBodyTypeChanged,
-    required this.onPriceMinChanged,
-    required this.onPriceMaxChanged,
-    required this.onMileageMinChanged,
-    required this.onMileageMaxChanged,
-    required this.onTransmissionChanged,
-    required this.onFuelTypeChanged,
+    required this.onApplyFilters,
     required this.onSearch,
-    required this.onClear,
+    required this.onClearFilters,
     required this.bodyTypes,
     required this.transmissionTypes,
     required this.fuelTypes,
@@ -631,22 +549,9 @@ class _BrowseTab extends StatelessWidget {
   final ListingFilterState filters;
   final List<VehicleMake> makes;
   final List<String> cities;
-  final ValueChanged<String> onSearchChanged;
-  final ValueChanged<String?> onMakeChanged;
-  final ValueChanged<String?> onModelChanged;
-  final ValueChanged<int?> onYearMinChanged;
-  final ValueChanged<int?> onYearMaxChanged;
-  final ValueChanged<String?> onCityChanged;
-  final VoidCallback onToggleVerified;
-  final ValueChanged<String?> onBodyTypeChanged;
-  final ValueChanged<int?> onPriceMinChanged;
-  final ValueChanged<int?> onPriceMaxChanged;
-  final ValueChanged<int?> onMileageMinChanged;
-  final ValueChanged<int?> onMileageMaxChanged;
-  final ValueChanged<String?> onTransmissionChanged;
-  final ValueChanged<String?> onFuelTypeChanged;
+  final ValueChanged<ListingFilterState> onApplyFilters;
   final VoidCallback onSearch;
-  final VoidCallback onClear;
+  final VoidCallback onClearFilters;
   final List<ReferenceOption> bodyTypes;
   final List<ReferenceOption> transmissionTypes;
   final List<ReferenceOption> fuelTypes;
@@ -692,22 +597,9 @@ class _BrowseTab extends StatelessWidget {
                 makes: makes,
                 cities: cities,
                 bodyTypes: bodyTypes,
-                onSearchChanged: onSearchChanged,
-                onMakeChanged: onMakeChanged,
-                onModelChanged: onModelChanged,
-                onYearMinChanged: onYearMinChanged,
-                onYearMaxChanged: onYearMaxChanged,
-                onCityChanged: onCityChanged,
-                onBodyTypeChanged: onBodyTypeChanged,
-                onPriceMinChanged: onPriceMinChanged,
-                onPriceMaxChanged: onPriceMaxChanged,
-                onMileageMinChanged: onMileageMinChanged,
-                onMileageMaxChanged: onMileageMaxChanged,
-                onTransmissionChanged: onTransmissionChanged,
-                onFuelTypeChanged: onFuelTypeChanged,
-                onToggleVerified: onToggleVerified,
+                onApplyFilters: onApplyFilters,
                 onSearch: onSearch,
-                onClear: onClear,
+                onClearFilters: onClearFilters,
                 transmissionTypes: transmissionTypes,
                 fuelTypes: fuelTypes,
               ),
@@ -717,7 +609,7 @@ class _BrowseTab extends StatelessWidget {
                   title: copy.noPublishedVehicles,
                   message: copy.noPublishedVehiclesMessage,
                   action: OutlinedButton(
-                    onPressed: onClear,
+                    onPressed: onClearFilters,
                     child: Text(copy.clearFilters),
                   ),
                 )
@@ -755,22 +647,9 @@ class BrowseFilters extends StatelessWidget {
     required this.bodyTypes,
     required this.transmissionTypes,
     required this.fuelTypes,
-    required this.onSearchChanged,
-    required this.onMakeChanged,
-    required this.onModelChanged,
-    required this.onYearMinChanged,
-    required this.onYearMaxChanged,
-    required this.onCityChanged,
-    required this.onBodyTypeChanged,
-    required this.onPriceMinChanged,
-    required this.onPriceMaxChanged,
-    required this.onMileageMinChanged,
-    required this.onMileageMaxChanged,
-    required this.onTransmissionChanged,
-    required this.onFuelTypeChanged,
-    required this.onToggleVerified,
+    required this.onApplyFilters,
     required this.onSearch,
-    required this.onClear,
+    required this.onClearFilters,
   });
 
   final TextEditingController searchController;
@@ -780,262 +659,1068 @@ class BrowseFilters extends StatelessWidget {
   final List<ReferenceOption> bodyTypes;
   final List<ReferenceOption> transmissionTypes;
   final List<ReferenceOption> fuelTypes;
-  final ValueChanged<String> onSearchChanged;
-  final ValueChanged<String?> onMakeChanged;
-  final ValueChanged<String?> onModelChanged;
-  final ValueChanged<int?> onYearMinChanged;
-  final ValueChanged<int?> onYearMaxChanged;
-  final ValueChanged<String?> onCityChanged;
-  final ValueChanged<String?> onBodyTypeChanged;
-  final ValueChanged<int?> onPriceMinChanged;
-  final ValueChanged<int?> onPriceMaxChanged;
-  final ValueChanged<int?> onMileageMinChanged;
-  final ValueChanged<int?> onMileageMaxChanged;
-  final ValueChanged<String?> onTransmissionChanged;
-  final ValueChanged<String?> onFuelTypeChanged;
-  final VoidCallback onToggleVerified;
+  final ValueChanged<ListingFilterState> onApplyFilters;
   final VoidCallback onSearch;
-  final VoidCallback onClear;
+  final VoidCallback onClearFilters;
 
   @override
   Widget build(BuildContext context) {
     final copy = AutoIqLocalizations.of(context);
-    final selectedMake = _makeFor(filters.make);
-    final models = selectedMake?.popularModels ?? const <String>[];
+    final applied = _appliedFilterItems(
+      copy,
+      filters,
+      bodyTypes,
+      transmissionTypes,
+      fuelTypes,
+    );
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: searchController,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search_outlined),
-            labelText: copy.searchHint,
+        _searchField(copy),
+        const SizedBox(height: 12),
+        _primaryActions(context, copy, applied.length),
+        if (applied.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _AppliedFilterOverview(
+            items: applied,
+            onApplyFilters: onApplyFilters,
+            onClearFilters: onClearFilters,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _searchField(AutoIqLocalizations copy) {
+    return AnimatedBuilder(
+      animation: searchController,
+      builder: (context, _) => TextField(
+        key: const Key('browse-search-field'),
+        controller: searchController,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (_) => onSearch(),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search_outlined),
+          labelText: copy.searchHint,
+          suffixIcon: searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  key: const Key('browse-clear-search'),
+                  tooltip: copy.clearSearch,
+                  onPressed: _clearSearch,
+                  icon: const Icon(Icons.close),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _primaryActions(
+    BuildContext context,
+    AutoIqLocalizations copy,
+    int appliedCount,
+  ) {
+    final filterIcon = appliedCount == 0
+        ? const Icon(Icons.tune)
+        : Badge(
+            backgroundColor: AppColors.amber,
+            label: Text('$appliedCount'),
+            textColor: AppColors.ink900,
+            child: const Icon(Icons.tune),
+          );
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            key: const Key('browse-open-filters'),
+            onPressed: () => _openFilterWizard(context),
+            icon: filterIcon,
+            label: Text(copy.filters),
           ),
         ),
-        const SizedBox(height: 12),
-        _FilterDropdown<String?>(
-          controlKey: 'browse-filter-make',
-          label: copy.make,
-          selectedValue: filters.make,
-          items: [
-            DropdownMenuItem(value: null, child: Text(copy.allMakes)),
-            ...makes.map(
-              (make) => DropdownMenuItem(
-                value: make.name,
-                child: Text(make.name),
-              ),
-            ),
-          ],
-          onChanged: onMakeChanged,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _FilterDropdown<String?>(
-                controlKey: 'browse-filter-model',
-                label: copy.model,
-                selectedValue: filters.model,
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(copy.allModels),
-                  ),
-                  ...models.map(
-                    (model) => DropdownMenuItem(
-                      value: model,
-                      child: Text(model),
-                    ),
-                  ),
-                ],
-                onChanged: selectedMake == null ? null : onModelChanged,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _RangeDropdowns(
-          title: copy.priceUsd,
-          minimumKey: 'browse-filter-price-min',
-          maximumKey: 'browse-filter-price-max',
-          minimum: filters.priceMin,
-          maximum: filters.priceMax,
-          values: cataloguePriceOptions,
-          minimumLabel: copy.minimum,
-          maximumLabel: copy.maximum,
-          anyMinimum: copy.anyMinimum,
-          anyMaximum: copy.anyMaximum,
-          formatValue: _formatUsd,
-          onMinimumChanged: onPriceMinChanged,
-          onMaximumChanged: onPriceMaxChanged,
-        ),
-        const SizedBox(height: 12),
-        _RangeDropdowns(
-          title: copy.year,
-          minimumKey: 'browse-filter-year-min',
-          maximumKey: 'browse-filter-year-max',
-          minimum: filters.yearMin,
-          maximum: filters.yearMax,
-          values: catalogueYearOptions,
-          minimumLabel: copy.yearFrom,
-          maximumLabel: copy.yearTo,
-          anyMinimum: copy.anyYear,
-          anyMaximum: copy.anyYear,
-          formatValue: (value) => '$value',
-          onMinimumChanged: onYearMinChanged,
-          onMaximumChanged: onYearMaxChanged,
-        ),
-        const SizedBox(height: 12),
-        _RangeDropdowns(
-          title: copy.mileage,
-          minimumKey: 'browse-filter-mileage-min',
-          maximumKey: 'browse-filter-mileage-max',
-          minimum: filters.mileageMin,
-          maximum: filters.mileageMax,
-          values: catalogueMileageOptions,
-          minimumLabel: copy.minimum,
-          maximumLabel: copy.maximum,
-          anyMinimum: copy.anyMinimum,
-          anyMaximum: copy.anyMaximum,
-          formatValue: _formatKm,
-          onMinimumChanged: onMileageMinChanged,
-          onMaximumChanged: onMileageMaxChanged,
-        ),
-        const SizedBox(height: 12),
-        _FilterDropdown<String?>(
-          controlKey: 'browse-filter-location',
-          label: copy.location,
-          selectedValue: filters.city,
-          items: [
-            DropdownMenuItem(
-              value: null,
-              child: Text(copy.allLocations),
-            ),
-            ...cities.map(
-              (city) => DropdownMenuItem(value: city, child: Text(city)),
-            ),
-          ],
-          onChanged: onCityChanged,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _FilterDropdown<String?>(
-                controlKey: 'browse-filter-transmission',
-                label: copy.transmission,
-                selectedValue: filters.transmission,
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(copy.anyTransmission),
-                  ),
-                  ...transmissionTypes.map(
-                    (type) => DropdownMenuItem(
-                      value: type.value,
-                      child: Text(type.label),
-                    ),
-                  ),
-                ],
-                onChanged: onTransmissionChanged,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _FilterDropdown<String?>(
-                controlKey: 'browse-filter-fuel-type',
-                label: copy.fuelType,
-                selectedValue: filters.fuelType,
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(copy.anyFuelType),
-                  ),
-                  ...fuelTypes.map(
-                    (type) => DropdownMenuItem(
-                      value: type.value,
-                      child: Text(type.label),
-                    ),
-                  ),
-                ],
-                onChanged: onFuelTypeChanged,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _FilterDropdown<String?>(
-                controlKey: 'browse-filter-body-type',
-                label: copy.bodyType,
-                selectedValue: filters.bodyType,
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(copy.allBodyTypes),
-                  ),
-                  ...bodyTypes.map(
-                    (type) => DropdownMenuItem(
-                      value: type.value,
-                      child: Text(type.label),
-                    ),
-                  ),
-                ],
-                onChanged: onBodyTypeChanged,
-              ),
-            ),
-            const SizedBox(width: 12),
-            FilterChip(
-              key: const Key('browse-filter-verified'),
-              label: Text(copy.verified),
-              selected: filters.verifiedOnly,
-              onSelected: (_) => onToggleVerified(),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onClear,
-                child: Text(copy.clear),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: onSearch,
-                child: Text(copy.search),
-              ),
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            key: const Key('browse-apply-search'),
+            onPressed: onSearch,
+            icon: const Icon(Icons.search),
+            label: Text(copy.search),
+          ),
         ),
       ],
     );
   }
 
-  VehicleMake? _makeFor(String? name) {
-    for (final make in makes) {
-      if (make.name == name) {
-        return make;
-      }
+  void _clearSearch() {
+    searchController.clear();
+    onSearch();
+  }
+
+  Future<void> _openFilterWizard(BuildContext context) async {
+    final result = await showModalBottomSheet<ListingFilterState>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.96,
+        child: _FilterWizard(
+          initialFilters: filters,
+          makes: makes,
+          cities: cities,
+          bodyTypes: bodyTypes,
+          transmissionTypes: transmissionTypes,
+          fuelTypes: fuelTypes,
+        ),
+      ),
+    );
+    if (result != null && context.mounted) {
+      onApplyFilters(result);
     }
-    return null;
+  }
+}
+
+class _AppliedFilterOverview extends StatelessWidget {
+  const _AppliedFilterOverview({
+    required this.items,
+    required this.onApplyFilters,
+    required this.onClearFilters,
+  });
+
+  final List<_AppliedFilterItem> items;
+  final ValueChanged<ListingFilterState> onApplyFilters;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return Container(
+      key: const Key('browse-applied-filters'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.ink200),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _overviewHeader(copy),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: _chips(copy)),
+          ),
+        ],
+      ),
+    );
   }
 
-  String _formatUsd(int value) => 'USD ${_withSeparators(value)}';
-
-  String _formatKm(int value) => '${_withSeparators(value)} km';
-
-  String _withSeparators(int value) {
-    return value.toString().replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (_) => ',',
-        );
+  Widget _overviewHeader(AutoIqLocalizations copy) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            copy.filtersApplied(items.length),
+            style: const TextStyle(
+              color: AppColors.ink900,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        TextButton(
+          key: const Key('browse-clear-filters'),
+          onPressed: onClearFilters,
+          child: Text(copy.clearFilters),
+        ),
+      ],
+    );
   }
+
+  List<Widget> _chips(AutoIqLocalizations copy) {
+    return items
+        .map(
+          (item) => Padding(
+            padding: const EdgeInsetsDirectional.only(end: 8),
+            child: Semantics(
+              button: true,
+              label: copy.removeFilter(item.label),
+              onTap: () => onApplyFilters(item.filtersWithout),
+              child: ExcludeSemantics(
+                child: InputChip(
+                  key: Key('browse-applied-${item.key}'),
+                  label: Text(item.label),
+                  onDeleted: () => onApplyFilters(item.filtersWithout),
+                ),
+              ),
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
+}
+
+class _AppliedFilterItem {
+  const _AppliedFilterItem({
+    required this.key,
+    required this.label,
+    required this.filtersWithout,
+  });
+
+  final String key;
+  final String label;
+  final ListingFilterState filtersWithout;
+}
+
+class _FilterWizard extends StatefulWidget {
+  const _FilterWizard({
+    required this.initialFilters,
+    required this.makes,
+    required this.cities,
+    required this.bodyTypes,
+    required this.transmissionTypes,
+    required this.fuelTypes,
+  });
+
+  final ListingFilterState initialFilters;
+  final List<VehicleMake> makes;
+  final List<String> cities;
+  final List<ReferenceOption> bodyTypes;
+  final List<ReferenceOption> transmissionTypes;
+  final List<ReferenceOption> fuelTypes;
+
+  @override
+  State<_FilterWizard> createState() => _FilterWizardState();
+}
+
+class _FilterWizardState extends State<_FilterWizard> {
+  static const _stepCount = 4;
+  late ListingFilterState _draft;
+  int _step = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _draft = widget.initialFilters;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return Material(
+      color: Colors.white,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          _WizardHeader(
+            step: _step,
+            stepCount: _stepCount,
+            hasFilters: _draft != const ListingFilterState(),
+            onClear: _clear,
+          ),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              layoutBuilder: _topAlignedTransition,
+              child: SingleChildScrollView(
+                key: ValueKey(_step),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: _stepContent(copy),
+              ),
+            ),
+          ),
+          _WizardFooter(
+            step: _step,
+            stepCount: _stepCount,
+            onBack: _back,
+            onNext: _next,
+            onApply: _apply,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepContent(AutoIqLocalizations copy) {
+    return switch (_step) {
+      0 => _VehicleFilterStep(
+          filters: _draft,
+          makes: widget.makes,
+          bodyTypes: widget.bodyTypes,
+          onChanged: _update,
+        ),
+      1 => _BudgetFilterStep(filters: _draft, onChanged: _update),
+      2 => _UsageFilterStep(
+          filters: _draft,
+          transmissionTypes: widget.transmissionTypes,
+          fuelTypes: widget.fuelTypes,
+          onChanged: _update,
+        ),
+      _ => _LocationFilterStep(
+          filters: _draft,
+          cities: widget.cities,
+          onChanged: _update,
+        ),
+    };
+  }
+
+  void _update(ListingFilterState value) => setState(() => _draft = value);
+
+  void _clear() => setState(() => _draft = const ListingFilterState());
+
+  void _back() => setState(() => _step--);
+
+  void _next() => setState(() => _step++);
+
+  void _apply() => Navigator.of(context).pop(_draft);
+}
+
+Widget _topAlignedTransition(
+  Widget? currentChild,
+  List<Widget> previousChildren,
+) {
+  return Stack(
+    alignment: Alignment.topCenter,
+    fit: StackFit.expand,
+    children: [
+      ...previousChildren,
+      if (currentChild != null) currentChild,
+    ],
+  );
+}
+
+class _WizardHeader extends StatelessWidget {
+  const _WizardHeader({
+    required this.step,
+    required this.stepCount,
+    required this.hasFilters,
+    required this.onClear,
+  });
+
+  final int step;
+  final int stepCount;
+  final bool hasFilters;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.ink200,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 4),
+          _titleRow(context, copy),
+          Semantics(
+            label: copy.filterStep(step + 1, stepCount),
+            value: '${step + 1}/$stepCount',
+            child: LinearProgressIndicator(
+              value: (step + 1) / stepCount,
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(4),
+              color: AppColors.amber,
+              backgroundColor: AppColors.ink100,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _titleRow(BuildContext context, AutoIqLocalizations copy) {
+    return Row(
+      children: [
+        IconButton(
+          key: const Key('filter-wizard-close'),
+          tooltip: copy.closeFilters,
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(copy.filters, style: _wizardTitleStyle),
+              Text(copy.filterStep(step + 1, stepCount)),
+            ],
+          ),
+        ),
+        if (hasFilters)
+          TextButton(
+            key: const Key('filter-wizard-clear'),
+            onPressed: onClear,
+            child: Text(copy.clearFilters),
+          ),
+      ],
+    );
+  }
+}
+
+class _WizardFooter extends StatelessWidget {
+  const _WizardFooter({
+    required this.step,
+    required this.stepCount,
+    required this.onBack,
+    required this.onNext,
+    required this.onApply,
+  });
+
+  final int step;
+  final int stepCount;
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.ink100)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                key: const Key('filter-wizard-apply'),
+                onPressed: onApply,
+                icon: const Icon(Icons.check),
+                label: Text(copy.applyFilters),
+              ),
+            ),
+            if (step > 0 || step < stepCount - 1) ...[
+              const SizedBox(height: 8),
+              _navigation(copy),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navigation(AutoIqLocalizations copy) {
+    return Row(
+      children: [
+        if (step > 0)
+          Expanded(
+            child: TextButton.icon(
+              key: const Key('filter-wizard-back'),
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back),
+              label: Text(copy.back),
+            ),
+          ),
+        if (step > 0 && step < stepCount - 1) const SizedBox(width: 8),
+        if (step < stepCount - 1)
+          Expanded(
+            child: OutlinedButton.icon(
+              key: const Key('filter-wizard-next'),
+              onPressed: onNext,
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.arrow_forward),
+              label: Text(copy.next),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _VehicleFilterStep extends StatelessWidget {
+  const _VehicleFilterStep({
+    required this.filters,
+    required this.makes,
+    required this.bodyTypes,
+    required this.onChanged,
+  });
+
+  final ListingFilterState filters;
+  final List<VehicleMake> makes;
+  final List<ReferenceOption> bodyTypes;
+  final ValueChanged<ListingFilterState> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    final selectedMake = _makeFor(makes, filters.make);
+    return _FilterStepBody(
+      title: copy.vehicleFilterStep,
+      description: copy.vehicleFilterStepDescription,
+      children: [
+        _makeDropdown(copy),
+        const SizedBox(height: 16),
+        _modelDropdown(copy, selectedMake),
+        const SizedBox(height: 16),
+        _bodyTypeDropdown(copy),
+      ],
+    );
+  }
+
+  Widget _makeDropdown(AutoIqLocalizations copy) {
+    return _FilterDropdown<String?>(
+      controlKey: 'browse-filter-make',
+      label: copy.make,
+      selectedValue: filters.make,
+      items: [
+        DropdownMenuItem(value: null, child: Text(copy.allMakes)),
+        ...makes.map(
+          (make) => DropdownMenuItem(
+            value: make.name,
+            child: Text(make.name),
+          ),
+        ),
+      ],
+      onChanged: (value) => onChanged(
+        filters.copyWith(make: value, model: null),
+      ),
+    );
+  }
+
+  Widget _modelDropdown(
+    AutoIqLocalizations copy,
+    VehicleMake? selectedMake,
+  ) {
+    final models = selectedMake?.popularModels ?? const <String>[];
+    return _FilterDropdown<String?>(
+      controlKey: 'browse-filter-model',
+      label: copy.model,
+      selectedValue: filters.model,
+      items: [
+        DropdownMenuItem(value: null, child: Text(copy.allModels)),
+        ...models.map(
+          (model) => DropdownMenuItem(value: model, child: Text(model)),
+        ),
+      ],
+      onChanged: selectedMake == null
+          ? null
+          : (value) => onChanged(filters.copyWith(model: value)),
+    );
+  }
+
+  Widget _bodyTypeDropdown(AutoIqLocalizations copy) {
+    return _optionDropdown(
+      controlKey: 'browse-filter-body-type',
+      label: copy.bodyType,
+      emptyLabel: copy.allBodyTypes,
+      selectedValue: filters.bodyType,
+      options: bodyTypes,
+      onChanged: (value) => onChanged(filters.copyWith(bodyType: value)),
+    );
+  }
+}
+
+class _BudgetFilterStep extends StatelessWidget {
+  const _BudgetFilterStep({required this.filters, required this.onChanged});
+
+  final ListingFilterState filters;
+  final ValueChanged<ListingFilterState> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return _FilterStepBody(
+      title: copy.budgetFilterStep,
+      description: copy.budgetFilterStepDescription,
+      children: [
+        _priceRange(copy),
+        const SizedBox(height: 20),
+        _yearRange(copy),
+      ],
+    );
+  }
+
+  Widget _priceRange(AutoIqLocalizations copy) {
+    return _RangeDropdowns(
+      title: copy.priceUsd,
+      minimumKey: 'browse-filter-price-min',
+      maximumKey: 'browse-filter-price-max',
+      minimum: filters.priceMin,
+      maximum: filters.priceMax,
+      values: cataloguePriceOptions,
+      minimumLabel: copy.minimum,
+      maximumLabel: copy.maximum,
+      anyMinimum: copy.anyMinimum,
+      anyMaximum: copy.anyMaximum,
+      formatValue: _formatUsd,
+      onMinimumChanged: _changePriceMinimum,
+      onMaximumChanged: _changePriceMaximum,
+    );
+  }
+
+  Widget _yearRange(AutoIqLocalizations copy) {
+    return _RangeDropdowns(
+      title: copy.year,
+      minimumKey: 'browse-filter-year-min',
+      maximumKey: 'browse-filter-year-max',
+      minimum: filters.yearMin,
+      maximum: filters.yearMax,
+      values: catalogueYearOptions,
+      minimumLabel: copy.yearFrom,
+      maximumLabel: copy.yearTo,
+      anyMinimum: copy.anyYear,
+      anyMaximum: copy.anyYear,
+      formatValue: (value) => '$value',
+      onMinimumChanged: _changeYearMinimum,
+      onMaximumChanged: _changeYearMaximum,
+    );
+  }
+
+  void _changePriceMinimum(int? value) => onChanged(
+        filters.copyWith(
+          priceMin: value,
+          priceMax: _validMaximum(value, filters.priceMax),
+        ),
+      );
+
+  void _changePriceMaximum(int? value) => onChanged(
+        filters.copyWith(
+          priceMin: _validMinimum(filters.priceMin, value),
+          priceMax: value,
+        ),
+      );
+
+  void _changeYearMinimum(int? value) => onChanged(
+        filters.copyWith(
+          yearMin: value,
+          yearMax: _validMaximum(value, filters.yearMax),
+        ),
+      );
+
+  void _changeYearMaximum(int? value) => onChanged(
+        filters.copyWith(
+          yearMin: _validMinimum(filters.yearMin, value),
+          yearMax: value,
+        ),
+      );
+}
+
+class _UsageFilterStep extends StatelessWidget {
+  const _UsageFilterStep({
+    required this.filters,
+    required this.transmissionTypes,
+    required this.fuelTypes,
+    required this.onChanged,
+  });
+
+  final ListingFilterState filters;
+  final List<ReferenceOption> transmissionTypes;
+  final List<ReferenceOption> fuelTypes;
+  final ValueChanged<ListingFilterState> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return _FilterStepBody(
+      title: copy.usageFilterStep,
+      description: copy.usageFilterStepDescription,
+      children: [
+        _mileageRange(copy),
+        const SizedBox(height: 20),
+        _transmissionDropdown(copy),
+        const SizedBox(height: 16),
+        _fuelDropdown(copy),
+      ],
+    );
+  }
+
+  Widget _mileageRange(AutoIqLocalizations copy) {
+    return _RangeDropdowns(
+      title: copy.mileage,
+      minimumKey: 'browse-filter-mileage-min',
+      maximumKey: 'browse-filter-mileage-max',
+      minimum: filters.mileageMin,
+      maximum: filters.mileageMax,
+      values: catalogueMileageOptions,
+      minimumLabel: copy.minimum,
+      maximumLabel: copy.maximum,
+      anyMinimum: copy.anyMinimum,
+      anyMaximum: copy.anyMaximum,
+      formatValue: _formatKm,
+      onMinimumChanged: _changeMileageMinimum,
+      onMaximumChanged: _changeMileageMaximum,
+    );
+  }
+
+  Widget _transmissionDropdown(AutoIqLocalizations copy) {
+    return _optionDropdown(
+      controlKey: 'browse-filter-transmission',
+      label: copy.transmission,
+      emptyLabel: copy.anyTransmission,
+      selectedValue: filters.transmission,
+      options: transmissionTypes,
+      onChanged: (value) => onChanged(filters.copyWith(transmission: value)),
+    );
+  }
+
+  Widget _fuelDropdown(AutoIqLocalizations copy) {
+    return _optionDropdown(
+      controlKey: 'browse-filter-fuel-type',
+      label: copy.fuelType,
+      emptyLabel: copy.anyFuelType,
+      selectedValue: filters.fuelType,
+      options: fuelTypes,
+      onChanged: (value) => onChanged(filters.copyWith(fuelType: value)),
+    );
+  }
+
+  void _changeMileageMinimum(int? value) => onChanged(
+        filters.copyWith(
+          mileageMin: value,
+          mileageMax: _validMaximum(value, filters.mileageMax),
+        ),
+      );
+
+  void _changeMileageMaximum(int? value) => onChanged(
+        filters.copyWith(
+          mileageMin: _validMinimum(filters.mileageMin, value),
+          mileageMax: value,
+        ),
+      );
+}
+
+class _LocationFilterStep extends StatelessWidget {
+  const _LocationFilterStep({
+    required this.filters,
+    required this.cities,
+    required this.onChanged,
+  });
+
+  final ListingFilterState filters;
+  final List<String> cities;
+  final ValueChanged<ListingFilterState> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return _FilterStepBody(
+      title: copy.locationFilterStep,
+      description: copy.locationFilterStepDescription,
+      children: [
+        _locationDropdown(copy),
+        const SizedBox(height: 20),
+        _verifiedControl(copy),
+      ],
+    );
+  }
+
+  Widget _locationDropdown(AutoIqLocalizations copy) {
+    return _FilterDropdown<String?>(
+      controlKey: 'browse-filter-location',
+      label: copy.location,
+      selectedValue: filters.city,
+      items: [
+        DropdownMenuItem(value: null, child: Text(copy.allLocations)),
+        ...cities.map(
+          (city) => DropdownMenuItem(value: city, child: Text(city)),
+        ),
+      ],
+      onChanged: (value) => onChanged(filters.copyWith(city: value)),
+    );
+  }
+
+  Widget _verifiedControl(AutoIqLocalizations copy) {
+    return Semantics(
+      selected: filters.verifiedOnly,
+      button: true,
+      child: FilterChip(
+        key: const Key('browse-filter-verified'),
+        avatar: const Icon(Icons.verified_outlined, size: 18),
+        label: Text(copy.verifiedOnly),
+        selected: filters.verifiedOnly,
+        onSelected: (selected) => onChanged(
+          filters.copyWith(verifiedOnly: selected),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterStepBody extends StatelessWidget {
+  const _FilterStepBody({
+    required this.title,
+    required this.description,
+    required this.children,
+  });
+
+  final String title;
+  final String description;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: Key('filter-step-content-$title'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: _stepTitleStyle),
+        const SizedBox(height: 6),
+        Text(description, style: _stepDescriptionStyle),
+        const SizedBox(height: 24),
+        ...children,
+      ],
+    );
+  }
+}
+
+const _wizardTitleStyle = TextStyle(
+  color: AppColors.ink900,
+  fontSize: 18,
+  fontWeight: FontWeight.w800,
+);
+
+const _stepTitleStyle = TextStyle(
+  color: AppColors.ink900,
+  fontSize: 24,
+  fontWeight: FontWeight.w800,
+);
+
+const _stepDescriptionStyle = TextStyle(
+  color: AppColors.ink500,
+  fontSize: 14,
+  height: 1.4,
+);
+
+List<_AppliedFilterItem> _appliedFilterItems(
+  AutoIqLocalizations copy,
+  ListingFilterState filters,
+  List<ReferenceOption> bodyTypes,
+  List<ReferenceOption> transmissionTypes,
+  List<ReferenceOption> fuelTypes,
+) {
+  return [
+    ..._vehicleAppliedItems(copy, filters, bodyTypes),
+    ..._rangeAppliedItems(copy, filters),
+    ..._preferenceAppliedItems(
+      copy,
+      filters,
+      transmissionTypes,
+      fuelTypes,
+    ),
+  ];
+}
+
+List<_AppliedFilterItem> _vehicleAppliedItems(
+  AutoIqLocalizations copy,
+  ListingFilterState filters,
+  List<ReferenceOption> bodyTypes,
+) {
+  return [
+    if (filters.make != null)
+      _appliedItem(
+        'make',
+        copy.filterValue(copy.make, filters.make!),
+        filters.copyWith(make: null, model: null),
+      ),
+    if (filters.model != null)
+      _appliedItem(
+        'model',
+        copy.filterValue(copy.model, filters.model!),
+        filters.copyWith(model: null),
+      ),
+    if (filters.bodyType != null)
+      _appliedItem(
+        'body-type',
+        copy.filterValue(
+          copy.bodyType,
+          _optionLabel(bodyTypes, filters.bodyType!),
+        ),
+        filters.copyWith(bodyType: null),
+      ),
+  ];
+}
+
+List<_AppliedFilterItem> _rangeAppliedItems(
+  AutoIqLocalizations copy,
+  ListingFilterState filters,
+) {
+  final items = <_AppliedFilterItem>[];
+  _addRangeItem(
+    items,
+    key: 'price',
+    label: copy.priceUsd,
+    minimum: filters.priceMin,
+    maximum: filters.priceMax,
+    formatter: _formatUsd,
+    filtersWithout: filters.copyWith(priceMin: null, priceMax: null),
+    copy: copy,
+  );
+  _addRangeItem(
+    items,
+    key: 'year',
+    label: copy.year,
+    minimum: filters.yearMin,
+    maximum: filters.yearMax,
+    formatter: (value) => '$value',
+    filtersWithout: filters.copyWith(yearMin: null, yearMax: null),
+    copy: copy,
+  );
+  _addRangeItem(
+    items,
+    key: 'mileage',
+    label: copy.mileage,
+    minimum: filters.mileageMin,
+    maximum: filters.mileageMax,
+    formatter: _formatKm,
+    filtersWithout: filters.copyWith(mileageMin: null, mileageMax: null),
+    copy: copy,
+  );
+  return items;
+}
+
+List<_AppliedFilterItem> _preferenceAppliedItems(
+  AutoIqLocalizations copy,
+  ListingFilterState filters,
+  List<ReferenceOption> transmissionTypes,
+  List<ReferenceOption> fuelTypes,
+) {
+  return [
+    if (filters.city != null)
+      _appliedItem(
+        'location',
+        copy.filterValue(copy.location, filters.city!),
+        filters.copyWith(city: null),
+      ),
+    if (filters.transmission != null)
+      _appliedItem(
+        'transmission',
+        copy.filterValue(
+          copy.transmission,
+          _optionLabel(transmissionTypes, filters.transmission!),
+        ),
+        filters.copyWith(transmission: null),
+      ),
+    if (filters.fuelType != null)
+      _appliedItem(
+        'fuel',
+        copy.filterValue(
+          copy.fuelType,
+          _optionLabel(fuelTypes, filters.fuelType!),
+        ),
+        filters.copyWith(fuelType: null),
+      ),
+    if (filters.verifiedOnly)
+      _appliedItem(
+        'verified',
+        copy.verifiedOnly,
+        filters.copyWith(verifiedOnly: false),
+      ),
+  ];
+}
+
+void _addRangeItem(
+  List<_AppliedFilterItem> items, {
+  required String key,
+  required String label,
+  required int? minimum,
+  required int? maximum,
+  required String Function(int) formatter,
+  required ListingFilterState filtersWithout,
+  required AutoIqLocalizations copy,
+}) {
+  if (minimum == null && maximum == null) return;
+  final value = _rangeValue(copy, minimum, maximum, formatter);
+  items.add(_appliedItem(key, copy.filterValue(label, value), filtersWithout));
+}
+
+String _rangeValue(
+  AutoIqLocalizations copy,
+  int? minimum,
+  int? maximum,
+  String Function(int) formatter,
+) {
+  if (minimum != null && maximum != null) {
+    return '${formatter(minimum)}–${formatter(maximum)}';
+  }
+  if (minimum != null) return copy.minimumFilterValue(formatter(minimum));
+  return copy.maximumFilterValue(formatter(maximum!));
+}
+
+_AppliedFilterItem _appliedItem(
+  String key,
+  String label,
+  ListingFilterState filtersWithout,
+) {
+  return _AppliedFilterItem(
+    key: key,
+    label: label,
+    filtersWithout: filtersWithout,
+  );
+}
+
+_FilterDropdown<String?> _optionDropdown({
+  required String controlKey,
+  required String label,
+  required String emptyLabel,
+  required String? selectedValue,
+  required List<ReferenceOption> options,
+  required ValueChanged<String?> onChanged,
+}) {
+  return _FilterDropdown<String?>(
+    controlKey: controlKey,
+    label: label,
+    selectedValue: selectedValue,
+    items: [
+      DropdownMenuItem(value: null, child: Text(emptyLabel)),
+      ...options.map(
+        (option) => DropdownMenuItem(
+          value: option.value,
+          child: Text(option.label),
+        ),
+      ),
+    ],
+    onChanged: onChanged,
+  );
+}
+
+VehicleMake? _makeFor(List<VehicleMake> makes, String? name) {
+  for (final make in makes) {
+    if (make.name == name) return make;
+  }
+  return null;
+}
+
+String _optionLabel(List<ReferenceOption> options, String value) {
+  for (final option in options) {
+    if (option.value == value) return option.label;
+  }
+  return value;
+}
+
+int? _validMaximum(int? minimum, int? maximum) {
+  return minimum != null && maximum != null && minimum > maximum
+      ? null
+      : maximum;
+}
+
+int? _validMinimum(int? minimum, int? maximum) {
+  return minimum != null && maximum != null && minimum > maximum
+      ? null
+      : minimum;
+}
+
+String _formatUsd(int value) => 'USD ${_withSeparators(value)}';
+
+String _formatKm(int value) => '${_withSeparators(value)} km';
+
+String _withSeparators(int value) {
+  return value.toString().replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'),
+        (_) => ',',
+      );
 }
 
 class _RangeDropdowns extends StatelessWidget {
