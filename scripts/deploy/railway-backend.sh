@@ -143,6 +143,32 @@ ensure_smoke_password() {
   node -e "const crypto=require('node:crypto'); process.stdout.write(\`AutoIQ!\${crypto.randomBytes(6).toString('base64url')}9\`);"
 }
 
+read_database_ca() {
+  railway_cmd run \
+    --service "$POSTGRES_SERVICE" \
+    --environment "$ENVIRONMENT_NAME" \
+    --no-local \
+    -- sh -c '
+      openssl s_client \
+        -starttls postgres \
+        -connect "$RAILWAY_TCP_PROXY_DOMAIN:$RAILWAY_TCP_PROXY_PORT" \
+        -showcerts </dev/null 2>/dev/null | awk '\''
+          /BEGIN CERTIFICATE/ { certificate = $0 ORS; collecting = 1; next }
+          collecting { certificate = certificate $0 ORS }
+          /END CERTIFICATE/ { last = certificate; collecting = 0 }
+          END { printf "%s", last }
+        '\''
+    '
+}
+
+validate_database_ca() {
+  local database_ca=$1
+  if ! printf '%s' "$database_ca" | openssl x509 -noout -checkend 86400 >/dev/null; then
+    echo "Unable to retrieve a valid Railway PostgreSQL CA certificate." >&2
+    exit 1
+  fi
+}
+
 extract_public_domain() {
   node -e '
 const fs = require("node:fs");
@@ -169,10 +195,12 @@ process.exit(1);
 
 configure_api_variables() {
   local session_secret=$1
+  local database_ca=$2
 
   set_variable "$API_SERVICE" "NODE_ENV" "production"
   set_variable "$API_SERVICE" "DATABASE_URL" "\${{${POSTGRES_SERVICE}.DATABASE_URL}}"
   set_variable "$API_SERVICE" "DATABASE_SSL" "true"
+  set_secret_variable "$API_SERVICE" "DATABASE_SSL_CA" "$database_ca"
   set_variable "$API_SERVICE" "DATABASE_SSL_SERVER_NAME" "localhost"
   set_variable "$API_SERVICE" "REDIS_URL" "\${{${REDIS_SERVICE}.REDIS_URL}}"
   set_variable "$API_SERVICE" "CORS_ORIGINS" "$CORS_ORIGINS"
@@ -237,6 +265,7 @@ seed_demo_data() {
 main() {
   require_command railway
   require_command node
+  require_command openssl
   require_command pnpm
   require_public_web_origin
 
@@ -254,8 +283,13 @@ main() {
   ensure_bucket
   railway_cmd service link "$API_SERVICE" >/dev/null
 
+  log_step "Reading Railway PostgreSQL CA"
+  local database_ca
+  database_ca="$(read_database_ca)"
+  validate_database_ca "$database_ca"
+
   log_step "Configuring API variables"
-  configure_api_variables "$(ensure_session_secret)"
+  configure_api_variables "$(ensure_session_secret)" "$database_ca"
 
   local smoke_password
   smoke_password="$(ensure_smoke_password)"

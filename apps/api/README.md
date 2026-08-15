@@ -29,6 +29,7 @@ See the repository `.env.example` for the full template. Production deployment r
 - `SESSION_COOKIE_DOMAIN` when cross-subdomain cookies are required
 - `SESSION_COOKIE_SAME_SITE`
 - `SESSION_COOKIE_SECURE`
+- `DATABASE_SSL_CA` (the Railway PostgreSQL root CA in PEM format)
 - `DATABASE_SSL_SERVER_NAME` (`localhost` for Railway's generated Postgres certificate)
 - `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL` / `AWS_ENDPOINT_URL_S3`
 - `STORAGE_REGION` or `AWS_REGION` / `AWS_DEFAULT_REGION`
@@ -39,6 +40,11 @@ See the repository `.env.example` for the full template. Production deployment r
 - `SENTRY_DSN`
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
+
+Controlled on-screen OTP testing is disabled by default. To enable it for
+buyer-only test accounts, configure `OTP_TEST_MODE_ENABLED=true` and a
+comma-separated `OTP_TEST_ACCOUNT_EMAILS` allowlist together. Never include
+seller, inspector, or admin accounts.
 
 When `NODE_ENV` is `staging` or `production`, startup validation also requires:
 

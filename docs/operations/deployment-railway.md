@@ -49,6 +49,7 @@ Optional inputs:
 - `SESSION_COOKIE_DOMAIN` when cross-subdomain cookies are required
 - `SESSION_COOKIE_SAME_SITE`
 - `SESSION_COOKIE_SECURE`
+- `DATABASE_SSL_CA` (Railway PostgreSQL root CA in PEM format)
 - `DATABASE_SSL_SERVER_NAME=localhost` (Railway Postgres certificate identity)
 - `STORAGE_ENDPOINT` or `AWS_ENDPOINT_URL` / `AWS_ENDPOINT_URL_S3`
 - `STORAGE_REGION` or `AWS_REGION` / `AWS_DEFAULT_REGION`
@@ -65,6 +66,8 @@ Optional inputs:
 The deploy script provisions these for the API service with Railway reference variables:
 
 - `DATABASE_URL=${{postgres.DATABASE_URL}}`
+- `DATABASE_SSL_CA=<root CA retrieved from the Railway PostgreSQL TLS chain>`
+- `DATABASE_SSL_SERVER_NAME=localhost`
 - `REDIS_URL=${{redis.REDIS_URL}}`
 - `STORAGE_ENDPOINT=${{assets.ENDPOINT}}`
 - `STORAGE_REGION=${{assets.REGION}}`
