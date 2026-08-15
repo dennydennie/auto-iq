@@ -37,6 +37,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _codeFocus = FocusNode();
   bool _busy = false;
   String? _message;
+  String? _testOtpCode;
   Timer? _tick;
   int _resendIn = 0;
   bool _verificationLocked = false;
@@ -82,7 +83,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Verify account')),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,8 +98,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'We sent an SMS to the phone tied to ${widget.identifier}. '
-                'The code arrives in a few seconds — your keyboard may fill it in automatically.',
+                _testOtpCode == null
+                    ? 'We sent an SMS to the phone tied to ${widget.identifier}. '
+                        'The code arrives in a few seconds — your keyboard may fill it in automatically.'
+                    : 'This configured buyer test account uses an on-screen code. '
+                        'It expires after 5 minutes and works only once.',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.ink500,
@@ -148,6 +152,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                   ),
                 ),
+              if (_testOtpCode != null) ...[
+                _TestOtpCodeCard(
+                  code: _testOtpCode!,
+                  onUseCode: _useTestCode,
+                ),
+                const SizedBox(height: 12),
+              ],
               Row(
                 children: [
                   OutlinedButton.icon(
@@ -167,8 +178,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           ? const SizedBox(
                               height: 18,
                               width: 18,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('Verify and sign in'),
                     ),
@@ -177,8 +187,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Didn't receive it? Check your SMS after a minute, "
-                'then tap Resend. Codes expire 5 minutes after they arrive.',
+                _testOtpCode == null
+                    ? "Didn't receive it? Check your SMS after a minute, "
+                        'then tap Resend. Codes expire 5 minutes after they arrive.'
+                    : 'Tap Use code to fill the field, then verify and sign in. '
+                        'Resend creates a new code.',
                 style: TextStyle(
                   color: AppColors.ink500.withValues(alpha: 0.9),
                   fontSize: 12,
@@ -198,13 +211,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       _message = null;
     });
     try {
-      await context.read<AuthRepository>().sendOtp(
-            identifier: widget.identifier,
-            phone: widget.phone,
+      final repository = context.read<AuthRepository>();
+      final testOtpCode = await repository.sendOtp(
+        identifier: widget.identifier,
+        phone: widget.phone,
       );
       if (!mounted) return;
       setState(() {
-        _message = 'Code sent. Check your SMS.';
+        _testOtpCode = testOtpCode;
+        _message = testOtpCode == null
+            ? 'Code sent. Check your SMS.'
+            : 'Test code generated. No SMS credit was used.';
         _verificationLocked = false;
       });
       _startResendCooldown();
@@ -213,6 +230,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _useTestCode() {
+    final code = _testOtpCode;
+    if (code == null) return;
+    _codeController.value = TextEditingValue(
+      text: code,
+      selection: TextSelection.collapsed(offset: code.length),
+    );
+    _codeFocus.requestFocus();
+    setState(() {});
   }
 
   Future<void> _verify() async {
@@ -256,5 +284,59 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _TestOtpCodeCard extends StatelessWidget {
+  const _TestOtpCodeCard({required this.code, required this.onUseCode});
+
+  final String code;
+  final VoidCallback onUseCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Testing verification code $code',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        decoration: BoxDecoration(
+          color: AppColors.amberSoft,
+          border: Border.all(color: AppColors.amberDark),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Testing code',
+                    style: TextStyle(
+                      color: AppColors.ink700,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    code,
+                    style: const TextStyle(
+                      color: AppColors.ink900,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(onPressed: onUseCode, child: const Text('Use code')),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -1,7 +1,9 @@
 import { plainToInstance, Transform } from "class-transformer";
 import {
+  IsArray,
   IsInt,
   IsBoolean,
+  IsEmail,
   IsIn,
   IsNotEmpty,
   IsOptional,
@@ -124,6 +126,25 @@ class EnvironmentVariables {
   @IsNotEmpty()
   SESSION_SECRET = DEFAULT_SESSION_SECRET;
 
+  @IsOptional()
+  @IsBoolean()
+  @Transform(
+    ({ value }: { value: unknown }) => value === "true" || value === true,
+  )
+  OTP_TEST_MODE_ENABLED = false;
+
+  @IsOptional()
+  @IsArray()
+  @IsEmail({}, { each: true })
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== "string") return value;
+    return value
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+  })
+  OTP_TEST_ACCOUNT_EMAILS?: string[];
+
   @IsString()
   @IsNotEmpty()
   STORAGE_ENDPOINT = "http://localhost:9000";
@@ -187,13 +208,17 @@ class EnvironmentVariables {
   @Min(1)
   GLOBAL_RATE_LIMIT_MAX = 120;
 
-  @Transform(({ value }: { value: unknown }) => Number(value ?? 10 * 1024 * 1024))
+  @Transform(({ value }: { value: unknown }) =>
+    Number(value ?? 10 * 1024 * 1024),
+  )
   @IsInt()
   @Min(1)
   @Max(10 * 1024 * 1024)
   MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-  @Transform(({ value }: { value: unknown }) => Number(value ?? 15 * 1024 * 1024))
+  @Transform(({ value }: { value: unknown }) =>
+    Number(value ?? 15 * 1024 * 1024),
+  )
   @IsInt()
   @Min(1)
   @Max(15 * 1024 * 1024)
@@ -358,10 +383,21 @@ export type ValidatedDatabaseEnvironment = DatabaseEnvironmentVariables;
 export function validateEnv(config: Record<string, unknown>) {
   const env = plainToInstance(EnvironmentVariables, withStorageAliases(config));
   assertValidEnv(env);
+  assertOtpTestConfig(env);
 
   assertProductionEnv(env);
 
   return env;
+}
+
+function assertOtpTestConfig(env: ValidatedEnvironment) {
+  const hasTestAccounts = Boolean(env.OTP_TEST_ACCOUNT_EMAILS?.length);
+  if (env.OTP_TEST_MODE_ENABLED === hasTestAccounts) {
+    return;
+  }
+  throw new Error(
+    "OTP test mode requires OTP_TEST_MODE_ENABLED=true and OTP_TEST_ACCOUNT_EMAILS together",
+  );
 }
 
 export function validateDatabaseEnv(config: Record<string, unknown>) {

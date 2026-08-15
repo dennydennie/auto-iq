@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
+import { UserEntity } from "../../db/entity/user.entity";
 import { UserRepository } from "../../db/repository/user.repository";
 import { NotificationService } from "../notifications/notification.service";
 import { RedisService } from "../redis/redis.service";
@@ -36,21 +37,39 @@ export class OtpService {
       return { expiresIn: OTP_TTL_SECONDS, attemptsRemaining };
     }
 
+    const code = await this.issueCode(user.phone);
+    if (this.isOnScreenTestAccount(user)) {
+      return {
+        expiresIn: OTP_TTL_SECONDS,
+        attemptsRemaining,
+        testOtpCode: code,
+      };
+    }
+
+    await this.storeDevelopmentCode(user.phone, code);
+    await this.deliverCode(user, code);
+    return { expiresIn: OTP_TTL_SECONDS, attemptsRemaining };
+  }
+
+  private async issueCode(phone: string) {
     const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-    await this.redisService.del(this.attemptsKey(user.phone));
+    await this.redisService.del(this.attemptsKey(phone));
     await this.redisService.set(
-      this.key(user.phone),
+      this.key(phone),
       this.hash(code),
       OTP_TTL_SECONDS,
     );
-    if (this.config.get<string>("NODE_ENV") !== "production") {
-      await this.redisService.set(
-        this.deliveryKey(user.phone),
-        code,
-        OTP_TTL_SECONDS,
-      );
-    }
+    return code;
+  }
 
+  private async storeDevelopmentCode(phone: string, code: string) {
+    if (this.config.get<string>("NODE_ENV") === "production") {
+      return;
+    }
+    await this.redisService.set(this.deliveryKey(phone), code, OTP_TTL_SECONDS);
+  }
+
+  private async deliverCode(user: UserEntity, code: string) {
     const deliveries = await this.notificationService.notifyUser({
       userId: user.id,
       email: user.email,
@@ -70,7 +89,15 @@ export class OtpService {
           "Unable to deliver a verification code right now. Please try again shortly.",
       });
     }
-    return { expiresIn: OTP_TTL_SECONDS, attemptsRemaining };
+  }
+
+  private isOnScreenTestAccount(user: UserEntity) {
+    const enabled = this.config.get<boolean>("OTP_TEST_MODE_ENABLED") === true;
+    const emails = this.config.get<string[]>("OTP_TEST_ACCOUNT_EMAILS") ?? [];
+    const roles = user.roles ?? [];
+    const buyerOnly =
+      roles.length > 0 && roles.every(({ role }) => role === "BUYER");
+    return enabled && buyerOnly && emails.includes(user.email.toLowerCase());
   }
 
   async verify(identifier: string, code: string) {

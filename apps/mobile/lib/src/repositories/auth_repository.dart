@@ -129,14 +129,14 @@ class AuthRepository {
     await _apiClient.clearSession();
   }
 
-  Future<void> sendOtp({required String identifier, String? phone}) async {
-    await _apiClient.postJson<void>(
+  Future<String?> sendOtp({required String identifier, String? phone}) {
+    return _apiClient.postJson<String?>(
         ApiRoutes.authSendOtp,
         {
           'identifier': identifier.trim(),
           if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
         },
-        (_) {});
+        (json) => (json as Map)['testOtpCode']?.toString());
   }
 
   Future<void> verifyOtp({

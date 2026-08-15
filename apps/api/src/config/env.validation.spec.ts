@@ -74,7 +74,8 @@ describe("validateEnv", () => {
         TRUST_PROXY_HOPS: "1",
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
-        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_CA:
+          "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
         DATABASE_SSL_SERVER_NAME: "localhost",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
@@ -97,7 +98,8 @@ describe("validateEnv", () => {
         TRUST_PROXY_HOPS: "1",
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
-        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_CA:
+          "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
         DATABASE_SSL_SERVER_NAME: "localhost",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "http://localhost:3000",
@@ -147,7 +149,8 @@ describe("validateEnv", () => {
         TRUST_PROXY_HOPS: "1",
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
-        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_CA:
+          "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
         DATABASE_SSL_SERVER_NAME: "localhost",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
@@ -156,7 +159,9 @@ describe("validateEnv", () => {
         SENTRY_ENVIRONMENT: "production",
         SENTRY_RELEASE: "api@1.0.0",
       }),
-    ).toThrow(/SESSION_SECRET|STORAGE_ENDPOINT|STORAGE_ACCESS_KEY|STORAGE_BUCKET/);
+    ).toThrow(
+      /SESSION_SECRET|STORAGE_ENDPOINT|STORAGE_ACCESS_KEY|STORAGE_BUCKET/,
+    );
   });
 
   it("accepts private Railway storage without a public bucket URL", () => {
@@ -166,7 +171,8 @@ describe("validateEnv", () => {
       TRUST_PROXY_HOPS: "1",
       DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
       DATABASE_SSL: "true",
-      DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+      DATABASE_SSL_CA:
+        "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
       DATABASE_SSL_SERVER_NAME: "localhost",
       BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
       WEB_BASE_URL: "https://app.autoiq.example",
@@ -196,7 +202,8 @@ describe("validateEnv", () => {
         TRUST_PROXY_HOPS: "1",
         DEFAULT_TENANT_ID: "11111111-1111-4111-8111-111111111111",
         DATABASE_SSL: "true",
-        DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
+        DATABASE_SSL_CA:
+          "-----BEGIN CERTIFICATE-----\nci\n-----END CERTIFICATE-----",
         BFF_SHARED_SECRET: "production-bff-shared-secret-123456",
         WEB_BASE_URL: "https://app.autoiq.example",
         SESSION_COOKIE_SECURE: "true",
@@ -227,6 +234,32 @@ describe("validateEnv", () => {
     });
 
     expect(env.REDIS_CONNECT_TIMEOUT_MS).toBe(750);
+  });
+
+  it("accepts an explicitly enabled OTP test account", () => {
+    const env = validateEnv({
+      ...baseEnv,
+      OTP_TEST_MODE_ENABLED: "true",
+      OTP_TEST_ACCOUNT_EMAILS:
+        " HenryGowas@Gmail.com, DennisMarumahoko@Gmail.com ",
+    });
+
+    expect(env.OTP_TEST_MODE_ENABLED).toBe(true);
+    expect(env.OTP_TEST_ACCOUNT_EMAILS).toEqual([
+      "henrygowas@gmail.com",
+      "dennismarumahoko@gmail.com",
+    ]);
+  });
+
+  it("rejects a partially configured OTP test mode", () => {
+    expect(() =>
+      validateEnv({
+        ...baseEnv,
+        OTP_TEST_MODE_ENABLED: "true",
+      }),
+    ).toThrow(
+      "OTP test mode requires OTP_TEST_MODE_ENABLED=true and OTP_TEST_ACCOUNT_EMAILS together",
+    );
   });
 
   it("accepts SendGrid and Gikko notification configuration", () => {
@@ -291,10 +324,12 @@ describe("validateEnv", () => {
   });
 
   it("requires verified TLS for production CLI database configuration", () => {
-    expect(() => validateDatabaseEnv({
-      NODE_ENV: "production",
-      DATABASE_URL: "postgresql://auto_iq:auto_iq_dev@db.example/auto_iq",
-      DATABASE_SSL: "true",
-    })).toThrow("DATABASE_SSL=true and DATABASE_SSL_CA");
+    expect(() =>
+      validateDatabaseEnv({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://auto_iq:auto_iq_dev@db.example/auto_iq",
+        DATABASE_SSL: "true",
+      }),
+    ).toThrow("DATABASE_SSL=true and DATABASE_SSL_CA");
   });
 });

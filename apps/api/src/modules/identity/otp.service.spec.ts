@@ -155,6 +155,133 @@ describe("OtpService", () => {
     );
   });
 
+  it.each(["henrygowas@gmail.com", "dennismarumahoko@gmail.com"])(
+    "returns the generated OTP for configured buyer test account %s",
+    async (email) => {
+      const user = {
+        id: "user-1",
+        email,
+        phone: "+263771234567",
+        status: "PENDING_VERIFICATION",
+        roles: [{ role: "BUYER" }],
+      };
+      const notifyUser = jest.fn();
+      const redisService = {
+        del: jest.fn().mockResolvedValue(undefined),
+        get: jest.fn(),
+        set: jest.fn().mockResolvedValue(undefined),
+      };
+      const userRepository = {
+        findByIdentifier: jest.fn().mockResolvedValue(user),
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      const config = new Map<string, unknown>([
+        ["NODE_ENV", "production"],
+        ["OTP_TEST_MODE_ENABLED", true],
+        [
+          "OTP_TEST_ACCOUNT_EMAILS",
+          ["henrygowas@gmail.com", "dennismarumahoko@gmail.com"],
+        ],
+      ]);
+      const service = new OtpService(
+        { get: jest.fn((key: string) => config.get(key)) } as never,
+        { notifyUser } as never,
+        { consume: jest.fn().mockResolvedValue(2) } as never,
+        redisService as never,
+        userRepository as never,
+      );
+
+      const result = await service.send(email);
+
+      expect(result).toEqual({
+        expiresIn: 300,
+        attemptsRemaining: 2,
+        testOtpCode: expect.stringMatching(/^\d{6}$/),
+      });
+      expect(notifyUser).not.toHaveBeenCalled();
+      expect(redisService.set).toHaveBeenCalledTimes(1);
+      if (!("testOtpCode" in result) || !result.testOtpCode) {
+        throw new Error("Expected an on-screen OTP for the configured account");
+      }
+      const testOtpCode = result.testOtpCode;
+      const storedHash = redisService.set.mock.calls[0][1];
+      redisService.get.mockResolvedValue(storedHash);
+      await expect(service.verify(email, testOtpCode)).resolves.toEqual({
+        userId: "user-1",
+      });
+    },
+  );
+
+  it("delivers normally when the configured test email does not match", async () => {
+    const notifyUser = jest.fn().mockResolvedValue([{ status: "SENT" }]);
+    const config = new Map<string, unknown>([
+      ["NODE_ENV", "production"],
+      ["OTP_TEST_MODE_ENABLED", true],
+      [
+        "OTP_TEST_ACCOUNT_EMAILS",
+        ["henrygowas@gmail.com", "dennismarumahoko@gmail.com"],
+      ],
+    ]);
+    const service = new OtpService(
+      { get: jest.fn((key: string) => config.get(key)) } as never,
+      { notifyUser } as never,
+      { consume: jest.fn().mockResolvedValue(2) } as never,
+      {
+        del: jest.fn().mockResolvedValue(undefined),
+        set: jest.fn().mockResolvedValue(undefined),
+      } as never,
+      {
+        findByIdentifier: jest.fn().mockResolvedValue({
+          id: "user-2",
+          email: "another@example.com",
+          phone: "+263771234568",
+          status: "PENDING_VERIFICATION",
+          roles: [{ role: "BUYER" }],
+        }),
+      } as never,
+    );
+
+    const result = await service.send("another@example.com");
+
+    expect(result).not.toHaveProperty("testOtpCode");
+    expect(notifyUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("never exposes an OTP for a privileged test-email account", async () => {
+    const notifyUser = jest.fn().mockResolvedValue([{ status: "SENT" }]);
+    const config = new Map<string, unknown>([
+      ["NODE_ENV", "production"],
+      ["OTP_TEST_MODE_ENABLED", true],
+      [
+        "OTP_TEST_ACCOUNT_EMAILS",
+        ["henrygowas@gmail.com", "dennismarumahoko@gmail.com"],
+      ],
+    ]);
+    const service = new OtpService(
+      { get: jest.fn((key: string) => config.get(key)) } as never,
+      { notifyUser } as never,
+      { consume: jest.fn().mockResolvedValue(2) } as never,
+      {
+        del: jest.fn().mockResolvedValue(undefined),
+        set: jest.fn().mockResolvedValue(undefined),
+      } as never,
+      {
+        findByIdentifier: jest.fn().mockResolvedValue({
+          id: "user-1",
+          email: "henrygowas@gmail.com",
+          phone: "+263771234567",
+          status: "PENDING_VERIFICATION",
+          roles: [{ role: "BUYER" }, { role: "ADMIN" }],
+        }),
+      } as never,
+    );
+
+    const result = await service.send("henrygowas@gmail.com");
+
+    expect(result).not.toHaveProperty("testOtpCode");
+    expect(notifyUser).toHaveBeenCalledTimes(1);
+  });
+
   it("verifies OTP when the caller supplies email instead of phone", async () => {
     const userRepository = {
       findByIdentifier: jest.fn().mockResolvedValue({

@@ -52,6 +52,26 @@ void main() {
     });
   });
 
+  test('returns an on-screen OTP supplied for a configured test account',
+      () async {
+    final apiClient = _RecordingApiClient(
+      postResponse: {
+        'expiresIn': 300,
+        'attemptsRemaining': 2,
+        'testOtpCode': '654321',
+      },
+    );
+    final repository = AuthRepository(apiClient);
+
+    final code = await repository.sendOtp(
+      identifier: ' HenryGowas@Gmail.com ',
+    );
+
+    expect(code, '654321');
+    expect(apiClient.path, '/api/v1/auth/otp/send');
+    expect(apiClient.body, {'identifier': 'HenryGowas@Gmail.com'});
+  });
+
   test('account deletion uses CSRF and clears the local session', () async {
     final apiClient = _RecordingApiClient();
     final repository = AuthRepository(apiClient);
@@ -89,6 +109,9 @@ void main() {
 }
 
 class _RecordingApiClient implements ApiClient {
+  _RecordingApiClient({this.postResponse});
+
+  final dynamic postResponse;
   String? path;
   dynamic body;
   bool includeCsrf = false;
@@ -106,7 +129,7 @@ class _RecordingApiClient implements ApiClient {
     this.path = path;
     this.body = body;
     this.includeCsrf = includeCsrf;
-    return parser(null);
+    return parser(postResponse);
   }
 
   @override

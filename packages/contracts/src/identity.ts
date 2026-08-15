@@ -76,6 +76,8 @@ export interface SendOtpResponse {
   expiresIn: number;
   /** Remaining sends before rate-limit lockout */
   attemptsRemaining: number;
+  /** Present only for an explicitly configured, buyer-only test account. */
+  testOtpCode?: string;
 }
 
 export interface VerifyOtpRequest {

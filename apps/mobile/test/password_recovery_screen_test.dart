@@ -143,7 +143,7 @@ class _RecordingAuthRepository implements AuthRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> sendOtp({required String identifier, String? phone}) =>
+  Future<String?> sendOtp({required String identifier, String? phone}) =>
       throw UnimplementedError();
 
   @override
