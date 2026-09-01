@@ -6,7 +6,10 @@ import { AbstractRepository } from "./abstract.repository";
 
 @Injectable()
 export class InspectionTaskRepository extends AbstractRepository<InspectionTaskEntity> {
-  constructor(@InjectRepository(InspectionTaskEntity) repository: Repository<InspectionTaskEntity>) {
+  constructor(
+    @InjectRepository(InspectionTaskEntity)
+    repository: Repository<InspectionTaskEntity>,
+  ) {
     super(repository);
   }
 
@@ -17,7 +20,10 @@ export class InspectionTaskRepository extends AbstractRepository<InspectionTaskE
     });
   }
 
-  findByIdForInspector(id: string, inspectorId: string): Promise<InspectionTaskEntity | null> {
+  findByIdForInspector(
+    id: string,
+    inspectorId: string,
+  ): Promise<InspectionTaskEntity | null> {
     return this.repository.findOne({
       where: { id, assignedInspectorId: inspectorId },
       relations: ["assignedInspector", "report"],
@@ -37,15 +43,16 @@ export class InspectionTaskRepository extends AbstractRepository<InspectionTaskE
     page = 1,
     limit = 20,
   ): Promise<[InspectionTaskEntity[], number]> {
-    const query = this.repository.createQueryBuilder("task")
+    const query = this.repository
+      .createQueryBuilder("task")
       .leftJoinAndSelect("task.assignedInspector", "assignedInspector")
       .where("task.assigned_inspector_id = :inspectorId", { inspectorId });
     if (status) {
       query.andWhere("task.status = :status", { status });
     }
     return query
-      .orderBy("task.scheduled_at", "ASC", "NULLS LAST")
-      .addOrderBy("task.created_at", "DESC")
+      .orderBy("task.scheduledAt", "ASC", "NULLS LAST")
+      .addOrderBy("task.createdAt", "DESC")
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -56,14 +63,15 @@ export class InspectionTaskRepository extends AbstractRepository<InspectionTaskE
     page = 1,
     limit = 20,
   ): Promise<[InspectionTaskEntity[], number]> {
-    const query = this.repository.createQueryBuilder("task")
+    const query = this.repository
+      .createQueryBuilder("task")
       .leftJoinAndSelect("task.assignedInspector", "assignedInspector");
     if (status) {
       query.where("task.status = :status", { status });
     }
     return query
-      .orderBy("task.scheduled_at", "ASC", "NULLS LAST")
-      .addOrderBy("task.created_at", "DESC")
+      .orderBy("task.scheduledAt", "ASC", "NULLS LAST")
+      .addOrderBy("task.createdAt", "DESC")
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();

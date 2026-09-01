@@ -43,7 +43,7 @@ export class ListingMediaService {
     const shouldBeCover =
       body.isCover === true ||
       existing?.isCover === true ||
-      images.every((image) => !image.isCover);
+      (body.isCover === undefined && images.every((image) => !image.isCover));
 
     if (shouldBeCover) {
       await this.vehicleImageRepository.clearCover(listing.id);

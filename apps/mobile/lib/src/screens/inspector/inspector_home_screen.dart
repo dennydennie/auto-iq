@@ -93,7 +93,9 @@ class _InspectorHomeScreenState extends State<InspectorHomeScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _tasksFuture = _loadTasks());
+    setState(() {
+      _tasksFuture = _loadTasks();
+    });
     await _tasksFuture;
   }
 

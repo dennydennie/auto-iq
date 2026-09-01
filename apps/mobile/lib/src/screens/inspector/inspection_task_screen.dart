@@ -57,7 +57,9 @@ class _InspectionTaskScreenState extends State<InspectionTaskScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
     await _future;
   }
 
@@ -391,6 +393,7 @@ class _Score extends StatelessWidget {
     final copy = AutoIqLocalizations.of(context);
     final score = value;
     return Semantics(
+      container: true,
       label: score == null
           ? '${copy.computedScore}. ${copy.scoreIncomplete}'
           : '${copy.computedScore}: $score out of 100',

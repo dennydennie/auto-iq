@@ -117,12 +117,16 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
   }
 
   Future<void> _refreshListings() async {
-    setState(() => _listingsFuture = _loadListings());
+    setState(() {
+      _listingsFuture = _loadListings();
+    });
     await _listingsFuture;
   }
 
   Future<void> _refreshViewings() async {
-    setState(() => _viewingsFuture = _loadViewings());
+    setState(() {
+      _viewingsFuture = _loadViewings();
+    });
     await _viewingsFuture;
   }
 

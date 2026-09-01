@@ -293,17 +293,23 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   Future<void> _refreshSaved() async {
-    setState(() => _savedFuture = _loadSaved());
+    setState(() {
+      _savedFuture = _loadSaved();
+    });
     await _savedFuture;
   }
 
   Future<void> _refreshQuotes() async {
-    setState(() => _quotesFuture = _loadQuotes());
+    setState(() {
+      _quotesFuture = _loadQuotes();
+    });
     await _quotesFuture;
   }
 
   Future<void> _refreshRequests() async {
-    setState(() => _requestFuture = _loadRequests());
+    setState(() {
+      _requestFuture = _loadRequests();
+    });
     await _requestFuture;
   }
 
@@ -316,7 +322,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   Future<void> _refreshViewings() async {
-    setState(() => _viewingsFuture = _loadViewings());
+    setState(() {
+      _viewingsFuture = _loadViewings();
+    });
     await _viewingsFuture;
   }
 }

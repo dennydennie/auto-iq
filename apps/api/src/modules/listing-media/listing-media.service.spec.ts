@@ -54,6 +54,30 @@ describe("ListingMediaService", () => {
     expect(result.isCover).toBe(true);
   });
 
+  it("honors an explicit non-cover image during parallel first uploads", async () => {
+    const clearCover = jest.fn();
+    const save = jest.fn().mockImplementation(async (image) => ({
+      id: "image-2",
+      createdAt: new Date("2026-06-08T10:00:00.000Z"),
+      ...image,
+    }));
+    const service = makeRegisterService({ clearCover, images: [], save });
+
+    const result = await service.register("seller-1", "listing-1", {
+      storageKey: "listing-images/2026/06/side.jpg",
+      slot: "DRIVER_SIDE",
+      contentType: "image/jpeg",
+      contentLength: 1024,
+      isCover: false,
+    });
+
+    expect(clearCover).not.toHaveBeenCalled();
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ isCover: false }),
+    );
+    expect(result.isCover).toBe(false);
+  });
+
   it("reorders every owned image and persists stable positions", async () => {
     const images = [
       makeImage("image-1", 0),
@@ -147,6 +171,37 @@ function makeService(options: {
       findById: jest.fn().mockResolvedValue(options.findById ?? null),
       saveAll: options.saveAll ?? jest.fn(),
       remove: options.remove ?? jest.fn(),
+    } as never,
+  );
+}
+
+function makeRegisterService(options: {
+  clearCover: jest.Mock;
+  images: ReturnType<typeof makeImage>[];
+  save: jest.Mock;
+}) {
+  return new ListingMediaService(
+    {
+      getOwnedEditableListing: jest.fn().mockResolvedValue({ id: "listing-1" }),
+    } as never,
+    {
+      inspectPendingUpload: jest.fn().mockResolvedValue({
+        storageKey: "listing-images/2026/06/side.jpg",
+        contentType: "image/jpeg",
+        byteSize: 1024,
+      }),
+      completePendingUpload: jest.fn(),
+      getDisplayUrl: jest
+        .fn()
+        .mockResolvedValue("https://files.example/side.jpg"),
+      tryDeleteObject: jest.fn(),
+    } as never,
+    {
+      findByVehicleId: jest.fn().mockResolvedValue(options.images),
+      findByVehicleIdAndSlot: jest.fn().mockResolvedValue(null),
+      clearCover: options.clearCover,
+      create: jest.fn().mockImplementation((input) => input),
+      save: options.save,
     } as never,
   );
 }

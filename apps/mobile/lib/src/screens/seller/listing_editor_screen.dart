@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -1080,7 +1081,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
     if (!await _ensureDraft() || !mounted) return;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      withData: false,
+      withData: kIsWeb,
       allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg'],
     );
     if (result == null) return;
@@ -1275,7 +1276,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
 
   Future<void> _refreshTimeline() async {
     if (_listingId == null) return;
-    setState(() => _timelineFuture = _repository.timeline(_listingId!));
+    setState(() {
+      _timelineFuture = _repository.timeline(_listingId!);
+    });
     await _timelineFuture;
   }
 
@@ -1287,6 +1290,8 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
     if (!(_reviewKey.currentState?.validate() ?? false)) return;
     final confirmed = await _confirmSubmission();
     if (!confirmed || !mounted) return;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = null;
     setState(() => _busy = true);
     try {
       await _repository.submit(
@@ -1298,6 +1303,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> {
       _show(_copy.text('listingSubmitted'));
     } on ApiException catch (error) {
       _show(error.supportMessage);
+      _scheduleAutosave();
     } finally {
       if (mounted) setState(() => _busy = false);
     }

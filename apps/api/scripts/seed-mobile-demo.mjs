@@ -1,14 +1,15 @@
-import { Client } from 'pg';
-import bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
+import { Client } from "pg";
+import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 
-const apiBase = process.env.API_BASE ?? 'http://api:4000/api/v1';
+const apiBase = process.env.API_BASE ?? "http://api:4000/api/v1";
 const databaseUrl =
   process.env.DATABASE_URL ??
-  'postgresql://auto_iq:auto_iq_dev@postgres:5432/auto_iq';
+  "postgresql://auto_iq:auto_iq_dev@postgres:5432/auto_iq";
 const password = process.env.PASSWORD ?? generatedPassword();
 const runId = process.env.RUN_ID ?? `${Date.now()}`;
-const defaultTenantId = process.env.DEFAULT_TENANT_ID ?? '11111111-1111-4111-8111-111111111111';
+const defaultTenantId =
+  process.env.DEFAULT_TENANT_ID ?? "11111111-1111-4111-8111-111111111111";
 
 const sellerEmail = `mobile-seller-${runId}@example.com`;
 const sellerPhone = `+26377${runId.slice(-4)}1111`;
@@ -20,27 +21,27 @@ const inspectorPhone = `+26377${runId.slice(-4)}3333`;
 const client = new Client({ connectionString: databaseUrl });
 
 function generatedPassword() {
-  return `AutoIQ!${randomBytes(6).toString('base64url')}9`;
+  return `AutoIQ!${randomBytes(6).toString("base64url")}9`;
 }
 
 async function registerSeller() {
-  await request('/auth/register', {
-    method: 'POST',
+  await request("/auth/register", {
+    method: "POST",
     body: {
-      fullName: 'Mobile Demo Seller',
+      fullName: "Mobile Demo Seller",
       email: sellerEmail,
       phone: sellerPhone,
       password,
-      role: 'SELLER',
-      city: 'Harare',
+      role: "SELLER",
+      city: "Harare",
     },
   });
   await markUserVerified(sellerEmail);
   const sellerSession = await login(sellerEmail);
-  for (const consent of ['TERMS', 'PRIVACY', 'SELLER_RULES', 'NO_SIDE_DEAL']) {
+  for (const consent of ["TERMS", "PRIVACY", "SELLER_RULES", "NO_SIDE_DEAL"]) {
     await sellerSession.post(
-      '/me/consents',
-      { consentType: consent, version: '1.0.0', accepted: true },
+      "/me/consents",
+      { consentType: consent, version: "1.0.0", accepted: true },
       { csrf: true },
     );
   }
@@ -56,19 +57,19 @@ async function markUserVerified(email) {
 
 async function createSubmittedListing(session) {
   const listing = await session.post(
-    '/listings',
+    "/listings",
     {
-      make: 'Toyota',
-      model: 'Hilux',
+      make: "Toyota",
+      model: "Hilux",
       year: 2021,
-      bodyType: 'BAKKIE',
-      colour: 'White',
-      fuelType: 'DIESEL',
-      transmission: 'MANUAL',
-      driveType: '4WD',
-      engineCapacity: '2.8L',
+      bodyType: "BAKKIE",
+      colour: "White",
+      fuelType: "DIESEL",
+      transmission: "MANUAL",
+      driveType: "4WD",
+      engineCapacity: "2.8L",
       mileageKm: 123000,
-      condition: 'GOOD',
+      condition: "GOOD",
       hasAccidentHistory: false,
       askPriceUsd: 19500,
       negotiable: true,
@@ -80,56 +81,87 @@ async function createSubmittedListing(session) {
     0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
     0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xff, 0xd9,
   ]);
-  for (const [index, slot] of ['FRONT_THREE_QUARTER', 'DRIVER_SIDE', 'INTERIOR_FRONT'].entries()) {
-    await uploadListingImage(session, listing.id, imageBytes, slot, index === 0);
+  for (const [index, slot] of [
+    "FRONT_THREE_QUARTER",
+    "DRIVER_SIDE",
+    "INTERIOR_FRONT",
+  ].entries()) {
+    await uploadListingImage(
+      session,
+      listing.id,
+      imageBytes,
+      slot,
+      index === 0,
+    );
   }
 
   const pdfBytes = new TextEncoder().encode(
-    '%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n',
+    "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n",
   );
-  const documentPresign = await session.post(
-    '/storage/documents/presign',
-    {
-      listingId: listing.id,
-      documentType: 'REGISTRATION_BOOK',
-      contentType: 'application/pdf',
-      contentLength: pdfBytes.length,
-    },
-    { csrf: true },
-  );
-  await rawUpload(documentPresign.uploadUrl, pdfBytes, 'application/pdf');
-  await session.post(
-    `/listings/${listing.id}/documents`,
-    {
-      storageKey: documentPresign.storageKey,
-      documentType: 'REGISTRATION_BOOK',
-      contentType: 'application/pdf',
-      contentLength: pdfBytes.length,
-    },
-    { csrf: true },
-  );
+  for (const documentType of [
+    "REGISTRATION_BOOK",
+    "SELLER_ID",
+    "PURCHASE_IMPORT_DOCS",
+  ]) {
+    await uploadListingDocument(session, listing.id, pdfBytes, documentType);
+  }
   await session.post(
     `/listings/${listing.id}/submit`,
-    { sellerDisclosure: 'Prepared for the Auto IQ Android demo runtime.' },
+    { sellerDisclosure: "Prepared for the Auto IQ Android demo runtime." },
     { csrf: true },
   );
   return listing.id;
 }
 
-async function uploadListingImage(session, listingId, imageBytes, slot, isCover) {
+async function uploadListingDocument(session, listingId, bytes, documentType) {
   const presign = await session.post(
-    '/storage/images/presign',
-    { listingId, slot, contentType: 'image/jpeg', contentLength: imageBytes.length },
+    "/storage/documents/presign",
+    {
+      listingId,
+      documentType,
+      contentType: "application/pdf",
+      contentLength: bytes.length,
+    },
     { csrf: true },
   );
-  await rawUpload(presign.uploadUrl, imageBytes, 'image/jpeg');
+  await rawUpload(presign.uploadUrl, bytes, "application/pdf");
+  await session.post(
+    `/listings/${listingId}/documents`,
+    {
+      storageKey: presign.storageKey,
+      documentType,
+      contentType: "application/pdf",
+      contentLength: bytes.length,
+    },
+    { csrf: true },
+  );
+}
+
+async function uploadListingImage(
+  session,
+  listingId,
+  imageBytes,
+  slot,
+  isCover,
+) {
+  const presign = await session.post(
+    "/storage/images/presign",
+    {
+      listingId,
+      slot,
+      contentType: "image/jpeg",
+      contentLength: imageBytes.length,
+    },
+    { csrf: true },
+  );
+  await rawUpload(presign.uploadUrl, imageBytes, "image/jpeg");
   await session.post(
     `/listings/${listingId}/images`,
     {
       storageKey: presign.storageKey,
       slot,
       isCover,
-      contentType: 'image/jpeg',
+      contentType: "image/jpeg",
       contentLength: imageBytes.length,
     },
     { csrf: true },
@@ -147,15 +179,15 @@ async function insertUser({ email, phone, fullName, city, role }) {
     [fullName, email, phone, hash, city],
   );
   const userId = result.rows[0].id;
-  await client.query(
-    'INSERT INTO user_roles (user_id, role) VALUES ($1, $2)',
-    [userId, role],
-  );
+  await client.query("INSERT INTO user_roles (user_id, role) VALUES ($1, $2)", [
+    userId,
+    role,
+  ]);
   await client.query(
     `
       INSERT INTO tenant_memberships (tenant_id, user_id, role, active)
       VALUES ($1, $2, $3, true)
-      ON CONFLICT (user_id, tenant_id) DO NOTHING
+      ON CONFLICT (user_id, tenant_id, role) DO NOTHING
     `,
     [defaultTenantId, userId, role],
   );
@@ -164,10 +196,10 @@ async function insertUser({ email, phone, fullName, city, role }) {
 
 async function rawUpload(url, bytes, contentType) {
   const response = await fetch(url, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Content-Type': contentType,
-      'Content-Length': `${bytes.length}`,
+      "Content-Type": contentType,
+      "Content-Length": `${bytes.length}`,
     },
     body: bytes,
   });
@@ -178,7 +210,7 @@ async function rawUpload(url, bytes, contentType) {
 
 async function login(email) {
   const session = new ApiSession(apiBase);
-  await session.post('/auth/login', {
+  await session.post("/auth/login", {
     identifier: email,
     password,
   });
@@ -186,12 +218,12 @@ async function login(email) {
   return session;
 }
 
-async function request(path, { method = 'GET', body, headers } = {}) {
+async function request(path, { method = "GET", body, headers } = {}) {
   const response = await fetch(`${apiBase}${path}`, {
     method,
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
       ...(headers ?? {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -210,7 +242,7 @@ class ApiSession {
   }
 
   async csrf() {
-    const response = await this._fetch('/auth/csrf');
+    const response = await this._fetch("/auth/csrf");
     const payload = await response.json();
     this.csrfToken = payload.token;
     return this.csrfToken;
@@ -218,10 +250,11 @@ class ApiSession {
 
   async post(path, body, options = {}) {
     const response = await this._fetch(path, {
-      method: 'POST',
-      headers: options.csrf && this.csrfToken
-        ? { 'X-CSRF-Token': this.csrfToken }
-        : undefined,
+      method: "POST",
+      headers:
+        options.csrf && this.csrfToken
+          ? { "X-CSRF-Token": this.csrfToken }
+          : undefined,
       body,
     });
     if (response.status === 204) {
@@ -230,12 +263,12 @@ class ApiSession {
     return response.json();
   }
 
-  async _fetch(path, { method = 'GET', headers, body } = {}) {
+  async _fetch(path, { method = "GET", headers, body } = {}) {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json",
         Cookie: this._cookieHeader(),
         ...(headers ?? {}),
       },
@@ -252,8 +285,8 @@ class ApiSession {
   _captureCookies(response) {
     const setCookieHeader = response.headers.getSetCookie?.() ?? [];
     for (const cookie of setCookieHeader) {
-      const pair = cookie.split(';', 1)[0];
-      const separator = pair.indexOf('=');
+      const pair = cookie.split(";", 1)[0];
+      const separator = pair.indexOf("=");
       if (separator < 0) {
         continue;
       }
@@ -266,7 +299,7 @@ class ApiSession {
   _cookieHeader() {
     return [...this.cookies.entries()]
       .map(([name, value]) => `${name}=${value}`)
-      .join('; ');
+      .join("; ");
   }
 }
 
@@ -278,16 +311,16 @@ async function run() {
   const adminId = await insertUser({
     email: adminEmail,
     phone: adminPhone,
-    fullName: 'Mobile Demo Admin',
-    city: 'Harare',
-    role: 'ADMIN',
+    fullName: "Mobile Demo Admin",
+    city: "Harare",
+    role: "ADMIN",
   });
   const inspectorId = await insertUser({
     email: inspectorEmail,
     phone: inspectorPhone,
-    fullName: 'Mobile Demo Inspector',
-    city: 'Harare',
-    role: 'INSPECTOR',
+    fullName: "Mobile Demo Inspector",
+    city: "Harare",
+    role: "INSPECTOR",
   });
 
   const sellerCsrf = await registerSeller();
@@ -298,8 +331,8 @@ async function run() {
   await adminSession.post(
     `/admin/listings/${listingId}/ownership-verification`,
     {
-      status: 'IN_REVIEW',
-      note: 'Initial ownership review.',
+      status: "IN_REVIEW",
+      note: "Initial ownership review.",
     },
     { csrf: true },
   );
@@ -308,8 +341,8 @@ async function run() {
     `/admin/listings/${listingId}/inspection-tasks`,
     {
       inspectorId,
-      scheduledAt: '2026-06-20T09:00:00.000Z',
-      locationNote: 'Auto IQ mobile demo',
+      scheduledAt: futureInspectionTime(),
+      locationNote: "Auto IQ mobile demo",
     },
     { csrf: true },
   );
@@ -319,19 +352,43 @@ async function run() {
     {
       findings: [
         {
-          category: 'ENGINE',
-          label: 'Oil level',
-          rating: 'PASS',
-          note: 'Within range',
+          category: "ENGINE",
+          label: "Oil level",
+          rating: "PASS",
+          note: "Within range",
         },
         {
-          category: 'ELECTRICAL',
-          label: 'Air conditioning',
-          rating: 'WATCH',
-          note: 'Cooling weaker than expected',
+          category: "ELECTRICAL",
+          label: "Air conditioning",
+          rating: "WATCH",
+          note: "Cooling weaker than expected",
+        },
+        {
+          category: "BODY",
+          label: "Body and paint",
+          rating: "PASS",
+          note: "Panels align and paint is consistent",
+        },
+        {
+          category: "TYRES",
+          label: "Tyres and wheels",
+          rating: "PASS",
+          note: "Tread depth is within range",
+        },
+        {
+          category: "BRAKES",
+          label: "Brakes and suspension",
+          rating: "PASS",
+          note: "Braking response is even",
+        },
+        {
+          category: "INTERIOR",
+          label: "Interior and controls",
+          rating: "PASS",
+          note: "Controls operate correctly",
         },
       ],
-      inspectorNote: 'Vehicle is in good condition overall.',
+      inspectorNote: "Vehicle is in good condition overall.",
       roadworthy: true,
     },
     { csrf: true },
@@ -340,27 +397,41 @@ async function run() {
   await adminSession.post(
     `/admin/listings/${listingId}/ownership-verification`,
     {
-      status: 'APPROVED',
-      note: 'Ownership verified.',
+      status: "APPROVED",
+      note: "Ownership verified.",
     },
     { csrf: true },
   );
   await adminSession.post(
     `/admin/listings/${listingId}/inspection-summary/approve`,
-    { buyerNote: 'Independent inspection complete.' },
+    { buyerNote: "Independent inspection complete." },
     { csrf: true },
   );
-  await adminSession.post(`/admin/listings/${listingId}/approve`, {}, { csrf: true });
-  await adminSession.post(`/admin/listings/${listingId}/publish`, {}, { csrf: true });
+  await adminSession.post(
+    `/admin/listings/${listingId}/approve`,
+    {},
+    { csrf: true },
+  );
+  await adminSession.post(
+    `/admin/listings/${listingId}/publish`,
+    {},
+    { csrf: true },
+  );
 
   await client.end();
-  console.log(JSON.stringify({
-    listingId,
-    password,
-    users: {
-      seller: sellerEmail,
-      admin: adminEmail,
-      inspector: inspectorEmail,
-    },
-  }));
+  console.log(
+    JSON.stringify({
+      listingId,
+      password,
+      users: {
+        seller: sellerEmail,
+        admin: adminEmail,
+        inspector: inspectorEmail,
+      },
+    }),
+  );
+}
+
+function futureInspectionTime() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString();
 }

@@ -55,3 +55,18 @@ Scope: deliver every audited mobile-polish phase with production code, automated
   EXPECT: Android package verification passed
   CWD: apps/mobile
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/dennismarumahoko/Documents/GitHub/Auto IQ/source/apps/mobile; path=47a7866be3c8/22 entries; EXPECT=matched; output-sha256=aabd0c47294a1e24a6caad3ebdfa2c464544596bd47f4533bec86abbb72720da; output-bytes=2621
+
+- [x] G10: Flutter Web reaches the real API with healthy PostgreSQL, Redis, and S3-compatible storage dependencies
+  CHECK: node scripts/e2e/mobile-real-stack-verify.mjs readiness
+  EXPECT: REAL STACK READY
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/dennismarumahoko/Documents/GitHub/Auto IQ/source; path=47a7866be3c8/22 entries; EXPECT=matched; output-sha256=3d79d12ed036f3ee2456c7f4bb57e181670bf24cadfe8663794164a29570e4d1; output-bytes=17
+
+- [x] G11: real Flutter Web auth, consent, buyer, seller, and inspector journeys persist successfully
+  CHECK: DEVELOPER_DIR=/Library/Developer/CommandLineTools scripts/dev/run-mobile-web-integration.sh
+  EXPECT: MOBILE REAL JOURNEYS PASSED
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/dennismarumahoko/Documents/GitHub/Auto IQ/source; path=47a7866be3c8/22 entries; EXPECT=matched; output-sha256=7c26f70ed6fd2dffaef922fccdcbf4ad19d4c39b91fae5a36f8425f9e6bcd098; output-bytes=148867
+
+- [x] G12: uploaded image, document, and inspection evidence bytes are downloadable and match persisted metadata
+  CHECK: node scripts/e2e/mobile-real-stack-verify.mjs persistence
+  EXPECT: REAL PERSISTENCE VERIFIED
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/dennismarumahoko/Documents/GitHub/Auto IQ/source; path=47a7866be3c8/22 entries; EXPECT=matched; output-sha256=78961c881ffe607be5f8bf2ce2916896b0fdadf923f91c1af956fc550d3a2e00; output-bytes=26

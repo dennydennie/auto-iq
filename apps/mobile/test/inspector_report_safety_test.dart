@@ -42,6 +42,10 @@ void main() {
     expect(find.text('—'), findsOneWidget);
     expect(find.text('Not rated'), findsNWidgets(6));
     expect(_submitButton(tester).onPressed, isNull);
+    expect(
+      tester.getSemantics(find.byKey(const Key('inspector-summary'))).label,
+      isNot(contains('Computed score')),
+    );
 
     for (final finding in requiredInspectionFindings) {
       final control = tester.widget<SegmentedButton<String>>(
