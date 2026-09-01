@@ -32,10 +32,15 @@ export class VehicleImageEntity {
   @Column({ name: "is_cover", type: "boolean", default: false })
   isCover!: boolean;
 
+  @Column({ type: "smallint" })
+  position!: number;
+
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;
 
-  @ManyToOne(() => VehicleEntity, (vehicle) => vehicle.images, { onDelete: "CASCADE" })
+  @ManyToOne(() => VehicleEntity, (vehicle) => vehicle.images, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "vehicle_id" })
   vehicle!: VehicleEntity;
 }

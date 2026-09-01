@@ -12,14 +12,19 @@ class BuyerRepository {
 
   Future<CataloguePage> browse({
     ListingFilterState filters = const ListingFilterState(),
+    String query = '',
+    String? cursor,
+    int limit = 20,
   }) {
     return _apiClient.getJson<CataloguePage>(
       ApiRoutes.catalogue,
       (json) => CataloguePage.fromJson((json as Map).cast<String, dynamic>()),
       queryParameters: {
-        'limit': 20,
+        'limit': limit,
         'sortBy': 'publishedAt',
         'sortDir': 'DESC',
+        if (query.trim().isNotEmpty) 'query': query.trim(),
+        if (cursor != null) 'cursor': cursor,
         ...filters.catalogueQuery,
       },
     );

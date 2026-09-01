@@ -6,12 +6,14 @@ class VehicleImage {
     required this.url,
     required this.slot,
     required this.isCover,
+    this.position = 0,
   });
 
   final String id;
   final String url;
   final String slot;
   final bool isCover;
+  final int position;
 
   factory VehicleImage.fromJson(Map<String, dynamic> json) {
     return VehicleImage(
@@ -19,6 +21,7 @@ class VehicleImage {
       url: asString(json, 'url'),
       slot: asString(json, 'slot'),
       isCover: asBool(json, 'isCover'),
+      position: json['position'] == null ? 0 : asInt(json, 'position'),
     );
   }
 }

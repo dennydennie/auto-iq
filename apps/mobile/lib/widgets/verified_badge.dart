@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../src/core/i18n/app_localizations.dart';
 import '../theme/app_colors.dart';
 
 class VerifiedBadge extends StatelessWidget {
@@ -6,24 +7,30 @@ class VerifiedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final label = AutoIqLocalizations.of(context).text('bisellVerifiedLabel');
     return Container(
+      constraints: const BoxConstraints(maxWidth: 240),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.ink900,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.star_rounded, size: 12, color: AppColors.amber),
-          SizedBox(width: 4),
-          Text(
-            'BiSell Verified',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.amber,
-              letterSpacing: 0.3,
+          const Icon(Icons.star_rounded, size: 12, color: AppColors.amber),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.amber,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
         ],

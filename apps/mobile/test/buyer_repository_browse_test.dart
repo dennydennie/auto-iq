@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:autoiq_mobile/src/core/network/api_client.dart';
+import 'package:dio/dio.dart';
 import 'package:autoiq_mobile/src/models/listing_filters.dart';
 import 'package:autoiq_mobile/src/repositories/buyer_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,8 @@ void main() {
     final repository = BuyerRepository(apiClient);
 
     await repository.browse(
+      query: 'Toyota Hilux',
+      cursor: 'next-page',
       filters: const ListingFilterState(
         make: 'Toyota',
         model: 'Hilux',
@@ -34,6 +37,8 @@ void main() {
       'limit': 20,
       'sortBy': 'publishedAt',
       'sortDir': 'DESC',
+      'query': 'Toyota Hilux',
+      'cursor': 'next-page',
       'make': ['Toyota'],
       'model': 'Hilux',
       'yearMin': 2019,
@@ -156,6 +161,17 @@ class _RecordingApiClient implements ApiClient {
     required String url,
     required Uint8List bytes,
     required String contentType,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> uploadStream({
+    required String url,
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
+    required String contentType,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
   }) =>
       throw UnimplementedError();
 }

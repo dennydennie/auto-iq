@@ -146,7 +146,7 @@ class InspectionFindingDraft {
   const InspectionFindingDraft({
     required this.category,
     required this.label,
-    this.rating = 'PASS',
+    this.rating,
     this.note = '',
     this.photoStorageKey,
     this.photoName,
@@ -154,7 +154,7 @@ class InspectionFindingDraft {
 
   final String category;
   final String label;
-  final String rating;
+  final String? rating;
   final String note;
   final String? photoStorageKey;
   final String? photoName;
@@ -175,10 +175,25 @@ class InspectionFindingDraft {
     );
   }
 
+  bool get isRated => rating != null;
+  bool get requiresNote => rating == 'WATCH' || rating == 'FAIL';
+  bool get requiresPhoto => rating == 'FAIL';
+
+  String? get validationMessage {
+    if (!isRated) return 'Choose Pass, Watch, or Fail.';
+    if (requiresNote && note.trim().isEmpty) {
+      return 'Add an observation note for this rating.';
+    }
+    if (requiresPhoto && photoStorageKey == null) {
+      return 'Add an evidence photo for a failed finding.';
+    }
+    return null;
+  }
+
   Map<String, dynamic> toJson() => {
         'category': category,
         'label': label,
-        'rating': rating,
+        'rating': rating ?? (throw StateError('Finding must be rated.')),
         if (note.trim().isNotEmpty) 'note': note.trim(),
         if (photoStorageKey != null) 'photoStorageKey': photoStorageKey,
       };
@@ -193,12 +208,18 @@ const requiredInspectionFindings = [
   InspectionFindingDraft(category: 'INTERIOR', label: 'Interior and controls'),
 ];
 
-int inspectionScore(Iterable<InspectionFindingDraft> findings) {
-  final ratings = findings.map((finding) => _ratingScore(finding.rating));
-  if (ratings.isEmpty) return 0;
-  return (ratings.reduce((left, right) => left + right) /
-          requiredInspectionFindings.length)
+int? inspectionScore(Iterable<InspectionFindingDraft> findings) {
+  final values = findings.toList(growable: false);
+  if (values.isEmpty || values.any((finding) => !finding.isRated)) return null;
+  final ratings = values.map((finding) => _ratingScore(finding.rating!));
+  return (ratings.reduce((left, right) => left + right) / values.length)
       .round();
+}
+
+bool inspectionDraftIsComplete(Iterable<InspectionFindingDraft> findings) {
+  final values = findings.toList(growable: false);
+  return values.length == requiredInspectionFindings.length &&
+      values.every((finding) => finding.validationMessage == null);
 }
 
 int _ratingScore(String rating) {

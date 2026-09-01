@@ -5,7 +5,14 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { GetObjectCommand, HeadBucketCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { randomUUID } from "node:crypto";
@@ -58,14 +65,17 @@ export class StorageService {
     this.client = new S3Client({
       endpoint: this.config.getOrThrow<string>("STORAGE_ENDPOINT"),
       region: this.config.getOrThrow<string>("STORAGE_REGION"),
-      forcePathStyle: this.config.get<boolean>("STORAGE_FORCE_PATH_STYLE") ?? true,
+      forcePathStyle:
+        this.config.get<boolean>("STORAGE_FORCE_PATH_STYLE") ?? true,
       credentials: {
         accessKeyId: this.config.getOrThrow<string>("STORAGE_ACCESS_KEY"),
         secretAccessKey: this.config.getOrThrow<string>("STORAGE_SECRET_KEY"),
       },
       requestHandler: new NodeHttpHandler({
-        connectionTimeout: this.config.get<number>("STORAGE_CONNECT_TIMEOUT_MS") ?? 10_000,
-        socketTimeout: this.config.get<number>("STORAGE_SOCKET_TIMEOUT_MS") ?? 30_000,
+        connectionTimeout:
+          this.config.get<number>("STORAGE_CONNECT_TIMEOUT_MS") ?? 10_000,
+        socketTimeout:
+          this.config.get<number>("STORAGE_SOCKET_TIMEOUT_MS") ?? 30_000,
       }),
     });
   }
@@ -79,12 +89,34 @@ export class StorageService {
     }
   }
 
-  async presignImage(userId: string, listingId: string, slot: string, contentType: string, contentLength: number) {
-    return this.presignUpload("image", { userId, listingId, slot, contentType, contentLength }, contentType, contentLength);
+  async presignImage(
+    userId: string,
+    listingId: string,
+    slot: string,
+    contentType: string,
+    contentLength: number,
+  ) {
+    return this.presignUpload(
+      "image",
+      { userId, listingId, slot, contentType, contentLength },
+      contentType,
+      contentLength,
+    );
   }
 
-  async presignDocument(userId: string, listingId: string, documentType: string, contentType: string, contentLength: number) {
-    return this.presignUpload("document", { userId, listingId, documentType, contentType, contentLength }, contentType, contentLength);
+  async presignDocument(
+    userId: string,
+    listingId: string,
+    documentType: string,
+    contentType: string,
+    contentLength: number,
+  ) {
+    return this.presignUpload(
+      "document",
+      { userId, listingId, documentType, contentType, contentLength },
+      contentType,
+      contentLength,
+    );
   }
 
   async presignInspectionPhoto(
@@ -126,10 +158,14 @@ export class StorageService {
       const contentType = head.ContentType ?? "";
       const byteSize = head.ContentLength ?? 0;
 
-      if (contentType !== intent.contentType || byteSize !== intent.contentLength) {
+      if (
+        contentType !== intent.contentType ||
+        byteSize !== intent.contentLength
+      ) {
         throw new BadRequestException({
           code: "INVALID_FILE_TYPE",
-          message: "Uploaded object metadata does not match the presigned request",
+          message:
+            "Uploaded object metadata does not match the presigned request",
         });
       }
 
@@ -137,7 +173,8 @@ export class StorageService {
       if (!matchesMagicBytes(contentType, signature)) {
         throw new BadRequestException({
           code: "INVALID_FILE_TYPE",
-          message: "Uploaded object bytes do not match the declared content type",
+          message:
+            "Uploaded object bytes do not match the declared content type",
         });
       }
 
@@ -175,6 +212,31 @@ export class StorageService {
     );
   }
 
+  async deleteObject(storageKey: string): Promise<void> {
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket(),
+          Key: storageKey,
+        }),
+      );
+    } catch {
+      throw new BadGatewayException({
+        code: "STORAGE_DELETE_FAILED",
+        message: "Failed to remove uploaded file",
+      });
+    }
+  }
+
+  async tryDeleteObject(storageKey: string): Promise<boolean> {
+    try {
+      await this.deleteObject(storageKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async onModuleDestroy(): Promise<void> {
     this.client.destroy();
   }
@@ -202,7 +264,12 @@ export class StorageService {
 
       await this.redisService.set(
         this.intentKey(storageKey),
-        JSON.stringify({ ...binding, kind, contentType, contentLength } satisfies UploadIntent),
+        JSON.stringify({
+          ...binding,
+          kind,
+          contentType,
+          contentLength,
+        } satisfies UploadIntent),
         expiresIn,
       );
 
@@ -219,7 +286,10 @@ export class StorageService {
     }
   }
 
-  private async loadIntent(storageKey: string, expectedKind: UploadKind): Promise<UploadIntent> {
+  private async loadIntent(
+    storageKey: string,
+    expectedKind: UploadKind,
+  ): Promise<UploadIntent> {
     const raw = await this.redisService.get(this.intentKey(storageKey));
     if (!raw) {
       throw new BadRequestException({
@@ -258,17 +328,22 @@ export class StorageService {
       const head = await this.headObject(storageKey);
       const contentType = head.ContentType ?? "";
       const byteSize = head.ContentLength ?? 0;
-      if (contentType !== intent.contentType || byteSize !== intent.contentLength) {
+      if (
+        contentType !== intent.contentType ||
+        byteSize !== intent.contentLength
+      ) {
         throw new BadRequestException({
           code: "INVALID_FILE_TYPE",
-          message: "Uploaded object metadata does not match the presigned request",
+          message:
+            "Uploaded object metadata does not match the presigned request",
         });
       }
       const signature = await this.readSignature(storageKey);
       if (!matchesMagicBytes(contentType, signature)) {
         throw new BadRequestException({
           code: "INVALID_FILE_TYPE",
-          message: "Uploaded object bytes do not match the declared content type",
+          message:
+            "Uploaded object bytes do not match the declared content type",
         });
       }
       return { byteSize, contentType, storageKey };
@@ -280,10 +355,12 @@ export class StorageService {
 
   private async headObject(storageKey: string) {
     try {
-      return await this.client.send(new HeadObjectCommand({
-        Bucket: this.bucket(),
-        Key: storageKey,
-      }));
+      return await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket(),
+          Key: storageKey,
+        }),
+      );
     } catch {
       throw new BadRequestException({
         code: "INVALID_FILE_TYPE",
@@ -293,11 +370,13 @@ export class StorageService {
   }
 
   private async readSignature(storageKey: string): Promise<Uint8Array> {
-    const response = await this.client.send(new GetObjectCommand({
-      Bucket: this.bucket(),
-      Key: storageKey,
-      Range: "bytes=0-31",
-    }));
+    const response = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket(),
+        Key: storageKey,
+        Range: "bytes=0-31",
+      }),
+    );
     if (!response.Body || !("transformToByteArray" in response.Body)) {
       throw new InternalServerErrorException({
         code: "INVALID_FILE_TYPE",
@@ -312,11 +391,12 @@ export class StorageService {
     const year = `${date.getUTCFullYear()}`;
     const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
     const fileId = randomUUID();
-    const prefix = kind === "image"
-      ? "listing-images"
-      : kind === "inspection"
-        ? "inspection-reports"
-        : "seller-documents";
+    const prefix =
+      kind === "image"
+        ? "listing-images"
+        : kind === "inspection"
+          ? "inspection-reports"
+          : "seller-documents";
     return `${prefix}/${year}/${month}/${fileId}.${extensionFor(contentType)}`;
   }
 
@@ -342,7 +422,9 @@ export class StorageService {
 
   private assertSize(kind: UploadKind, contentLength: number): void {
     const isImage = kind === "image" || kind === "inspection";
-    const key = isImage ? "MAX_IMAGE_UPLOAD_BYTES" : "MAX_DOCUMENT_UPLOAD_BYTES";
+    const key = isImage
+      ? "MAX_IMAGE_UPLOAD_BYTES"
+      : "MAX_DOCUMENT_UPLOAD_BYTES";
     const hardMaximum = isImage ? 10 * 1024 * 1024 : 15 * 1024 * 1024;
     const configuredMaximum = this.config.get<number>(key) ?? hardMaximum;
     const maximum = Math.min(configuredMaximum, hardMaximum);
@@ -359,9 +441,10 @@ function assertInspectionIntentBinding(
   intent: UploadIntent,
   binding: InspectionUploadBinding,
 ): void {
-  const matches = intent.userId === binding.userId
-    && intent.listingId === binding.listingId
-    && intent.taskId === binding.taskId;
+  const matches =
+    intent.userId === binding.userId &&
+    intent.listingId === binding.listingId &&
+    intent.taskId === binding.taskId;
   if (!matches) {
     throw new BadRequestException({
       code: "UPLOAD_OWNERSHIP_MISMATCH",
@@ -373,7 +456,13 @@ function assertInspectionIntentBinding(
 function parseIntent(raw: string): UploadIntent {
   try {
     const parsed = JSON.parse(raw) as UploadIntent;
-    if (!parsed.userId || !parsed.listingId || !parsed.kind || !parsed.contentType || !parsed.contentLength) {
+    if (
+      !parsed.userId ||
+      !parsed.listingId ||
+      !parsed.kind ||
+      !parsed.contentType ||
+      !parsed.contentLength
+    ) {
       throw new Error("invalid intent");
     }
     return parsed;
@@ -385,13 +474,17 @@ function parseIntent(raw: string): UploadIntent {
   }
 }
 
-function assertIntentBinding(intent: UploadIntent, binding: UploadBinding): void {
-  const matches = intent.userId === binding.userId
-    && intent.listingId === binding.listingId
-    && intent.contentType === binding.contentType
-    && intent.contentLength === binding.contentLength
-    && intent.slot === binding.slot
-    && intent.documentType === binding.documentType;
+function assertIntentBinding(
+  intent: UploadIntent,
+  binding: UploadBinding,
+): void {
+  const matches =
+    intent.userId === binding.userId &&
+    intent.listingId === binding.listingId &&
+    intent.contentType === binding.contentType &&
+    intent.contentLength === binding.contentLength &&
+    intent.slot === binding.slot &&
+    intent.documentType === binding.documentType;
   if (!matches) {
     throw new BadRequestException({
       code: "UPLOAD_OWNERSHIP_MISMATCH",
@@ -423,15 +516,17 @@ function matchesMagicBytes(contentType: string, bytes: Uint8Array): boolean {
     return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   }
   if (contentType === "image/png") {
-    return bytes.length >= 8
-      && bytes[0] === 0x89
-      && bytes[1] === 0x50
-      && bytes[2] === 0x4e
-      && bytes[3] === 0x47
-      && bytes[4] === 0x0d
-      && bytes[5] === 0x0a
-      && bytes[6] === 0x1a
-      && bytes[7] === 0x0a;
+    return (
+      bytes.length >= 8 &&
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47 &&
+      bytes[4] === 0x0d &&
+      bytes[5] === 0x0a &&
+      bytes[6] === 0x1a &&
+      bytes[7] === 0x0a
+    );
   }
   if (contentType === "image/webp") {
     return text(bytes, 0, 4) === "RIFF" && text(bytes, 8, 12) === "WEBP";

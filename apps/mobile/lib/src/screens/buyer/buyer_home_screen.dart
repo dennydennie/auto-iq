@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_tokens.dart';
 import '../../../widgets/price_display.dart';
 import '../../../widgets/verified_badge.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/observability/mobile_analytics.dart';
 import '../../core/i18n/app_formatters.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../models/activity_models.dart';
@@ -13,12 +17,15 @@ import '../../models/listing_filters.dart';
 import '../../models/reference_data.dart';
 import '../../repositories/buyer_repository.dart';
 import '../../state/session_controller.dart';
+import '../../state/buyer_catalogue_controller.dart';
+import '../../widgets/async_state_view.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/account_deletion_card.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/vehicle_image.dart';
 import 'listing_detail_screen.dart';
+import 'vehicle_request_sheet.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   const BuyerHomeScreen({super.key, this.onSwitchWorkspace});
@@ -31,7 +38,7 @@ class BuyerHomeScreen extends StatefulWidget {
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   int _tabIndex = 0;
-  late Future<ListingViewState> _browseFuture;
+  BuyerCatalogueController? _catalogueController;
   late Future<List<SavedVehicleItem>> _savedFuture;
   late Future<List<QuoteItem>> _quotesFuture;
   late Future<List<VehicleRequestItem>> _requestFuture;
@@ -39,23 +46,33 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   ListingFilterState _appliedFilters = const ListingFilterState();
   List<VehicleMake> _catalogueMakes = const [];
   final _searchController = TextEditingController();
-  String _appliedSearchText = '';
+  Timer? _searchDebounce;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchDebounce?.cancel();
+    _catalogueController?.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    _browseFuture = _loadBrowse();
     _savedFuture = _loadSaved();
     _quotesFuture = _loadQuotes();
     _requestFuture = _loadRequests();
     _viewingsFuture = _loadViewings();
     _loadCatalogueMakes();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _catalogueController ??= BuyerCatalogueController(
+      context.read<BuyerRepository>(),
+      context.read<MobileAnalytics>(),
+    )..load();
   }
 
   @override
@@ -71,9 +88,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       index: _tabIndex,
       children: [
         _BrowseTab(
-          future: _browseFuture,
+          controller: _catalogueController!,
           searchController: _searchController,
-          appliedSearchText: _appliedSearchText,
           filters: _appliedFilters,
           makes: browseMakes,
           cities: uniqueCities(
@@ -81,6 +97,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           ),
           onApplyFilters: _applyFilters,
           onSearch: _applySearch,
+          onSearchChanged: _scheduleSearch,
           onClearFilters: _clearFilters,
           bodyTypes: session.referenceData?.bodyTypes ?? const [],
           transmissionTypes:
@@ -98,6 +115,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           quotesFuture: _quotesFuture,
           requestFuture: _requestFuture,
           onCreateRequest: _openRequestDialog,
+          onRefresh: _refreshRequestActivity,
         ),
         _ViewingsTab(future: _viewingsFuture, onRefresh: _refreshViewings),
         _BuyerAccountTab(
@@ -179,15 +197,18 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   void _applyFilters(ListingFilterState filters) {
     setState(() {
       _appliedFilters = filters;
-      _browseFuture = _loadBrowse();
     });
+    _catalogueController!.load(filters: filters);
   }
 
   void _applySearch() {
-    setState(() {
-      _appliedSearchText = _searchController.text.trim();
-      _browseFuture = _loadBrowse();
-    });
+    _searchDebounce?.cancel();
+    _catalogueController!.load(query: _searchController.text);
+  }
+
+  void _scheduleSearch(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), _applySearch);
   }
 
   void _clearFilters() {
@@ -207,6 +228,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           onSavedChanged: (_) {
             _savedFuture = _loadSaved();
             setState(() {});
+            _catalogueController?.refreshSaved();
           },
         ),
       ),
@@ -217,239 +239,24 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   Future<void> _openRequestDialog() async {
-    final makes =
-        context.read<SessionController>().referenceData?.makes ?? const [];
-    final bodyTypes =
-        context.read<SessionController>().referenceData?.bodyTypes ?? const [];
-    final fuelTypes =
-        context.read<SessionController>().referenceData?.fuelTypes ?? const [];
-    final transmissions =
-        context.read<SessionController>().referenceData?.transmissionTypes ??
-            const [];
-    final budgetController = TextEditingController();
-    final modelController = TextEditingController();
-    final yearMinController = TextEditingController();
-    final yearMaxController = TextEditingController();
-    final odometerController = TextEditingController();
-    final notesController = TextEditingController();
-    String urgency = 'ASAP';
-    String? makeId = makes.isNotEmpty ? makes.first.id : null;
-    String? bodyTypeId = bodyTypes.isNotEmpty ? bodyTypes.first.value : null;
-    String? fuelTypeId = fuelTypes.isNotEmpty ? fuelTypes.first.value : null;
-    String? transmissionId =
-        transmissions.isNotEmpty ? transmissions.first.value : null;
-    final formKey = GlobalKey<FormState>();
-    final created = await showDialog<bool>(
+    final referenceData = context.read<SessionController>().referenceData;
+    final created = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Request a vehicle'),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: budgetController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Max budget (USD)',
-                        ),
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: makeId,
-                        decoration: const InputDecoration(labelText: 'Make'),
-                        items: makes
-                            .map(
-                              (make) => DropdownMenuItem(
-                                value: make.id,
-                                child: Text(make.name),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) => makeId = value,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: modelController,
-                        decoration: const InputDecoration(labelText: 'Model'),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: yearMinController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Year min',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: yearMaxController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Year max',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: bodyTypeId,
-                        decoration: const InputDecoration(
-                          labelText: 'Body type',
-                        ),
-                        items: bodyTypes
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item.value,
-                                child: Text(item.label),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) => bodyTypeId = value,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: fuelTypeId,
-                        decoration: const InputDecoration(
-                          labelText: 'Fuel type',
-                        ),
-                        items: fuelTypes
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item.value,
-                                child: Text(item.label),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) => fuelTypeId = value,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: transmissionId,
-                        decoration: const InputDecoration(
-                          labelText: 'Transmission',
-                        ),
-                        items: transmissions
-                            .map(
-                              (item) => DropdownMenuItem(
-                                value: item.value,
-                                child: Text(item.label),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) => transmissionId = value,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: odometerController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Max odometer (km)',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: urgency,
-                        decoration: const InputDecoration(labelText: 'Urgency'),
-                        items: const [
-                          DropdownMenuItem(value: 'ASAP', child: Text('ASAP')),
-                          DropdownMenuItem(
-                            value: 'ONE_MONTH',
-                            child: Text('Within one month'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'BROWSING',
-                            child: Text('Still browsing'),
-                          ),
-                        ],
-                        onChanged: (value) =>
-                            setDialogState(() => urgency = value ?? urgency),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: notesController,
-                        minLines: 3,
-                        maxLines: 4,
-                        decoration: const InputDecoration(labelText: 'Notes'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) {
-                      return;
-                    }
-                    try {
-                      await context
-                          .read<BuyerRepository>()
-                          .createVehicleRequest(
-                            maxBudgetCents:
-                                (double.parse(budgetController.text) * 100)
-                                    .round(),
-                            makeId: makeId,
-                            model: modelController.text,
-                            yearMin: _nullableInt(yearMinController.text),
-                            yearMax: _nullableInt(yearMaxController.text),
-                            bodyTypeId: bodyTypeId,
-                            fuelTypeId: fuelTypeId,
-                            transmissionTypeId: transmissionId,
-                            maxOdometerKm: _nullableInt(
-                              odometerController.text,
-                            ),
-                            urgency: urgency,
-                            notes: notesController.text,
-                          );
-                      if (context.mounted) {
-                        Navigator.of(context).pop(true);
-                      }
-                    } on ApiException catch (error) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text(error.message)));
-                      }
-                    }
-                  },
-                  child: const Text('Create'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.96,
+        child: VehicleRequestSheet(
+          repository: context.read<BuyerRepository>(),
+          analytics: context.read<MobileAnalytics>(),
+          makes: referenceData?.makes ?? const [],
+          bodyTypes: referenceData?.bodyTypes ?? const [],
+          fuelTypes: referenceData?.fuelTypes ?? const [],
+          transmissions: referenceData?.transmissionTypes ?? const [],
+        ),
+      ),
     );
-    if (created == true) {
-      await _refreshRequests();
-    }
-  }
-
-  Future<ListingViewState> _loadBrowse() async {
-    final repository = context.read<BuyerRepository>();
-    final page = await repository.browse(
-      filters: _appliedFilters,
-    );
-    final savedItems = await repository.savedVehicles();
-    final savedIds = savedItems.map((item) => item.listing.id).toSet();
-    return ListingViewState(listings: page.data, savedIds: savedIds);
+    if (created == true) await _refreshRequests();
   }
 
   Future<void> _loadCatalogueMakes() async {
@@ -479,8 +286,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   Future<void> _refreshBrowse() async {
-    setState(() => _browseFuture = _loadBrowse());
-    await _browseFuture;
+    await _catalogueController!.load(
+      filters: _appliedFilters,
+      query: _searchController.text,
+    );
   }
 
   Future<void> _refreshSaved() async {
@@ -498,43 +307,30 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     await _requestFuture;
   }
 
+  Future<void> _refreshRequestActivity() async {
+    setState(() {
+      _quotesFuture = _loadQuotes();
+      _requestFuture = _loadRequests();
+    });
+    await Future.wait([_quotesFuture, _requestFuture]);
+  }
+
   Future<void> _refreshViewings() async {
     setState(() => _viewingsFuture = _loadViewings());
     await _viewingsFuture;
   }
-
-  String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Required';
-    }
-    return null;
-  }
-
-  int? _nullableInt(String value) {
-    if (value.trim().isEmpty) {
-      return null;
-    }
-    return int.tryParse(value.trim());
-  }
-}
-
-class ListingViewState {
-  ListingViewState({required this.listings, required this.savedIds});
-
-  final List<ListingCard> listings;
-  final Set<String> savedIds;
 }
 
 class _BrowseTab extends StatelessWidget {
   const _BrowseTab({
-    required this.future,
+    required this.controller,
     required this.searchController,
-    required this.appliedSearchText,
     required this.filters,
     required this.makes,
     required this.cities,
     required this.onApplyFilters,
     required this.onSearch,
+    required this.onSearchChanged,
     required this.onClearFilters,
     required this.bodyTypes,
     required this.transmissionTypes,
@@ -543,14 +339,14 @@ class _BrowseTab extends StatelessWidget {
     required this.onRefresh,
   });
 
-  final Future<ListingViewState> future;
+  final BuyerCatalogueController controller;
   final TextEditingController searchController;
-  final String appliedSearchText;
   final ListingFilterState filters;
   final List<VehicleMake> makes;
   final List<String> cities;
   final ValueChanged<ListingFilterState> onApplyFilters;
   final VoidCallback onSearch;
+  final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearFilters;
   final List<ReferenceOption> bodyTypes;
   final List<ReferenceOption> transmissionTypes;
@@ -560,79 +356,113 @@ class _BrowseTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => _buildState(context),
+    );
+  }
+
+  Widget _buildState(BuildContext context) {
     final copy = AutoIqLocalizations.of(context);
-    return FutureBuilder<ListingViewState>(
-      future: future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return EmptyState(
-            title: copy.catalogueUnavailable,
-            message: copy.catalogueUnavailableMessage,
-            action: ElevatedButton(
-              onPressed: onRefresh,
-              child: Text(copy.retry),
-            ),
-          );
-        }
-        final viewState = snapshot.data!;
-        final filtered = viewState.listings.where((listing) {
-          final query = appliedSearchText.trim().toLowerCase();
-          if (query.isEmpty) {
-            return true;
-          }
-          return listing.title.toLowerCase().contains(query) ||
-              listing.city.toLowerCase().contains(query);
-        }).toList(growable: false);
-        return RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              BrowseFilters(
-                searchController: searchController,
-                filters: filters,
-                makes: makes,
-                cities: cities,
-                bodyTypes: bodyTypes,
-                onApplyFilters: onApplyFilters,
-                onSearch: onSearch,
-                onClearFilters: onClearFilters,
-                transmissionTypes: transmissionTypes,
-                fuelTypes: fuelTypes,
-              ),
-              const SizedBox(height: 12),
-              if (filtered.isEmpty)
-                EmptyState(
-                  title: copy.noPublishedVehicles,
-                  message: copy.noPublishedVehiclesMessage,
-                  action: OutlinedButton(
-                    onPressed: onClearFilters,
-                    child: Text(copy.clearFilters),
-                  ),
-                )
-              else
-                ...filtered.map(
-                  (listing) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
-                      onTap: () => onOpenListing(
-                        listing.id,
-                        saved: viewState.savedIds.contains(listing.id),
-                      ),
-                      child: _ListingCard(
-                        listing: listing,
-                        saved: viewState.savedIds.contains(listing.id),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+    if (controller.isLoading) {
+      return AppLoadingView(label: copy.text('searchingCatalogue'));
+    }
+    if (controller.error != null && controller.items.isEmpty) {
+      return EmptyState(
+        title: copy.catalogueUnavailable,
+        message: controller.error!.supportMessage,
+        action: ElevatedButton(onPressed: onRefresh, child: Text(copy.retry)),
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: _content(context, constraints.maxWidth),
+        ),
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context, double width) {
+    final copy = AutoIqLocalizations.of(context);
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: adaptivePageInsets(width),
+        children: [
+          BrowseFilters(
+            searchController: searchController,
+            searchError: controller.queryError,
+            filters: filters,
+            makes: makes,
+            cities: cities,
+            bodyTypes: bodyTypes,
+            onApplyFilters: onApplyFilters,
+            onSearch: onSearch,
+            onSearchChanged: onSearchChanged,
+            onClearFilters: onClearFilters,
+            transmissionTypes: transmissionTypes,
+            fuelTypes: fuelTypes,
           ),
-        );
-      },
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            copy.vehicleCount(controller.items.length),
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (controller.items.isEmpty)
+            EmptyState(
+              title: copy.noPublishedVehicles,
+              message: copy.noPublishedVehiclesMessage,
+              action: OutlinedButton(
+                onPressed: onClearFilters,
+                child: Text(copy.clearFilters),
+              ),
+            )
+          else
+            ...controller.items.map(_listingCard),
+          if (controller.error != null && controller.items.isNotEmpty)
+            _PaginationError(
+              message: controller.error!.supportMessage,
+              onRetry: controller.loadMore,
+            ),
+          if (controller.hasMore) _loadMoreButton(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _listingCard(ListingCard listing) {
+    final saved = controller.savedIds.contains(listing.id);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: _ListingCard(
+        listing: listing,
+        saved: saved,
+        onTap: () => onOpenListing(listing.id, saved: saved),
+      ),
+    );
+  }
+
+  Widget _loadMoreButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: OutlinedButton.icon(
+        key: const Key('browse-load-more'),
+        onPressed: controller.isLoadingMore ? null : controller.loadMore,
+        icon: controller.isLoadingMore
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.expand_more),
+        label: Text(
+          AutoIqLocalizations.of(context).text('loadMoreVehicles'),
+        ),
+      ),
     );
   }
 }
@@ -649,7 +479,9 @@ class BrowseFilters extends StatelessWidget {
     required this.fuelTypes,
     required this.onApplyFilters,
     required this.onSearch,
+    this.onSearchChanged,
     required this.onClearFilters,
+    this.searchError,
   });
 
   final TextEditingController searchController;
@@ -661,7 +493,9 @@ class BrowseFilters extends StatelessWidget {
   final List<ReferenceOption> fuelTypes;
   final ValueChanged<ListingFilterState> onApplyFilters;
   final VoidCallback onSearch;
+  final ValueChanged<String>? onSearchChanged;
   final VoidCallback onClearFilters;
+  final String? searchError;
 
   @override
   Widget build(BuildContext context) {
@@ -698,10 +532,12 @@ class BrowseFilters extends StatelessWidget {
         key: const Key('browse-search-field'),
         controller: searchController,
         textInputAction: TextInputAction.search,
+        onChanged: onSearchChanged,
         onSubmitted: (_) => onSearch(),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.search_outlined),
           labelText: copy.searchHint,
+          errorText: searchError,
           suffixIcon: searchController.text.isEmpty
               ? null
               : IconButton(
@@ -1850,66 +1686,152 @@ class _FilterDropdown<T> extends StatelessWidget {
 }
 
 class _ListingCard extends StatelessWidget {
-  const _ListingCard({required this.listing, required this.saved});
+  const _ListingCard({
+    required this.listing,
+    required this.saved,
+    required this.onTap,
+  });
 
   final ListingCard listing;
   final bool saved;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: VehicleImageView(
-              imageUrl: listing.coverImageUrl,
-              height: 90,
+    final copy = AutoIqLocalizations.of(context);
+    return Semantics(
+      button: true,
+      label: copy.formatText('listingCardLabel', {
+        'title': listing.title,
+        'city': listing.city,
+        'price': listing.askPriceUsd.toStringAsFixed(0),
+      }),
+      child: SectionCard(
+        padding: EdgeInsets.zero,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: LayoutBuilder(
+              builder: (context, constraints) => constraints.maxWidth < 440
+                  ? _compactCard(copy)
+                  : _wideCard(copy),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (listing.bisellVerified) const VerifiedBadge(),
-                const SizedBox(height: 8),
-                Text(
-                  listing.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.ink900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${listing.city} · ${listing.bodyType}',
-                  style: const TextStyle(fontSize: 13, color: AppColors.ink500),
-                ),
-                const SizedBox(height: 8),
-                PriceDisplay(
-                  amount: listing.askPriceUsd.toStringAsFixed(0),
-                  fontSize: 18,
-                ),
-              ],
+        ),
+      ),
+    );
+  }
+
+  Widget _compactCard(AutoIqLocalizations copy) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _image(copy, height: 164),
+        const SizedBox(height: AppSpacing.sm),
+        _details(),
+        const SizedBox(height: AppSpacing.xs),
+        _status(copy),
+      ],
+    );
+  }
+
+  Widget _wideCard(AutoIqLocalizations copy) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 110, child: _image(copy, height: 90)),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(child: _details()),
+        _status(copy),
+      ],
+    );
+  }
+
+  Widget _image(AutoIqLocalizations copy, {required double height}) {
+    return VehicleImageView(
+      imageUrl: listing.coverImageUrl,
+      height: height,
+      semanticLabel: copy.formatText(
+        'vehiclePhoto',
+        {'title': listing.title},
+      ),
+    );
+  }
+
+  Widget _details() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (listing.bisellVerified) const VerifiedBadge(),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          listing.title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${listing.city} · ${listing.bodyType}',
+          style: const TextStyle(fontSize: 13, color: AppColors.ink500),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        PriceDisplay(
+          amount: listing.askPriceUsd.toStringAsFixed(0),
+          fontSize: 18,
+        ),
+      ],
+    );
+  }
+
+  Widget _status(AutoIqLocalizations copy) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (listing.inspectionScore != null)
+          Semantics(
+            label: copy.formatText(
+              'inspectionScoreLabel',
+              {'score': listing.inspectionScore!},
             ),
+            excludeSemantics: true,
+            child: StatusChip(label: '${listing.inspectionScore}/100'),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (listing.inspectionScore != null)
-                StatusChip(label: '${listing.inspectionScore}/100'),
-              const SizedBox(height: 12),
-              Icon(
-                saved ? Icons.bookmark : Icons.chevron_right,
-                color: AppColors.ink400,
-              ),
-            ],
-          ),
-        ],
+        const SizedBox(height: AppSpacing.sm),
+        Icon(
+          saved ? Icons.bookmark : Icons.chevron_right,
+          color: AppColors.ink400,
+        ),
+      ],
+    );
+  }
+}
+
+class _PaginationError extends StatelessWidget {
+  const _PaginationError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return Semantics(
+      liveRegion: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off_outlined, color: AppColors.reject),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(child: Text(message)),
+            TextButton(onPressed: onRetry, child: Text(copy.retry)),
+          ],
+        ),
       ),
     );
   }
@@ -1931,66 +1853,46 @@ class _SavedTab extends StatelessWidget {
     return FutureBuilder<List<SavedVehicleItem>>(
       future: future,
       builder: (context, snapshot) {
+        final copy = AutoIqLocalizations.of(context);
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return AppLoadingView(label: copy.text('loadingSavedVehicles'));
+        }
+        if (snapshot.hasError) {
+          return _ActivityError(
+            title: copy.text('savedVehiclesUnavailable'),
+            error: snapshot.error,
+            onRetry: onRefresh,
+          );
         }
         final items = snapshot.data ?? const <SavedVehicleItem>[];
         if (items.isEmpty) {
-          return const EmptyState(
-            title: 'No saved vehicles',
-            message: 'Bookmark listings from Browse to keep them here.',
+          return EmptyState(
+            title: copy.text('noSavedVehicles'),
+            message: copy.text('noSavedVehiclesMessage'),
+            action: OutlinedButton(
+              onPressed: onRefresh,
+              child: Text(copy.text('refresh')),
+            ),
           );
         }
         return RefreshIndicator(
           onRefresh: onRefresh,
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return GestureDetector(
-                onTap: () => onOpenListing(item.listing.id, saved: true),
-                child: SectionCard(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 90,
-                        child: VehicleImageView(
-                          imageUrl: item.listing.coverImageUrl,
-                          height: 74,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.listing.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.ink900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Saved ${AppFormatters.shortDate(context, DateTime.parse(item.savedAt).toLocal())}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.ink500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: AppColors.ink400),
-                    ],
-                  ),
-                ),
-              );
-            },
+          child: LayoutBuilder(
+            builder: (context, constraints) => ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: adaptivePageInsets(constraints.maxWidth),
+              itemCount: items.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return _ListingCard(
+                  listing: item.listing,
+                  saved: true,
+                  onTap: () => onOpenListing(item.listing.id, saved: true),
+                );
+              },
+            ),
           ),
         );
       },
@@ -2003,181 +1905,220 @@ class _RequestsTab extends StatelessWidget {
     required this.quotesFuture,
     required this.requestFuture,
     required this.onCreateRequest,
+    required this.onRefresh,
   });
 
   final Future<List<QuoteItem>> quotesFuture;
   final Future<List<VehicleRequestItem>> requestFuture;
   final Future<void> Function() onCreateRequest;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        SectionCard(
-          child: Row(
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Need a different vehicle?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink900,
+    final copy = AutoIqLocalizations.of(context);
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        children: [
+          SectionCard(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        copy.text('needDifferentVehicle'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.ink900,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Create a sourcing request and let the team look for a match.',
-                      style: TextStyle(fontSize: 13, color: AppColors.ink500),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        copy.text('sourcingPitch'),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.ink500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: onCreateRequest,
-                icon: const Icon(Icons.add),
-                label: const Text('New'),
-              ),
-            ],
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: onCreateRequest,
+                  icon: const Icon(Icons.add),
+                  label: Text(copy.text('newAction')),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Quotes',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink900,
+          const SizedBox(height: 16),
+          Text(
+            copy.text('quotesTitle'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink900,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        FutureBuilder<List<QuoteItem>>(
-          future: quotesFuture,
-          builder: (context, snapshot) {
-            final items = snapshot.data ?? const <QuoteItem>[];
-            if (items.isEmpty) {
-              return const EmptyState(
-                title: 'No quote requests',
-                message: 'Quotes you send from listing detail will show here.',
-              );
-            }
-            return Column(
-              children: items
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: SectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Offer USD ${item.offerPriceUsd.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.ink900,
+          const SizedBox(height: 10),
+          FutureBuilder<List<QuoteItem>>(
+            future: quotesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return _InlineLoading(
+                  label: copy.text('loadingQuoteRequests'),
+                );
+              }
+              if (snapshot.hasError) {
+                return _InlineError(error: snapshot.error, onRetry: onRefresh);
+              }
+              final items = snapshot.data ?? const <QuoteItem>[];
+              if (items.isEmpty) {
+                return EmptyState(
+                  title: copy.text('noQuoteRequests'),
+                  message: copy.text('noQuoteRequestsMessage'),
+                );
+              }
+              return Column(
+                children: items
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: AppSpacing.xs,
+                                runSpacing: AppSpacing.xs,
+                                alignment: WrapAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    copy.formatText('offerUsd', {
+                                      'amount':
+                                          item.offerPriceUsd.toStringAsFixed(0),
+                                    }),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.ink900,
+                                    ),
                                   ),
-                                ),
-                                StatusChip(label: item.status),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Ask USD ${item.askPriceUsd.toStringAsFixed(0)} · ${item.paymentPlan.replaceAll('_', ' ')}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.ink500,
+                                  StatusChip(label: item.status),
+                                ],
                               ),
-                            ),
-                            if (item.responseNote != null) ...[
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
-                                item.responseNote!,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Sourcing requests',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink900,
-          ),
-        ),
-        const SizedBox(height: 10),
-        FutureBuilder<List<VehicleRequestItem>>(
-          future: requestFuture,
-          builder: (context, snapshot) {
-            final items = snapshot.data ?? const <VehicleRequestItem>[];
-            if (items.isEmpty) {
-              return const EmptyState(
-                title: 'No sourcing requests',
-                message:
-                    'Create one when you want the team to source a vehicle.',
-              );
-            }
-            return Column(
-              children: items
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: SectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${item.makeName ?? 'Any make'} ${item.model ?? ''}'
-                                      .trim(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.ink900,
-                                  ),
+                                copy.formatText('askUsdPlan', {
+                                  'amount': item.askPriceUsd.toStringAsFixed(0),
+                                  'plan': item.paymentPlan.replaceAll('_', ' '),
+                                }),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.ink500,
                                 ),
-                                StatusChip(label: item.status),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Budget USD ${(item.maxBudgetCents / 100).toStringAsFixed(0)} · ${item.urgency.replaceAll('_', ' ')}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.ink500,
                               ),
-                            ),
-                            if (item.adminNote != null) ...[
-                              const SizedBox(height: 8),
-                              Text(item.adminNote!),
+                              if (item.responseNote != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  item.responseNote!,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                  .toList(growable: false),
-            );
-          },
-        ),
-      ],
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            copy.text('sourcingRequestsTitle'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          FutureBuilder<List<VehicleRequestItem>>(
+            future: requestFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return _InlineLoading(
+                  label: copy.text('loadingSourcingRequests'),
+                );
+              }
+              if (snapshot.hasError) {
+                return _InlineError(error: snapshot.error, onRetry: onRefresh);
+              }
+              final items = snapshot.data ?? const <VehicleRequestItem>[];
+              if (items.isEmpty) {
+                return EmptyState(
+                  title: copy.text('noSourcingRequests'),
+                  message: copy.text('noSourcingRequestsMessage'),
+                );
+              }
+              return Column(
+                children: items
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: AppSpacing.xs,
+                                runSpacing: AppSpacing.xs,
+                                alignment: WrapAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${item.makeName ?? copy.text('anyMake')} ${item.model ?? ''}'
+                                        .trim(),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.ink900,
+                                    ),
+                                  ),
+                                  StatusChip(label: item.status),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                copy.formatText('budgetUsdUrgency', {
+                                  'amount': (item.maxBudgetCents / 100)
+                                      .toStringAsFixed(0),
+                                  'urgency': item.urgency.replaceAll('_', ' '),
+                                }),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.ink500,
+                                ),
+                              ),
+                              if (item.adminNote != null) ...[
+                                const SizedBox(height: 8),
+                                Text(item.adminNote!),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2193,20 +2134,33 @@ class _ViewingsTab extends StatelessWidget {
     return FutureBuilder<List<ViewingItem>>(
       future: future,
       builder: (context, snapshot) {
+        final copy = AutoIqLocalizations.of(context);
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return AppLoadingView(label: copy.text('loadingViewings'));
+        }
+        if (snapshot.hasError) {
+          return _ActivityError(
+            title: copy.text('viewingsUnavailable'),
+            error: snapshot.error,
+            onRetry: onRefresh,
+          );
         }
         final items = snapshot.data ?? const <ViewingItem>[];
         if (items.isEmpty) {
-          return const EmptyState(
-            title: 'No viewings scheduled',
-            message: 'Confirmed and requested viewings will appear here.',
+          return EmptyState(
+            title: copy.text('noViewingsScheduled'),
+            message: copy.text('noViewingsScheduledMessage'),
+            action: OutlinedButton(
+              onPressed: onRefresh,
+              child: Text(copy.text('refresh')),
+            ),
           );
         }
         return RefreshIndicator(
           onRefresh: onRefresh,
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
@@ -2265,6 +2219,63 @@ class _ViewingsTab extends StatelessWidget {
       },
     );
   }
+}
+
+class _InlineLoading extends StatelessWidget {
+  const _InlineLoading({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(height: 140, child: AppLoadingView(label: label));
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.error, required this.onRetry});
+
+  final Object? error;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return EmptyState(
+      icon: Icons.cloud_off_outlined,
+      title: copy.text('unableToLoadSection'),
+      message: _activityErrorMessage(context, error),
+      action: TextButton(onPressed: onRetry, child: Text(copy.retry)),
+    );
+  }
+}
+
+class _ActivityError extends StatelessWidget {
+  const _ActivityError({
+    required this.title,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final String title;
+  final Object? error;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return EmptyState(
+      icon: Icons.cloud_off_outlined,
+      title: title,
+      message: _activityErrorMessage(context, error),
+      action: ElevatedButton(onPressed: onRetry, child: Text(copy.retry)),
+    );
+  }
+}
+
+String _activityErrorMessage(BuildContext context, Object? error) {
+  if (error is ApiException) return error.supportMessage;
+  return AutoIqLocalizations.of(context).text('checkConnection');
 }
 
 class _BuyerAccountTab extends StatefulWidget {

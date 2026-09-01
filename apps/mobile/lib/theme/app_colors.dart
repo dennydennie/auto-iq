@@ -26,8 +26,10 @@ class AppColors {
 
   // Status
   static const Color verified = Color(0xFF1F7A4C);
+  static const Color verifiedText = Color(0xFF145D38);
   static const Color verifiedSoft = Color(0xFFD6EBDD);
   static const Color pending = Color(0xFFB45309);
+  static const Color pendingText = Color(0xFF7A3600);
   static const Color pendingSoft = Color(0xFFFDE6CD);
   static const Color reject = Color(0xFF9B1C1C);
   static const Color rejectSoft = Color(0xFFFBDCD2);

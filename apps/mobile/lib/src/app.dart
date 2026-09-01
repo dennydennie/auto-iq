@@ -7,27 +7,34 @@ import '../theme/app_theme.dart';
 import 'core/i18n/app_localizations.dart';
 import 'core/navigation/password_reset_link.dart';
 import 'core/network/api_client.dart';
+import 'core/network/api_exception.dart';
+import 'core/observability/mobile_analytics.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/buyer_repository.dart';
 import 'repositories/inspector_repository.dart';
 import 'repositories/reference_repository.dart';
 import 'repositories/seller_repository.dart';
 import 'screens/auth/auth_screen.dart';
+import 'screens/auth/consent_screen.dart';
 import 'screens/buyer/buyer_home_screen.dart';
 import 'screens/inspector/inspector_home_screen.dart';
 import 'screens/seller/seller_home_screen.dart';
 import 'models/app_user.dart';
 import 'state/session_controller.dart';
+import 'widgets/async_state_view.dart';
+import 'widgets/empty_state.dart';
 
 class AutoIqApp extends StatefulWidget {
   const AutoIqApp({
     super.key,
     required this.apiClient,
     this.locale,
+    this.analytics = const SentryMobileAnalytics(),
   });
 
   final ApiClient apiClient;
   final Locale? locale;
+  final MobileAnalytics analytics;
 
   @override
   State<AutoIqApp> createState() => _AutoIqAppState();
@@ -48,6 +55,7 @@ class _AutoIqAppState extends State<AutoIqApp> {
     return MultiProvider(
       providers: [
         Provider<ApiClient>.value(value: widget.apiClient),
+        Provider<MobileAnalytics>.value(value: widget.analytics),
         Provider<AuthRepository>(
           create: (_) => AuthRepository(widget.apiClient),
         ),
@@ -89,29 +97,68 @@ class _AutoIqAppState extends State<AutoIqApp> {
           navigatorKey: _navigatorKey,
           child: child ?? const SizedBox.shrink(),
         ),
-        home: const _SessionGate(),
+        home: const SessionGate(),
       ),
     );
   }
 }
 
-class _SessionGate extends StatelessWidget {
-  const _SessionGate();
+class SessionGate extends StatelessWidget {
+  const SessionGate({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<SessionController>(
       builder: (context, session, _) {
         if (session.isBooting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            body: AppLoadingView(
+              label: AutoIqLocalizations.of(context).text('checkingSession'),
+            ),
+          );
+        }
+        if (session.isSessionUnavailable) {
+          return SessionUnavailableScreen(
+            error: session.bootstrapError!,
+            onRetry: session.bootstrap,
           );
         }
         if (!session.isAuthenticated) {
           return const AuthScreen();
         }
-        return AuthenticatedWorkspace(user: session.user!);
+        final user = session.user!;
+        if (!user.consentsComplete) return ConsentScreen(user: user);
+        return AuthenticatedWorkspace(user: user);
       },
+    );
+  }
+}
+
+class SessionUnavailableScreen extends StatelessWidget {
+  const SessionUnavailableScreen({
+    super.key,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final ApiException error;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return Scaffold(
+      body: EmptyState(
+        icon: Icons.wifi_off_outlined,
+        title: copy.sessionUnavailable,
+        message: '${copy.sessionUnavailableMessage}\n${error.supportMessage}',
+        action: ElevatedButton.icon(
+          key: const Key('retry-session'),
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: Text(copy.retry),
+        ),
+      ),
     );
   }
 }

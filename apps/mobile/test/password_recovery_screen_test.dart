@@ -136,7 +136,11 @@ class _RecordingAuthRepository implements AuthRepository {
   Future<AppUser> me() => throw UnimplementedError();
 
   @override
-  Future<void> recordConsent(String consentType) => throw UnimplementedError();
+  Future<void> recordConsent(
+    String consentType, {
+    String version = '1.0.0',
+  }) =>
+      throw UnimplementedError();
 
   @override
   Future<RegisterResult> register(RegisterInput input) =>

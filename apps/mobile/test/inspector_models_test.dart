@@ -11,11 +11,26 @@ void main() {
     expect(task.canSubmitReport, isTrue);
   });
 
-  test('creates the six required findings and computes the API score', () {
+  test('required findings start unrated and do not produce a score', () {
     final findings =
         List<InspectionFindingDraft>.of(requiredInspectionFindings);
+
+    expect(findings.every((finding) => !finding.isRated), isTrue);
+    expect(inspectionScore(findings), isNull);
+    expect(inspectionDraftIsComplete(findings), isFalse);
+  });
+
+  test('computes a score only after all findings are deliberately rated', () {
+    final findings = requiredInspectionFindings
+        .map((finding) => finding.copyWith(rating: 'PASS'))
+        .toList();
     findings[1] = findings[1].copyWith(rating: 'WATCH');
     findings[2] = findings[2].copyWith(rating: 'FAIL');
+    findings[1] = findings[1].copyWith(note: 'Monitor battery health.');
+    findings[2] = findings[2].copyWith(
+      note: 'Panel damage requires repair.',
+      photoStorageKey: 'inspection/photo.jpg',
+    );
 
     expect(findings.map((item) => item.category), [
       'ENGINE',
@@ -26,6 +41,7 @@ void main() {
       'INTERIOR',
     ]);
     expect(inspectionScore(findings), 81);
+    expect(inspectionDraftIsComplete(findings), isTrue);
   });
 }
 

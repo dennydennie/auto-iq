@@ -5,6 +5,7 @@ import 'package:autoiq_mobile/src/core/files/local_upload.dart';
 import 'package:autoiq_mobile/src/core/network/api_client.dart';
 import 'package:autoiq_mobile/src/models/inspector_models.dart';
 import 'package:autoiq_mobile/src/repositories/inspector_repository.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -36,7 +37,9 @@ void main() {
         await repository.uploadFindingPhoto(taskId: 'task-1', file: file);
     await repository.submitReport(
       taskId: 'task-1',
-      findings: requiredInspectionFindings,
+      findings: requiredInspectionFindings
+          .map((finding) => finding.copyWith(rating: 'PASS'))
+          .toList(growable: false),
       inspectorNote: 'Safe with minor wear.',
       roadworthy: true,
     );
@@ -92,11 +95,16 @@ class _InspectorApiClient extends Fake implements ApiClient {
   }
 
   @override
-  Future<void> uploadBinary({
+  Future<void> uploadStream({
     required String url,
-    required Uint8List bytes,
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
     required String contentType,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
   }) async {
+    final bytes = await openRead().expand((chunk) => chunk).toList();
+    expect(bytes, hasLength(contentLength));
     uploadedUrl = url;
   }
 }

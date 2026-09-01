@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { DataSource, type EntityManager } from "typeorm";
 import { VehicleEntity } from "../../db/entity/vehicle.entity";
 import { VehiclePricingEntity } from "../../db/entity/vehicle-pricing.entity";
@@ -57,7 +61,9 @@ export class ListingsService {
     });
 
     return {
-      data: await Promise.all(listings.map((listing) => this.toSummaryDto(listing))),
+      data: await Promise.all(
+        listings.map((listing) => this.toSummaryDto(listing)),
+      ),
       meta: {
         page,
         limit,
@@ -71,7 +77,12 @@ export class ListingsService {
     await this.accessService.assertSellerReady(userId);
     await this.validateReferenceOptions(body);
     const listingId = await this.dataSource.transaction(async (manager) => {
-      const slug = await generateListingSlug(manager, body.year, body.make, body.model);
+      const slug = await generateListingSlug(
+        manager,
+        body.year,
+        body.make,
+        body.model,
+      );
       const vehicle = manager.create(VehicleEntity, {
         sellerUserId: userId,
         slug,
@@ -118,21 +129,38 @@ export class ListingsService {
     return this.toDetailDto(listing);
   }
 
-  async upsertSpecs(userId: string, listingId: string, body: UpsertListingSpecsDto) {
-    const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
+  async upsertSpecs(
+    userId: string,
+    listingId: string,
+    body: UpsertListingSpecsDto,
+  ) {
+    const listing = await this.accessService.getOwnedEditableListing(
+      userId,
+      listingId,
+    );
     await this.validateReferenceOptions(body);
-    const specs = listing.specs ?? this.specsRepository.create({ vehicleId: listing.id });
+    const specs =
+      listing.specs ?? this.specsRepository.create({ vehicleId: listing.id });
     Object.assign(specs, normalizeSpecs(body));
     await this.specsRepository.save(specs);
     return this.detail(userId, listingId);
   }
 
-  async upsertPricing(userId: string, listingId: string, body: UpsertListingPricingDto) {
-    const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
-    const pricing = listing.pricing ?? this.pricingRepository.create({
-      vehicleId: listing.id,
-      currency: "USD",
-    });
+  async upsertPricing(
+    userId: string,
+    listingId: string,
+    body: UpsertListingPricingDto,
+  ) {
+    const listing = await this.accessService.getOwnedEditableListing(
+      userId,
+      listingId,
+    );
+    const pricing =
+      listing.pricing ??
+      this.pricingRepository.create({
+        vehicleId: listing.id,
+        currency: "USD",
+      });
     pricing.askPriceUsd = body.askPriceUsd.toFixed(2);
     pricing.negotiable = body.negotiable ?? false;
     pricing.currency = "USD";
@@ -140,8 +168,15 @@ export class ListingsService {
     return this.detail(userId, listingId);
   }
 
-  async updateDisclosure(userId: string, listingId: string, body: UpsertListingDisclosureDto) {
-    const listing = await this.accessService.getOwnedEditableListing(userId, listingId);
+  async updateDisclosure(
+    userId: string,
+    listingId: string,
+    body: UpsertListingDisclosureDto,
+  ) {
+    const listing = await this.accessService.getOwnedEditableListing(
+      userId,
+      listingId,
+    );
     listing.sellerDisclosure = body.sellerDisclosure.trim();
     await this.vehicleRepository.save(listing);
     return this.detail(userId, listingId);
@@ -149,31 +184,41 @@ export class ListingsService {
 
   async submit(userId: string, listingId: string, body: SubmitListingDto) {
     const listing = await this.accessService.getOwnedListing(userId, listingId);
-    const nextStatus = this.listingStateService.transitionForSeller(listing.status, "SUBMITTED");
+    const nextStatus = this.listingStateService.transitionForSeller(
+      listing.status,
+      "SUBMITTED",
+    );
     listing.sellerDisclosure = body.sellerDisclosure.trim();
     this.wizardValidator.validateForSubmit(listing, listing.sellerDisclosure);
     listing.status = nextStatus;
     listing.submittedAt = new Date();
     await this.dataSource.transaction(async (manager) => {
       await manager.save(VehicleEntity, listing);
-      await manager.save(VehicleStatusHistoryEntity, this.vehicleStatusHistoryRepository.create({
-        vehicleId: listing.id,
-        status: nextStatus,
-        actorId: userId,
-        actorRole: "SELLER",
-        note: "Listing submitted for review",
-      }));
+      await manager.save(
+        VehicleStatusHistoryEntity,
+        this.vehicleStatusHistoryRepository.create({
+          vehicleId: listing.id,
+          status: nextStatus,
+          actorId: userId,
+          actorRole: "SELLER",
+          note: "Listing submitted for review",
+        }),
+      );
     });
     const admins = await this.userRepository.findByRole("ADMIN");
-    await Promise.all(admins.map((admin) => this.notificationService.notifyUser({
-      userId: admin.id,
-      email: admin.email,
-      phone: admin.phone,
-      template: "LISTING_SUBMITTED",
-      idempotencyKeyBase: `listing:${listing.id}:submitted:${admin.id}`,
-      payload: { listingId: listing.id, slug: listing.slug },
-      channels: ["EMAIL"],
-    })));
+    await Promise.all(
+      admins.map((admin) =>
+        this.notificationService.notifyUser({
+          userId: admin.id,
+          email: admin.email,
+          phone: admin.phone,
+          template: "LISTING_SUBMITTED",
+          idempotencyKeyBase: `listing:${listing.id}:submitted:${admin.id}`,
+          payload: { listingId: listing.id, slug: listing.slug },
+          channels: ["EMAIL"],
+        }),
+      ),
+    );
     await this.auditService.record({
       action: "notification.listing_submitted",
       actorUserId: userId,
@@ -186,14 +231,19 @@ export class ListingsService {
 
   async timeline(userId: string, listingId: string) {
     await this.accessService.assertSellerReady(userId);
-    const listing = await this.vehicleRepository.findOwnedTimeline(listingId, userId);
+    const listing = await this.vehicleRepository.findOwnedTimeline(
+      listingId,
+      userId,
+    );
     if (!listing) {
       throw new NotFoundException({
         code: "RESOURCE_NOT_FOUND",
         message: "Listing not found",
       });
     }
-    const history = await this.vehicleStatusHistoryRepository.findByVehicleId(listing.id);
+    const history = await this.vehicleStatusHistoryRepository.findByVehicleId(
+      listing.id,
+    );
     return {
       listingId,
       history: history.map((entry) => ({
@@ -218,7 +268,9 @@ export class ListingsService {
       model: listing.specs.model,
       bodyType: listing.specs.bodyType,
       askPriceUsd: Number(listing.pricing.askPriceUsd),
-      coverImageUrl: cover ? await this.storageService.getDisplayUrl(cover.storageKey) : null,
+      coverImageUrl: cover
+        ? await this.storageService.getDisplayUrl(cover.storageKey)
+        : null,
       viewCount: listing.viewCount,
       viewingCount: listing.viewingCount,
       quoteCount: listing.quoteCount,
@@ -231,18 +283,22 @@ export class ListingsService {
     await Promise.all([
       this.referenceDataService.assertActive("BODY_TYPE", [body.bodyType]),
       this.referenceDataService.assertActive("FUEL_TYPE", [body.fuelType]),
-      this.referenceDataService.assertActive("TRANSMISSION_TYPE", [body.transmission]),
+      this.referenceDataService.assertActive("TRANSMISSION_TYPE", [
+        body.transmission,
+      ]),
       this.referenceDataService.assertActive("DRIVE_TYPE", [body.driveType]),
-      this.referenceDataService.assertActive("CONDITION_GRADE", [body.condition]),
+      this.referenceDataService.assertActive("CONDITION_GRADE", [
+        body.condition,
+      ]),
     ]);
   }
 
   private async toDetailDto(listing: VehicleEntity) {
-    const images = [...(listing.images ?? [])].sort((left, right) =>
-      left.createdAt.getTime() - right.createdAt.getTime(),
+    const images = [...(listing.images ?? [])].sort(
+      (left, right) => left.position - right.position,
     );
-    const documents = [...(listing.documents ?? [])].sort((left, right) =>
-      left.createdAt.getTime() - right.createdAt.getTime(),
+    const documents = [...(listing.documents ?? [])].sort(
+      (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
     );
 
     return {
@@ -278,13 +334,16 @@ export class ListingsService {
         negotiable: listing.pricing.negotiable,
         currency: "USD" as const,
       },
-      images: await Promise.all(images.map(async (image) => ({
-        id: image.id,
-        slot: image.slot,
-        url: await this.storageService.getDisplayUrl(image.storageKey),
-        isCover: image.isCover,
-        uploadedAt: image.createdAt.toISOString(),
-      }))),
+      images: await Promise.all(
+        images.map(async (image) => ({
+          id: image.id,
+          slot: image.slot,
+          url: await this.storageService.getDisplayUrl(image.storageKey),
+          isCover: image.isCover,
+          position: image.position,
+          uploadedAt: image.createdAt.toISOString(),
+        })),
+      ),
       documents: documents.map((document) => ({
         id: document.id,
         documentType: document.documentType,
@@ -309,7 +368,9 @@ function normalizeSpecs(body: UpsertListingSpecsDto) {
     mileageKm: body.mileageKm,
     condition: body.condition,
     hasAccidentHistory: body.hasAccidentHistory,
-    accidentNote: body.hasAccidentHistory ? body.accidentNote?.trim() || null : null,
+    accidentNote: body.hasAccidentHistory
+      ? body.accidentNote?.trim() || null
+      : null,
   };
 }
 
@@ -322,12 +383,20 @@ function slugify(year: number, make: string, model: string): string {
   return stem.length > 0 ? stem : `${year}`;
 }
 
-async function generateListingSlug(manager: EntityManager, year: number, make: string, model: string): Promise<string> {
+async function generateListingSlug(
+  manager: EntityManager,
+  year: number,
+  make: string,
+  model: string,
+): Promise<string> {
   const stem = slugify(year, make, model);
 
   for (let attempt = 0; attempt < 12; attempt++) {
     const slug = attempt === 0 ? stem : `${stem}-${attempt.toString(36)}`;
-    const existing = await manager.findOne(VehicleEntity, { where: { slug }, select: { id: true } });
+    const existing = await manager.findOne(VehicleEntity, {
+      where: { slug },
+      select: { id: true },
+    });
     if (!existing) {
       return slug;
     }

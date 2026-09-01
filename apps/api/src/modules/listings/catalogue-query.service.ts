@@ -27,9 +27,17 @@ export class CatalogueQueryService {
       .createQueryBuilder()
       .from(VehicleEntity, "vehicle")
       .innerJoin(VehicleSpecsEntity, "specs", "specs.vehicle_id = vehicle.id")
-      .innerJoin(VehiclePricingEntity, "pricing", "pricing.vehicle_id = vehicle.id")
+      .innerJoin(
+        VehiclePricingEntity,
+        "pricing",
+        "pricing.vehicle_id = vehicle.id",
+      )
       .innerJoin(UserEntity, "seller", "seller.id = vehicle.seller_user_id")
-      .leftJoin(VehicleImageEntity, "cover", "cover.vehicle_id = vehicle.id AND cover.is_cover = true")
+      .leftJoin(
+        VehicleImageEntity,
+        "cover",
+        "cover.vehicle_id = vehicle.id AND cover.is_cover = true",
+      )
       .leftJoin(
         InspectionReportEntity,
         "report",
@@ -37,14 +45,19 @@ export class CatalogueQueryService {
       )
       .where("vehicle.status = 'PUBLISHED'");
 
+    applySearch(builder, query.query);
     if (query.bodyType?.length) {
-      builder.andWhere("specs.body_type IN (:...bodyTypes)", { bodyTypes: query.bodyType });
+      builder.andWhere("specs.body_type IN (:...bodyTypes)", {
+        bodyTypes: query.bodyType,
+      });
     }
     if (query.make?.length) {
       builder.andWhere("specs.make IN (:...makes)", { makes: query.make });
     }
     if (query.model) {
-      builder.andWhere("specs.model ILIKE :model", { model: `%${query.model.trim()}%` });
+      builder.andWhere("specs.model ILIKE :model", {
+        model: `%${query.model.trim()}%`,
+      });
     }
     if (query.yearMin !== undefined) {
       builder.andWhere("specs.year >= :yearMin", { yearMin: query.yearMin });
@@ -53,28 +66,44 @@ export class CatalogueQueryService {
       builder.andWhere("specs.year <= :yearMax", { yearMax: query.yearMax });
     }
     if (query.priceMin !== undefined) {
-      builder.andWhere("pricing.ask_price_usd >= :priceMin", { priceMin: query.priceMin });
+      builder.andWhere("pricing.ask_price_usd >= :priceMin", {
+        priceMin: query.priceMin,
+      });
     }
     if (query.priceMax !== undefined) {
-      builder.andWhere("pricing.ask_price_usd <= :priceMax", { priceMax: query.priceMax });
+      builder.andWhere("pricing.ask_price_usd <= :priceMax", {
+        priceMax: query.priceMax,
+      });
     }
     if (query.mileageMin !== undefined) {
-      builder.andWhere("specs.mileage_km >= :mileageMin", { mileageMin: query.mileageMin });
+      builder.andWhere("specs.mileage_km >= :mileageMin", {
+        mileageMin: query.mileageMin,
+      });
     }
     if (query.mileageMax !== undefined) {
-      builder.andWhere("specs.mileage_km <= :mileageMax", { mileageMax: query.mileageMax });
+      builder.andWhere("specs.mileage_km <= :mileageMax", {
+        mileageMax: query.mileageMax,
+      });
     }
     if (query.transmission) {
-      builder.andWhere("specs.transmission = :transmission", { transmission: query.transmission });
+      builder.andWhere("specs.transmission = :transmission", {
+        transmission: query.transmission,
+      });
     }
     if (query.fuelType) {
-      builder.andWhere("specs.fuel_type = :fuelType", { fuelType: query.fuelType });
+      builder.andWhere("specs.fuel_type = :fuelType", {
+        fuelType: query.fuelType,
+      });
     }
     if (query.city) {
-      builder.andWhere("seller.city ILIKE :city", { city: `%${query.city.trim()}%` });
+      builder.andWhere("seller.city ILIKE :city", {
+        city: `%${query.city.trim()}%`,
+      });
     }
     if (query.bisellVerified !== undefined) {
-      builder.andWhere(query.bisellVerified ? "report.id IS NOT NULL" : "report.id IS NULL");
+      builder.andWhere(
+        query.bisellVerified ? "report.id IS NOT NULL" : "report.id IS NULL",
+      );
     }
 
     const sortColumn = resolveSortColumn(sortBy);
@@ -123,15 +152,19 @@ export class CatalogueQueryService {
         negotiable: Boolean(row.negotiable),
         city: row.city,
         coverImageStorageKey: row.cover_storage_key,
-        inspectionScore: row.inspection_score === null ? null : Number(row.inspection_score),
+        inspectionScore:
+          row.inspection_score === null ? null : Number(row.inspection_score),
         publishedAt: new Date(row.published_at),
       })),
       meta: {
         hasMore,
-        nextCursor: hasMore && last ? encodeCursor({
-          sortValue: cursorSortValue(last, sortBy),
-          id: last.id,
-        }) : null,
+        nextCursor:
+          hasMore && last
+            ? encodeCursor({
+                sortValue: cursorSortValue(last, sortBy),
+                id: last.id,
+              })
+            : null,
       },
     };
   }
@@ -236,13 +269,39 @@ function resolveSortColumn(sortBy: CatalogueQueryDto["sortBy"]) {
     case "year":
       return "specs.year";
     case "inspectionScore":
-      return "report.overall_score";
+      return "COALESCE(report.overall_score, -1)";
     default:
       return "vehicle.published_at";
   }
 }
 
-function cursorSortValue(row: CatalogueRow, sortBy: CatalogueQueryDto["sortBy"]) {
+function applySearch(
+  builder: {
+    andWhere: (sql: string, values: Record<string, string>) => unknown;
+  },
+  value: string | undefined,
+) {
+  const term = value?.trim();
+  if (!term) return;
+  const search = `%${escapeLike(term)}%`;
+  builder.andWhere(
+    `(specs.make ILIKE :search ESCAPE '\\' OR ` +
+      `specs.model ILIKE :search ESCAPE '\\' OR ` +
+      `CAST(specs.year AS text) ILIKE :search ESCAPE '\\' OR ` +
+      `seller.city ILIKE :search ESCAPE '\\' OR ` +
+      `vehicle.slug ILIKE :search ESCAPE '\\')`,
+    { search },
+  );
+}
+
+function escapeLike(value: string) {
+  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
+}
+
+function cursorSortValue(
+  row: CatalogueRow,
+  sortBy: CatalogueQueryDto["sortBy"],
+) {
   switch (sortBy) {
     case "askPriceUsd":
       return Number(row.ask_price_usd);
@@ -266,7 +325,9 @@ function decodeCursor(value: string | undefined): CursorPayload | null {
     return null;
   }
   try {
-    return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as CursorPayload;
+    return JSON.parse(
+      Buffer.from(value, "base64url").toString("utf8"),
+    ) as CursorPayload;
   } catch {
     return null;
   }

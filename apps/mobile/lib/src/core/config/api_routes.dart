@@ -67,8 +67,17 @@ class ApiRoutes {
   static String listingImages(String listingId) =>
       '$_base/listings/$listingId/images';
 
+  static String listingImage(String listingId, String imageId) =>
+      '${listingImages(listingId)}/$imageId';
+
+  static String listingImageOrder(String listingId) =>
+      '${listingImages(listingId)}/order';
+
   static String listingDocuments(String listingId) =>
       '$_base/listings/$listingId/documents';
+
+  static String listingDocument(String listingId, String documentId) =>
+      '${listingDocuments(listingId)}/$documentId';
 
   static String listingSubmit(String listingId) =>
       '$_base/listings/$listingId/submit';

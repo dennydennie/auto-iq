@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import '../../theme/app_tokens.dart';
 import '../../widgets/car_silhouette.dart';
 
 class VehicleImageView extends StatelessWidget {
@@ -9,18 +10,20 @@ class VehicleImageView extends StatelessWidget {
     super.key,
     required this.imageUrl,
     this.height = 180,
+    this.semanticLabel,
   });
 
   final String? imageUrl;
   final double height;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     if (imageUrl == null || imageUrl!.isEmpty) {
-      return _fallback();
+      return _semantic(_fallback());
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+    return _semantic(ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadii.lg),
       child: CachedNetworkImage(
         imageUrl: imageUrl!,
         height: height,
@@ -30,10 +33,12 @@ class VehicleImageView extends StatelessWidget {
         placeholder: (_, __) => Container(
           height: height,
           color: AppColors.ink100,
-          child: const Center(child: CircularProgressIndicator()),
+          child: const Center(
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _fallback() {
@@ -41,11 +46,19 @@ class VehicleImageView extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: AppColors.ink900,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
       child: const Center(
         child: CarSilhouette(type: CarType.suv, width: 160, showShadow: false),
       ),
     );
+  }
+
+  Widget _semantic(Widget child) {
+    final label = semanticLabel;
+    if (label == null || label.trim().isEmpty) {
+      return ExcludeSemantics(child: child);
+    }
+    return Semantics(image: true, label: label, child: child);
   }
 }

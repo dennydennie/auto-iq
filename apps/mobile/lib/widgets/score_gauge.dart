@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../src/core/i18n/app_localizations.dart';
 import '../theme/app_colors.dart';
 
 class ScoreGauge extends StatelessWidget {
@@ -12,10 +13,23 @@ class ScoreGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(painter: _GaugePainter(score: score, light: light)),
+    final boundedScore = score.clamp(0, 100);
+    final semanticLabel = AutoIqLocalizations.of(context).formatText(
+      'inspectionScoreLabel',
+      {'score': boundedScore},
+    );
+    return Semantics(
+      image: true,
+      label: semanticLabel,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+            painter: _GaugePainter(score: boundedScore, light: light),
+          ),
+        ),
+      ),
     );
   }
 }

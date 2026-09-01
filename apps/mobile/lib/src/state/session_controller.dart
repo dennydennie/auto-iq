@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/network/api_exception.dart';
+import '../core/consent/consent_policy.dart';
 import '../models/app_user.dart';
 import '../models/reference_data.dart';
 import '../repositories/auth_repository.dart';
@@ -21,6 +22,7 @@ class SessionController extends ChangeNotifier {
   bool _booting = true;
   bool _busy = false;
   String? _errorMessage;
+  ApiException? _bootstrapError;
 
   AppUser? get user => _user;
   ReferenceDataSet? get referenceData => _referenceData;
@@ -28,21 +30,20 @@ class SessionController extends ChangeNotifier {
   bool get isBusy => _busy;
   bool get isAuthenticated => _user != null;
   String? get errorMessage => _errorMessage;
+  ApiException? get bootstrapError => _bootstrapError;
+  bool get isSessionUnavailable => !_booting && _bootstrapError != null;
+  List<String> get requiredConsents =>
+      requiredConsentsForRoles(_user?.roles ?? const []);
 
   Future<void> bootstrap() async {
     _booting = true;
+    _bootstrapError = null;
     notifyListeners();
     try {
       await _hydrate();
     } on ApiException catch (error) {
-      // 401 → not logged in → routed to auth screen with no error banner.
-      // Anything else (network, 5xx) is treated as "unknown session, offline"
-      // — surface a banner so the user knows why they were bounced back to
-      // the auth screen.
       if (!error.isUnauthorized) {
-        _errorMessage = error.code == 'NETWORK_ERROR'
-            ? "We can't reach the server. Check your connection and try again."
-            : error.message;
+        _bootstrapError = error;
       }
       _user = null;
       _referenceData = null;
@@ -88,14 +89,17 @@ class SessionController extends ChangeNotifier {
     });
   }
 
-  Future<void> completeRequiredConsents() async {
+  Future<void> completeRequiredConsents(Set<String> acceptedConsents) async {
     final user = _user;
-    if (user == null) {
-      return;
+    if (user == null) return;
+    final consents = requiredConsentsForRoles(user.roles);
+    if (!consents.every(acceptedConsents.contains)) {
+      throw ApiException(
+        message: 'Accept every required agreement before continuing.',
+        statusCode: 400,
+        code: 'CONSENT_REQUIRED',
+      );
     }
-    final consents = user.isSeller
-        ? const ['TERMS', 'PRIVACY', 'SELLER_RULES', 'NO_SIDE_DEAL']
-        : const ['TERMS', 'PRIVACY', 'BUYER_RULES', 'NO_SIDE_DEAL'];
     await _runBusy(() async {
       for (final consent in consents) {
         await _authRepository.recordConsent(consent);
@@ -116,6 +120,7 @@ class SessionController extends ChangeNotifier {
     // than being bounced back to the auth screen because the API blipped.
     final loadedUser = await _authRepository.me();
     _user = loadedUser;
+    _bootstrapError = null;
     _errorMessage = null;
     try {
       _referenceData = await _referenceRepository.load();

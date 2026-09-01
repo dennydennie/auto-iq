@@ -33,8 +33,8 @@ export class PublicListingMapper {
     report: InspectionReportEntity | null,
     currentViewCount: number,
   ) {
-    const images = [...(listing.images ?? [])].sort((left, right) =>
-      left.createdAt.getTime() - right.createdAt.getTime(),
+    const images = [...(listing.images ?? [])].sort(
+      (left, right) => left.position - right.position,
     );
 
     return {
@@ -55,16 +55,22 @@ export class PublicListingMapper {
       sellerDisclosure: listing.sellerDisclosure,
       city: listing.seller.city,
       coverImageUrl: await this.coverImageUrl(images),
-      images: await Promise.all(images.map(async (image) => ({
-        id: image.id,
-        slot: image.slot,
-        url: await this.storageService.getDisplayUrl(image.storageKey),
-        isCover: image.isCover,
-        uploadedAt: image.createdAt.toISOString(),
-      }))),
-      inspectionSummary: report ? this.toInspectionSummaryDto(listing.id, report) : null,
+      images: await Promise.all(
+        images.map(async (image) => ({
+          id: image.id,
+          slot: image.slot,
+          url: await this.storageService.getDisplayUrl(image.storageKey),
+          isCover: image.isCover,
+          position: image.position,
+          uploadedAt: image.createdAt.toISOString(),
+        })),
+      ),
+      inspectionSummary: report
+        ? this.toInspectionSummaryDto(listing.id, report)
+        : null,
       bisellVerified: Boolean(report),
-      publishedAt: listing.publishedAt?.toISOString() ?? new Date().toISOString(),
+      publishedAt:
+        listing.publishedAt?.toISOString() ?? new Date().toISOString(),
       daysListed: daysListed(listing.publishedAt),
       viewCount: currentViewCount,
     };
@@ -122,7 +128,9 @@ function daysListed(publishedAt: Date | null): number {
   return Math.max(0, Math.floor(elapsed / 86_400_000));
 }
 
-function buyerVisibleFindings(findings: InspectionFindingEntity[]): InspectionFindingEntity[] {
+function buyerVisibleFindings(
+  findings: InspectionFindingEntity[],
+): InspectionFindingEntity[] {
   const included = findings.filter((finding) => finding.includeInBuyerSummary);
   return included.length > 0 ? included : findings;
 }

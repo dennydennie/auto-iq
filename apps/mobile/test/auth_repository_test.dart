@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:autoiq_mobile/src/core/network/api_client.dart';
+import 'package:dio/dio.dart';
 import 'package:autoiq_mobile/src/repositories/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -180,6 +181,17 @@ class _RecordingApiClient implements ApiClient {
     required String url,
     required Uint8List bytes,
     required String contentType,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> uploadStream({
+    required String url,
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
+    required String contentType,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
   }) =>
       throw UnimplementedError();
 }

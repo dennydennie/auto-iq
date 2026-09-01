@@ -37,7 +37,7 @@ class InspectorRepository {
       ApiRoutes.inspectorPhotoPresign(taskId),
       {
         'contentType': file.fileType.contentType,
-        'contentLength': file.bytes.length,
+        'contentLength': file.length,
       },
       (json) => (json as Map).cast<String, dynamic>(),
       includeCsrf: true,
@@ -70,9 +70,10 @@ class InspectorRepository {
     LocalUpload file,
     Map<String, dynamic> presign,
   ) {
-    return _apiClient.uploadBinary(
+    return _apiClient.uploadStream(
       url: presign['uploadUrl']?.toString() ?? '',
-      bytes: file.bytes,
+      openRead: file.openRead,
+      contentLength: file.length,
       contentType: file.fileType.contentType,
     );
   }

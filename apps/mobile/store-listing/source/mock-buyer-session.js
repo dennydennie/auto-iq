@@ -1,6 +1,6 @@
 async (page) => {
   const apiOrigin = "https://api-production-af6d.up.railway.app";
-  const imageUrl = "http://127.0.0.1:7360/images/honda-vezel-hero.jpg";
+  const imageUrl = "http://127.0.0.1:7359/images/honda-vezel-hero.jpg";
   const listing = {
     id: "listing-vezel-1",
     slug: "2021-honda-vezel-hybrid",
@@ -26,6 +26,8 @@ async (page) => {
       roles: ["BUYER"],
       phoneVerified: true,
       emailVerified: true,
+      acceptedConsents: ["TERMS", "PRIVACY", "BUYER_RULES", "NO_SIDE_DEAL"],
+      consentsComplete: true,
       buyerProfile: {
         city: "Harare",
         vehiclePurpose: "FAMILY",
@@ -115,6 +117,15 @@ async (page) => {
       ],
       meta: { nextCursor: null, hasMore: false },
     },
+    "/api/v1/listings/facets/makes": [
+      { make: "Honda", count: 2 },
+      { make: "Toyota", count: 1 },
+    ],
+    "/api/v1/listings/facets/models": [
+      { make: "Honda", model: "Vezel Hybrid", count: 1 },
+      { make: "Honda", model: "Vezel RS", count: 1 },
+      { make: "Toyota", model: "Aqua", count: 1 },
+    ],
     "/api/v1/listings/listing-vezel-1": {
       ...listing,
       colour: "Midnight blue",

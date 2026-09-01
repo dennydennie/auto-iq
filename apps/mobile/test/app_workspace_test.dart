@@ -1,5 +1,6 @@
 import 'package:autoiq_mobile/src/app.dart';
 import 'package:autoiq_mobile/src/core/network/api_client.dart';
+import 'package:autoiq_mobile/src/core/network/api_exception.dart';
 import 'package:autoiq_mobile/src/models/app_user.dart';
 import 'package:autoiq_mobile/src/models/reference_data.dart';
 import 'package:autoiq_mobile/src/repositories/inspector_repository.dart';
@@ -76,6 +77,9 @@ class _InspectorApiClient extends Fake implements ApiClient {
 
 class _WorkspaceSession extends ChangeNotifier implements SessionController {
   @override
+  ApiException? get bootstrapError => null;
+
+  @override
   String? get errorMessage => null;
 
   @override
@@ -86,6 +90,12 @@ class _WorkspaceSession extends ChangeNotifier implements SessionController {
 
   @override
   bool get isBusy => false;
+
+  @override
+  bool get isSessionUnavailable => false;
+
+  @override
+  List<String> get requiredConsents => const [];
 
   @override
   ReferenceDataSet? get referenceData => null;
@@ -100,7 +110,7 @@ class _WorkspaceSession extends ChangeNotifier implements SessionController {
   void clearError() {}
 
   @override
-  Future<void> completeRequiredConsents() async {}
+  Future<void> completeRequiredConsents(Set<String> acceptedConsents) async {}
 
   @override
   Future<void> login({

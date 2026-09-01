@@ -3,6 +3,20 @@ import { validate } from "class-validator";
 import { CatalogueQueryDto } from "./catalogue.dto";
 
 describe("CatalogueQueryDto", () => {
+  it("accepts a bounded full-catalogue search query", async () => {
+    const query = plainToInstance(CatalogueQueryDto, { query: "Toyota Hilux" });
+
+    await expect(validate(query)).resolves.toHaveLength(0);
+  });
+
+  it("rejects one-character and oversized catalogue searches", async () => {
+    const short = plainToInstance(CatalogueQueryDto, { query: "x" });
+    const long = plainToInstance(CatalogueQueryDto, { query: "x".repeat(121) });
+
+    expect(JSON.stringify(await validate(short))).toContain("query");
+    expect(JSON.stringify(await validate(long))).toContain("query");
+  });
+
   it("accepts an inclusive year range", async () => {
     const query = plainToInstance(CatalogueQueryDto, {
       yearMin: "2018",

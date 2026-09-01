@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 
 import 'package:autoiq_mobile/src/core/network/api_client.dart';
+import 'package:autoiq_mobile/src/core/network/api_exception.dart';
+import 'package:autoiq_mobile/src/core/observability/mobile_analytics.dart';
 import 'package:autoiq_mobile/src/models/app_user.dart';
 import 'package:autoiq_mobile/src/models/listing_filters.dart';
 import 'package:autoiq_mobile/src/models/reference_data.dart';
 import 'package:autoiq_mobile/src/repositories/buyer_repository.dart';
 import 'package:autoiq_mobile/src/screens/buyer/buyer_home_screen.dart';
 import 'package:autoiq_mobile/src/state/session_controller.dart';
+import 'package:autoiq_mobile/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -185,6 +188,7 @@ void main() {
             value: _BuyerSession(),
           ),
           Provider<BuyerRepository>.value(value: BuyerRepository(apiClient)),
+          Provider<MobileAnalytics>.value(value: _NoopAnalytics()),
         ],
         child: const MaterialApp(home: BuyerHomeScreen()),
       ),
@@ -201,6 +205,47 @@ void main() {
     expect(modelDropdown.onChanged, isNotNull);
     expect(modelDropdown.items!.map(_itemText), contains('Hilux'));
   });
+
+  testWidgets('buyer catalogue card does not overflow at 320dp and 2x text',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionController>.value(
+            value: _BuyerSession(),
+          ),
+          Provider<BuyerRepository>.value(
+            value: BuyerRepository(_BuyerListingApiClient()),
+          ),
+          Provider<MobileAnalytics>.value(value: _NoopAnalytics()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.theme,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(2),
+            ),
+            child: child!,
+          ),
+          home: const BuyerHomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('2021 Honda Vezel Hybrid'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+class _NoopAnalytics implements MobileAnalytics {
+  @override
+  void record(
+    MobileFunnelEvent event, {
+    Map<String, Object?> attributes = const {},
+  }) {}
 }
 
 Widget _filterHarness({
@@ -338,7 +383,39 @@ class _BuyerApiClient extends Fake implements ApiClient {
   }) async {}
 }
 
+class _BuyerListingApiClient extends _BuyerApiClient {
+  @override
+  dynamic _responseFor(String path) {
+    if (path == '/api/v1/listings') {
+      return {
+        'data': [
+          {
+            'id': 'listing-1',
+            'slug': '2021-honda-vezel-hybrid',
+            'year': 2021,
+            'make': 'Honda',
+            'model': 'Vezel Hybrid',
+            'bodyType': 'SUV',
+            'askPriceUsd': 19500,
+            'negotiable': true,
+            'city': 'Harare',
+            'coverImageUrl': null,
+            'bisellVerified': true,
+            'inspectionScore': 91,
+            'daysListed': 4,
+          },
+        ],
+        'meta': {'nextCursor': null, 'hasMore': false},
+      };
+    }
+    return super._responseFor(path);
+  }
+}
+
 class _BuyerSession extends ChangeNotifier implements SessionController {
+  @override
+  ApiException? get bootstrapError => null;
+
   @override
   String? get errorMessage => null;
 
@@ -350,6 +427,12 @@ class _BuyerSession extends ChangeNotifier implements SessionController {
 
   @override
   bool get isBusy => false;
+
+  @override
+  bool get isSessionUnavailable => false;
+
+  @override
+  List<String> get requiredConsents => const [];
 
   @override
   ReferenceDataSet? get referenceData => null;
@@ -376,7 +459,7 @@ class _BuyerSession extends ChangeNotifier implements SessionController {
   void clearError() {}
 
   @override
-  Future<void> completeRequiredConsents() async {}
+  Future<void> completeRequiredConsents(Set<String> acceptedConsents) async {}
 
   @override
   Future<void> login({

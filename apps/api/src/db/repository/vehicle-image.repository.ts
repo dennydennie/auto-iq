@@ -7,7 +7,10 @@ import { AbstractRepository } from "./abstract.repository";
 
 @Injectable()
 export class VehicleImageRepository extends AbstractRepository<VehicleImageEntity> {
-  constructor(@InjectRepository(VehicleImageEntity) repository: Repository<VehicleImageEntity>) {
+  constructor(
+    @InjectRepository(VehicleImageEntity)
+    repository: Repository<VehicleImageEntity>,
+  ) {
     super(repository);
   }
 
@@ -15,7 +18,10 @@ export class VehicleImageRepository extends AbstractRepository<VehicleImageEntit
     return this.repository.find({ where: { vehicleId } });
   }
 
-  findByVehicleIdAndSlot(vehicleId: string, slot: ImageSlot): Promise<VehicleImageEntity | null> {
+  findByVehicleIdAndSlot(
+    vehicleId: string,
+    slot: ImageSlot,
+  ): Promise<VehicleImageEntity | null> {
     return this.repository.findOne({ where: { vehicleId, slot } });
   }
 
@@ -26,5 +32,13 @@ export class VehicleImageRepository extends AbstractRepository<VehicleImageEntit
       .set({ isCover: false })
       .where("vehicle_id = :vehicleId AND is_cover = true", { vehicleId })
       .execute();
+  }
+
+  remove(image: VehicleImageEntity): Promise<VehicleImageEntity> {
+    return this.repository.remove(image);
+  }
+
+  saveAll(images: VehicleImageEntity[]): Promise<VehicleImageEntity[]> {
+    return this.repository.save(images);
   }
 }

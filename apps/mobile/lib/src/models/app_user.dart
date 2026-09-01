@@ -92,7 +92,10 @@ class AppUser {
     required this.city,
     required this.buyerProfile,
     required this.sellerProfile,
-  });
+    this.acceptedConsents = const [],
+    bool? consentsComplete,
+  }) : consentsComplete =
+            consentsComplete ?? sellerProfile?.consentsComplete ?? false;
 
   final String id;
   final String fullName;
@@ -105,6 +108,8 @@ class AppUser {
   final String city;
   final BuyerProfile? buyerProfile;
   final SellerProfile? sellerProfile;
+  final List<String> acceptedConsents;
+  final bool consentsComplete;
 
   bool get isBuyer => roles.contains('BUYER');
   bool get isSeller => roles.contains('SELLER');
@@ -113,21 +118,6 @@ class AppUser {
   List<String> get mobileRoles => const ['BUYER', 'SELLER', 'INSPECTOR']
       .where((role) => roles.contains(role))
       .toList(growable: false);
-
-  /// True when the account has captured all consents required for its role.
-  ///
-  /// NOTE: buyer consent is currently short-circuited to `true` because the
-  /// backend does not yet return a `consentsComplete` flag on `BuyerProfile`.
-  /// When the backend adds it, propagate through `BuyerProfile.consentsComplete`
-  /// and drop this fallback. Silently returning `true` here is fine for MVP
-  /// where consent is captured at registration via the accepted-rules
-  /// checkbox — but before shipping to app stores, wire this up properly.
-  bool get consentsComplete {
-    if (isSeller) {
-      return sellerProfile?.consentsComplete ?? false;
-    }
-    return true;
-  }
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     final buyerProfileJson = json['buyerProfile'];
@@ -158,6 +148,8 @@ class AppUser {
               ? SellerProfile.fromJson(
                   sellerProfileJson.cast<String, dynamic>())
               : null,
+      acceptedConsents: asStringList(json, 'acceptedConsents'),
+      consentsComplete: json['consentsComplete'] == true,
     );
   }
 }

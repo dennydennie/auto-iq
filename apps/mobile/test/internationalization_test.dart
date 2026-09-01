@@ -4,6 +4,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('production locale policy does not expose incomplete previews', () {
+    expect(AutoIqLocalizations.productionLocales, const [Locale('en', 'ZW')]);
+    expect(AutoIqLocalizations.previewLocales, contains(const Locale('ar')));
+    expect(
+      AutoIqLocalizations.lookup(const Locale('sn', 'ZW'))
+          .text('quoteRequestTitle'),
+      'Request a quote',
+    );
+  });
+
   test('loads Shona copy and ICU plural messages', () {
     final copy = AutoIqLocalizations.lookup(const Locale('sn', 'ZW'));
     expect(copy.browse, 'Tsvaga');

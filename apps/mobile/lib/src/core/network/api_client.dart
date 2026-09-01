@@ -187,6 +187,22 @@ class ApiClient {
     required Uint8List bytes,
     required String contentType,
   }) async {
+    return uploadStream(
+      url: url,
+      openRead: () => Stream.value(bytes),
+      contentLength: bytes.length,
+      contentType: contentType,
+    );
+  }
+
+  Future<void> uploadStream({
+    required String url,
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
+    required String contentType,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     final client = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 30),
@@ -194,21 +210,53 @@ class ApiClient {
         sendTimeout: const Duration(seconds: 60),
       ),
     );
-    final response = await client.put<dynamic>(
-      url,
-      data: Stream.fromIterable([bytes]),
-      options: Options(
-        headers: {
-          'Content-Type': contentType,
-          'Content-Length': bytes.length,
-        },
-        validateStatus: (status) => status != null && status < 500,
-      ),
+    final response = await _uploadRequest(
+      client,
+      url: url,
+      openRead: openRead,
+      contentLength: contentLength,
+      contentType: contentType,
+      onSendProgress: onSendProgress,
+      cancelToken: cancelToken,
     );
     if ((response.statusCode ?? 500) >= 400) {
       throw ApiException(
         message: 'Upload failed with status ${response.statusCode}.',
         statusCode: response.statusCode ?? 500,
+      );
+    }
+  }
+
+  Future<Response<dynamic>> _uploadRequest(
+    Dio client, {
+    required String url,
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
+    required String contentType,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      return await client.put<dynamic>(
+        url,
+        data: openRead(),
+        onSendProgress: onSendProgress,
+        cancelToken: cancelToken,
+        options: Options(
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': contentLength,
+          },
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+    } on DioException catch (error) {
+      throw ApiException(
+        message: _networkErrorMessage(error),
+        statusCode: error.response?.statusCode ?? 0,
+        code: error.type == DioExceptionType.cancel
+            ? 'UPLOAD_CANCELLED'
+            : 'UPLOAD_FAILED',
       );
     }
   }
@@ -286,21 +334,7 @@ class ApiClient {
 
   static ApiException _toApiException(Response<dynamic>? response) {
     final statusCode = response?.statusCode ?? 500;
-    final data = response?.data;
-    if (data is Map<String, dynamic>) {
-      final message = data['message']?.toString() ??
-          data['error']?.toString() ??
-          'Request failed.';
-      return ApiException(
-        message: message,
-        statusCode: statusCode,
-        code: data['code']?.toString(),
-      );
-    }
-    return ApiException(
-      message: 'Request failed with status $statusCode.',
-      statusCode: statusCode,
-    );
+    return ApiException.fromResponse(response?.data, statusCode);
   }
 
   static Map<String, dynamic>? _clean(Map<String, dynamic>? queryParameters) {

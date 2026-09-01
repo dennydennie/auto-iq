@@ -1,4 +1,11 @@
-import { Body, Controller, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBody } from "@nestjs/swagger";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -13,7 +20,9 @@ import { ListingDocumentsService } from "./listing-documents.service";
 @UseGuards(AuthGuard, RolesGuard, CsrfGuard)
 @Roles("SELLER")
 export class ListingDocumentsController {
-  constructor(private readonly listingDocumentsService: ListingDocumentsService) {}
+  constructor(
+    private readonly listingDocumentsService: ListingDocumentsService,
+  ) {}
 
   @Post()
   @ApiBody({ type: RegisterDocumentDto })
@@ -23,5 +32,14 @@ export class ListingDocumentsController {
     @Body() body: RegisterDocumentDto,
   ) {
     return this.listingDocumentsService.register(user.id, listingId, body);
+  }
+
+  @Delete(":documentId")
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listingId") listingId: string,
+    @Param("documentId") documentId: string,
+  ) {
+    return this.listingDocumentsService.remove(user.id, listingId, documentId);
   }
 }

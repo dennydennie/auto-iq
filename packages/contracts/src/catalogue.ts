@@ -1,7 +1,16 @@
-import type { BodyType, FuelType, TransmissionType, DriveType } from './enums.js';
-import type { VehicleImageDto } from './storage.js';
-import type { InspectionFindingRating, InspectionCategory } from './enums.js';
-import type { CursorPaginationParams, CursorPaginatedResponse, SortDirection } from './pagination.js';
+import type {
+  BodyType,
+  FuelType,
+  TransmissionType,
+  DriveType,
+} from "./enums.js";
+import type { VehicleImageDto } from "./storage.js";
+import type { InspectionFindingRating, InspectionCategory } from "./enums.js";
+import type {
+  CursorPaginationParams,
+  CursorPaginatedResponse,
+  SortDirection,
+} from "./pagination.js";
 
 // ─── Public listing DTO (no private fields) ────────────────────────────────────
 
@@ -54,6 +63,8 @@ export interface PublicListingCardDto {
 // ─── Browse filters ────────────────────────────────────────────────────────────
 
 export interface CatalogueFilters extends CursorPaginationParams {
+  /** Full-catalogue search across make, model, year, city, and listing slug. */
+  query?: string;
   bodyType?: BodyType | BodyType[];
   make?: string | string[];
   model?: string;
@@ -67,7 +78,12 @@ export interface CatalogueFilters extends CursorPaginationParams {
   fuelType?: FuelType;
   city?: string;
   bisellVerified?: boolean;
-  sortBy?: 'publishedAt' | 'askPriceUsd' | 'mileageKm' | 'year' | 'inspectionScore';
+  sortBy?:
+    | "publishedAt"
+    | "askPriceUsd"
+    | "mileageKm"
+    | "year"
+    | "inspectionScore";
   sortDir?: SortDirection;
 }
 

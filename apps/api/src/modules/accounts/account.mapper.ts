@@ -2,8 +2,11 @@ import { BuyerProfileEntity } from "../../db/entity/buyer-profile.entity";
 import { SellerProfileEntity } from "../../db/entity/seller-profile.entity";
 import { UserConsentEntity } from "../../db/entity/user-consent.entity";
 import { UserEntity } from "../../db/entity/user.entity";
+import { hasRequiredConsents } from "./consent.requirements";
 
 export function toMeResponse(user: UserEntity) {
+  const roles = user.roles.map((role) => role.role);
+  const consents = user.consents ?? [];
   return {
     id: user.id,
     fullName: user.fullName,
@@ -11,17 +14,24 @@ export function toMeResponse(user: UserEntity) {
     phone: user.phone,
     city: user.city,
     status: user.status,
-    roles: user.roles.map((role) => role.role),
+    roles,
     phoneVerified: user.phoneVerified,
     emailVerified: user.emailVerified,
     buyerProfile: user.buyerProfile ? toBuyerProfile(user.buyerProfile) : null,
-    sellerProfile: user.sellerProfile ? toSellerProfile(user.sellerProfile) : null,
+    sellerProfile: user.sellerProfile
+      ? toSellerProfile(user.sellerProfile)
+      : null,
+    acceptedConsents: [...new Set(consents.map((item) => item.consentType))],
+    consentsComplete: hasRequiredConsents(roles, consents),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
 }
 
-export function toConsentsResponse(consents: UserConsentEntity[], complete: boolean) {
+export function toConsentsResponse(
+  consents: UserConsentEntity[],
+  complete: boolean,
+) {
   return {
     consents: consents.map((consent) => ({
       id: consent.id,

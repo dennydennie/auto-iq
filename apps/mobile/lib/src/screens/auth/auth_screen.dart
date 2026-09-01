@@ -3,11 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_tokens.dart';
 import '../../../widgets/bisell_logo.dart';
 import '../../core/config/app_config.dart';
+import '../../core/forms/form_validators.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
 import '../../state/session_controller.dart';
+import '../../widgets/adaptive_content.dart';
 import 'forgot_password_screen.dart';
 import 'otp_verification_screen.dart';
 
@@ -20,7 +24,8 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _loginFormKey = GlobalKey<FormState>();
-  final _registerFormKey = GlobalKey<FormState>();
+  final _registerDetailsFormKey = GlobalKey<FormState>();
+  final _registerSecurityFormKey = GlobalKey<FormState>();
 
   final _loginIdentifierController = TextEditingController();
   final _loginPasswordController = TextEditingController();
@@ -37,8 +42,10 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _showLoginPassword = false;
   bool _showRegisterPassword = false;
   bool _showRegisterConfirmPassword = false;
-  bool _acceptedRules = false;
   String _selectedRole = 'BUYER';
+  int _registerStep = 0;
+
+  AutoIqLocalizations get _copy => AutoIqLocalizations.of(context);
 
   @override
   void dispose() {
@@ -58,50 +65,48 @@ class _AuthScreenState extends State<AuthScreen> {
     final session = context.watch<SessionController>();
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        child: AdaptiveContent(
+          maxWidth: 520,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const BiSellLogo(size: 36),
-                  const SizedBox(height: 20),
-                  Text(
-                    _isRegisterMode ? 'Create your account' : 'Welcome back',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.ink900,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const BiSellLogo(size: 36),
+                const SizedBox(height: 20),
+                Text(
+                  _isRegisterMode
+                      ? _copy.text('createAccountTitle')
+                      : _copy.text('welcomeBack'),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink900,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isRegisterMode
-                        ? 'Sign up to browse verified vehicles or list your own.'
-                        : 'Sign in to continue where you left off.',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.ink500,
-                    ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _isRegisterMode
+                      ? _copy.text('registrationSubtitle')
+                      : _copy.text('signInSubtitle'),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.ink500,
                   ),
-                  const SizedBox(height: 24),
-                  _ModeSwitch(
-                    isRegisterMode: _isRegisterMode,
-                    onChanged: (value) =>
-                        setState(() => _isRegisterMode = value),
+                ),
+                const SizedBox(height: 24),
+                _ModeSwitch(
+                  isRegisterMode: _isRegisterMode,
+                  onChanged: (value) => setState(() => _isRegisterMode = value),
+                ),
+                const SizedBox(height: 16),
+                if (AppConfig.isInsecureRemote) const _InsecureRemoteBanner(),
+                if (session.errorMessage != null)
+                  _ErrorBanner(
+                    message: session.errorMessage!,
+                    onDismiss: session.clearError,
                   ),
-                  const SizedBox(height: 16),
-                  if (AppConfig.isInsecureRemote) const _InsecureRemoteBanner(),
-                  if (session.errorMessage != null)
-                    _ErrorBanner(
-                      message: session.errorMessage!,
-                      onDismiss: session.clearError,
-                    ),
-                  _isRegisterMode ? _buildRegisterCard() : _buildLoginCard(),
-                ],
-              ),
+                _isRegisterMode ? _buildRegisterCard() : _buildLoginCard(),
+              ],
             ),
           ),
         ),
@@ -121,9 +126,9 @@ class _AuthScreenState extends State<AuthScreen> {
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.username, AutofillHints.email],
             autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Email or phone',
-              hintText: 'you@example.com or +263...',
+            decoration: InputDecoration(
+              labelText: _copy.text('emailOrPhone'),
+              hintText: _copy.text('emailOrPhoneHint'),
             ),
             validator: _required,
           ),
@@ -134,14 +139,16 @@ class _AuthScreenState extends State<AuthScreen> {
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: _copy.text('password'),
               suffixIcon: IconButton(
                 icon: Icon(_showLoginPassword
                     ? Icons.visibility_off
                     : Icons.visibility),
                 onPressed: () =>
                     setState(() => _showLoginPassword = !_showLoginPassword),
-                tooltip: _showLoginPassword ? 'Hide password' : 'Show password',
+                tooltip: _showLoginPassword
+                    ? _copy.text('hidePassword')
+                    : _copy.text('showPassword'),
               ),
             ),
             onFieldSubmitted: (_) => _login(),
@@ -152,7 +159,7 @@ class _AuthScreenState extends State<AuthScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: _openForgotPassword,
-              child: const Text('Forgot password?'),
+              child: Text(_copy.text('forgotPassword')),
             ),
           ),
           const SizedBox(height: 4),
@@ -166,7 +173,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       width: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Sign in'),
+                  : Text(_copy.text('signIn')),
             ),
           ),
         ],
@@ -175,160 +182,230 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildRegisterCard() {
-    final password = _registerPasswordController.text;
-    final confirm = _registerConfirmPasswordController.text;
-    final passwordsMismatch = confirm.isNotEmpty && password != confirm;
+    return AnimatedSwitcher(
+      duration: AppMotion.standard,
+      child: _registerStep == 0
+          ? _buildRegistrationDetails()
+          : _buildRegistrationSecurity(),
+    );
+  }
 
+  Widget _buildRegistrationDetails() {
     return Form(
-      key: _registerFormKey,
-      autovalidateMode: AutovalidateMode.onUserInteraction,
+      key: _registerDetailsFormKey,
       child: Column(
+        key: const ValueKey('registration-details'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextFormField(
-            controller: _fullNameController,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.name],
-            decoration: const InputDecoration(labelText: 'Full name'),
-            validator: _required,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.email],
-            autocorrect: false,
-            decoration: const InputDecoration(labelText: 'Email'),
-            validator: _emailValidator,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.telephoneNumber],
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Phone',
-              helperText: 'E.164 format, e.g. +263771234567',
-            ),
-            validator: _phoneValidator,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _cityController,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.addressCity],
-            decoration: const InputDecoration(labelText: 'City'),
-            validator: _required,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _registerPasswordController,
-            obscureText: !_showRegisterPassword,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.newPassword],
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              labelText: 'Password',
-              helperText: 'Min 8 characters, mix of letters and numbers.',
-              suffixIcon: IconButton(
-                icon: Icon(_showRegisterPassword
-                    ? Icons.visibility_off
-                    : Icons.visibility),
-                onPressed: () => setState(
-                    () => _showRegisterPassword = !_showRegisterPassword),
-                tooltip:
-                    _showRegisterPassword ? 'Hide password' : 'Show password',
-              ),
-            ),
-            validator: _passwordValidator,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _registerConfirmPasswordController,
-            obscureText: !_showRegisterConfirmPassword,
-            textInputAction: TextInputAction.done,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              labelText: 'Confirm password',
-              errorText: passwordsMismatch ? "Passwords don't match" : null,
-              suffixIcon: IconButton(
-                icon: Icon(_showRegisterConfirmPassword
-                    ? Icons.visibility_off
-                    : Icons.visibility),
-                onPressed: () => setState(() => _showRegisterConfirmPassword =
-                    !_showRegisterConfirmPassword),
-                tooltip: _showRegisterConfirmPassword
-                    ? 'Hide password'
-                    : 'Show password',
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Confirm your password';
-              }
-              if (value != _registerPasswordController.text) {
-                return "Passwords don't match";
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedRole,
-            decoration: const InputDecoration(labelText: 'I want to'),
-            items: const [
-              DropdownMenuItem(
-                value: 'BUYER',
-                child: Text('Browse and buy vehicles'),
-              ),
-              DropdownMenuItem(
-                value: 'SELLER',
-                child: Text('List and sell a vehicle'),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() => _selectedRole = value);
-            },
-          ),
-          const SizedBox(height: 12),
-          CheckboxListTile(
-            value: _acceptedRules,
-            onChanged: (value) =>
-                setState(() => _acceptedRules = value ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'I agree to the platform rules and consent to verification and listing-related SMS/email.',
-              style: TextStyle(fontSize: 13),
-            ),
-          ),
-          const SizedBox(height: 8),
+          const _RegistrationProgress(step: 1),
+          const SizedBox(height: AppSpacing.md),
+          _fullNameField(),
+          const SizedBox(height: AppSpacing.sm),
+          _emailField(),
+          const SizedBox(height: AppSpacing.sm),
+          _phoneField(),
+          const SizedBox(height: AppSpacing.sm),
+          _cityField(),
+          const SizedBox(height: AppSpacing.sm),
+          _roleField(),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _busy || !_acceptedRules || passwordsMismatch
-                  ? null
-                  : _register,
-              child: _busy
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Create account'),
+              key: const Key('registration-next'),
+              onPressed: _openSecurityStep,
+              child: Text(_copy.text('continueAction')),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _fullNameField() => TextFormField(
+        controller: _fullNameController,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.name],
+        decoration: InputDecoration(labelText: _copy.fullName),
+        validator: (value) =>
+            FormValidators.requiredText(value, label: _copy.fullName),
+      );
+
+  Widget _emailField() => TextFormField(
+        controller: _emailController,
+        keyboardType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.email],
+        autocorrect: false,
+        decoration: InputDecoration(labelText: _copy.text('email')),
+        validator: FormValidators.email,
+      );
+
+  Widget _phoneField() => TextFormField(
+        controller: _phoneController,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.telephoneNumber],
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+        ],
+        decoration: InputDecoration(
+          labelText: _copy.text('phone'),
+          helperText: _copy.text('phoneHelper'),
+        ),
+        validator: FormValidators.zimbabwePhone,
+      );
+
+  Widget _cityField() => TextFormField(
+        controller: _cityController,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.addressCity],
+        decoration: InputDecoration(labelText: _copy.city),
+        validator: (value) =>
+            FormValidators.requiredText(value, label: _copy.city),
+      );
+
+  Widget _roleField() => DropdownButtonFormField<String>(
+        initialValue: _selectedRole,
+        isExpanded: true,
+        decoration: InputDecoration(labelText: _copy.text('rolePrompt')),
+        items: [
+          DropdownMenuItem(
+            value: 'BUYER',
+            child: Text(
+              _copy.text('buyerRoleOption'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          DropdownMenuItem(
+            value: 'SELLER',
+            child: Text(
+              _copy.text('sellerRoleOption'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+        onChanged: (value) {
+          if (value != null) setState(() => _selectedRole = value);
+        },
+      );
+
+  Widget _buildRegistrationSecurity() {
+    final password = _registerPasswordController.text;
+    final confirm = _registerConfirmPasswordController.text;
+    final mismatch = confirm.isNotEmpty && password != confirm;
+    return Form(
+      key: _registerSecurityFormKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      child: Column(
+        key: const ValueKey('registration-security'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _RegistrationProgress(step: 2),
+          const SizedBox(height: AppSpacing.md),
+          _passwordField(),
+          const SizedBox(height: AppSpacing.sm),
+          _confirmPasswordField(mismatch),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            _copy.text('agreementsAfterVerification'),
+            style: const TextStyle(color: AppColors.ink500, height: 1.4),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _registrationActions(mismatch),
+        ],
+      ),
+    );
+  }
+
+  Widget _passwordField() => TextFormField(
+        controller: _registerPasswordController,
+        obscureText: !_showRegisterPassword,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.newPassword],
+        onChanged: (_) => setState(() {}),
+        decoration: InputDecoration(
+          labelText: _copy.text('password'),
+          helperText: _copy.text('passwordHelper'),
+          suffixIcon: IconButton(
+            icon: Icon(_showRegisterPassword
+                ? Icons.visibility_off
+                : Icons.visibility),
+            onPressed: () => setState(
+              () => _showRegisterPassword = !_showRegisterPassword,
+            ),
+            tooltip: _showRegisterPassword
+                ? _copy.text('hidePassword')
+                : _copy.text('showPassword'),
+          ),
+        ),
+        validator: FormValidators.password,
+      );
+
+  Widget _confirmPasswordField(bool mismatch) => TextFormField(
+        controller: _registerConfirmPasswordController,
+        obscureText: !_showRegisterConfirmPassword,
+        textInputAction: TextInputAction.done,
+        onChanged: (_) => setState(() {}),
+        decoration: InputDecoration(
+          labelText: _copy.text('confirmPassword'),
+          errorText: mismatch ? _copy.text('passwordsMismatch') : null,
+          suffixIcon: IconButton(
+            icon: Icon(_showRegisterConfirmPassword
+                ? Icons.visibility_off
+                : Icons.visibility),
+            onPressed: () => setState(() {
+              _showRegisterConfirmPassword = !_showRegisterConfirmPassword;
+            }),
+            tooltip: _showRegisterConfirmPassword
+                ? _copy.text('hidePassword')
+                : _copy.text('showPassword'),
+          ),
+        ),
+        validator: _confirmPassword,
+      );
+
+  Widget _registrationActions(bool mismatch) {
+    return Row(
+      children: [
+        OutlinedButton(
+          onPressed: _busy ? null : () => setState(() => _registerStep = 0),
+          child: Text(_copy.back),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _busy || mismatch ? null : _register,
+            child: _busy
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(_copy.text('createAccount')),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String? _confirmPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return _copy.text('confirmYourPassword');
+    }
+    if (value != _registerPasswordController.text) {
+      return _copy.text('passwordsMismatch');
+    }
+    return null;
+  }
+
+  void _openSecurityStep() {
+    if (_registerDetailsFormKey.currentState?.validate() != true) return;
+    setState(() => _registerStep = 1);
   }
 
   Future<void> _login() async {
@@ -359,11 +436,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _register() async {
-    if (!_registerFormKey.currentState!.validate()) return;
-    if (!_acceptedRules) {
-      _showError('Please accept the platform rules to continue.');
-      return;
-    }
+    if (_registerSecurityFormKey.currentState?.validate() != true) return;
     setState(() => _busy = true);
     try {
       final result = await context.read<AuthRepository>().register(
@@ -419,39 +492,36 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) return _copy.text('required');
     return null;
   }
+}
 
-  String? _emailValidator(String? value) {
-    final text = value?.trim() ?? '';
-    // Tight but not exhaustive — server has the final say.
-    final looksValid = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(text);
-    if (!looksValid) return 'Enter a valid email address';
-    return null;
-  }
+class _RegistrationProgress extends StatelessWidget {
+  const _RegistrationProgress({required this.step});
 
-  String? _phoneValidator(String? value) {
-    final text = value?.trim() ?? '';
-    if (!text.startsWith('+263') || text.length < 13) {
-      return 'Use E.164 format, for example +263771234567';
-    }
-    // Only digits after the +263 prefix.
-    if (!RegExp(r'^\+263\d{9,10}$').hasMatch(text)) {
-      return 'Only digits after +263';
-    }
-    return null;
-  }
+  final int step;
 
-  String? _passwordValidator(String? value) {
-    final text = value ?? '';
-    if (text.length < 8) return 'Use at least 8 characters';
-    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(text);
-    final hasNumber = RegExp(r'\d').hasMatch(text);
-    if (!hasLetter || !hasNumber) {
-      return 'Include at least one letter and one number';
-    }
-    return null;
+  @override
+  Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
+    return Semantics(
+      label: copy.formatText(
+        'registrationStep',
+        {'current': step, 'total': 2},
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            copy.formatText('stepOf', {'current': step, 'total': 2}),
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          LinearProgressIndicator(value: step / 2),
+        ],
+      ),
+    );
   }
 }
 
@@ -466,13 +536,56 @@ class _ModeSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<bool>(
-      segments: const [
-        ButtonSegment<bool>(value: false, label: Text('Sign in')),
-        ButtonSegment<bool>(value: true, label: Text('Register')),
-      ],
-      selected: {isRegisterMode},
-      onSelectionChanged: (selection) => onChanged(selection.first),
+    final copy = AutoIqLocalizations.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaledLabel = MediaQuery.textScalerOf(context).scale(14);
+        if (constraints.maxWidth < 360 || scaledLabel > 21) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _modeButton(context, copy.text('signIn'), false),
+              const SizedBox(height: AppSpacing.xs),
+              _modeButton(context, copy.text('register'), true),
+            ],
+          );
+        }
+        return SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<bool>(
+            expandedInsets: EdgeInsets.zero,
+            segments: [
+              ButtonSegment<bool>(
+                value: false,
+                label: Text(copy.text('signIn')),
+              ),
+              ButtonSegment<bool>(
+                value: true,
+                label: Text(copy.text('register')),
+              ),
+            ],
+            selected: {isRegisterMode},
+            onSelectionChanged: (selection) => onChanged(selection.first),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _modeButton(BuildContext context, String label, bool value) {
+    final selected = value == isRegisterMode;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: selected
+              ? Theme.of(context).colorScheme.secondaryContainer
+              : null,
+        ),
+        onPressed: () => onChanged(value),
+        child: Text(label),
+      ),
     );
   }
 }
@@ -520,22 +633,29 @@ class _InsecureRemoteBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
+        color: AppColors.amberSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC72C), width: 1),
+        border: Border.all(color: AppColors.amber, width: 1),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Color(0xFF8A5D00)),
-          SizedBox(width: 8),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.pendingText,
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Talking to an insecure HTTP endpoint. Release builds require HTTPS.',
-              style: TextStyle(color: Color(0xFF8A5D00), fontSize: 12),
+              copy.text('insecureEndpoint'),
+              style: const TextStyle(
+                color: AppColors.pendingText,
+                fontSize: 12,
+              ),
             ),
           ),
         ],

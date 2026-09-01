@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'app_colors.dart';
+import 'app_tokens.dart';
 
 class AppTextStyles {
   static TextStyle display(double size, {Color color = AppColors.ink900}) =>
@@ -25,7 +27,7 @@ class AppTextStyles {
         fontWeight: FontWeight.w600,
       ).copyWith(fontSize: size, color: color, fontWeight: weight);
 
-  static TextStyle label({Color color = AppColors.ink400}) => GoogleFonts.inter(
+  static TextStyle label({Color color = AppColors.ink500}) => GoogleFonts.inter(
       fontSize: 11,
       fontWeight: FontWeight.w600,
       letterSpacing: 0.8,
@@ -44,6 +46,8 @@ class AppTheme {
         surface: Colors.white,
       ),
       textTheme: GoogleFonts.interTextTheme(),
+      visualDensity: VisualDensity.standard,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.ink900,
@@ -62,31 +66,94 @@ class AppTheme {
           foregroundColor: AppColors.ink900,
           textStyle:
               GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          minimumSize: const Size(0, AppSizes.minimumTouchTarget),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
           elevation: 0,
         ),
       ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.ink900,
+          minimumSize: const Size(0, AppSizes.minimumTouchTarget),
+          side: const BorderSide(color: AppColors.ink200),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.ink800,
+          minimumSize: const Size(0, AppSizes.minimumTouchTarget),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          side: const BorderSide(color: AppColors.ink100),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 72,
+        backgroundColor: Colors.white,
+        indicatorColor: AppColors.amberSoft,
+        labelTextStyle: WidgetStatePropertyAll(
+          GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        showDragHandle: true,
+        constraints: BoxConstraints(maxWidth: AppBreakpoints.formMaxWidth),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.xl),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.ink900,
+        contentTextStyle: GoogleFonts.inter(color: Colors.white),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.md),
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.amberDark,
+        linearTrackColor: AppColors.ink100,
+      ),
+      dividerTheme: const DividerThemeData(color: AppColors.ink100),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.ink50,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.ink200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.ink200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.ink900, width: 2),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        labelStyle: GoogleFonts.inter(color: AppColors.ink400, fontSize: 13),
-        hintStyle: GoogleFonts.inter(color: AppColors.ink300, fontSize: 14),
+        labelStyle: GoogleFonts.inter(color: AppColors.ink500, fontSize: 13),
+        hintStyle: GoogleFonts.inter(color: AppColors.ink500, fontSize: 14),
+        errorMaxLines: 3,
       ),
     );
   }

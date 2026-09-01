@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_tokens.dart';
 import '../../../widgets/price_display.dart';
 import '../../core/i18n/app_formatters.dart';
 import '../../core/i18n/app_localizations.dart';
@@ -11,6 +12,7 @@ import '../../models/seller_models.dart';
 import '../../repositories/seller_repository.dart';
 import '../../state/session_controller.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/async_state_view.dart';
 import '../../widgets/role_account_tab.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_chip.dart';
@@ -36,9 +38,7 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
     super.didChangeDependencies();
     final session = context.read<SessionController>();
     _viewingsFuture ??= _loadViewings();
-    if (session.user?.consentsComplete == true && _listingsFuture == null) {
-      _listingsFuture = _loadListings();
-    }
+    if (session.user != null) _listingsFuture ??= _loadListings();
   }
 
   @override
@@ -51,10 +51,8 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
       children: [
         _SellerDashboardTab(
           future: _listingsFuture,
-          consentsComplete: user.consentsComplete,
           onRefresh: _refreshListings,
           onOpenListing: _openEditor,
-          onCompleteConsents: session.completeRequiredConsents,
         ),
         _SellerViewingsTab(
           future: _viewingsFuture,
@@ -81,9 +79,9 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
       body: body,
       floatingActionButton: _tabIndex == 0
           ? FloatingActionButton.extended(
-              onPressed: user.consentsComplete ? () => _openEditor() : null,
+              onPressed: () => _openEditor(),
               icon: const Icon(Icons.add),
-              label: const Text('New listing'),
+              label: Text(copy.text('newListing')),
             )
           : null,
       bottomNavigationBar: NavigationBar(
@@ -149,76 +147,30 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
 class _SellerDashboardTab extends StatelessWidget {
   const _SellerDashboardTab({
     required this.future,
-    required this.consentsComplete,
     required this.onRefresh,
     required this.onOpenListing,
-    required this.onCompleteConsents,
   });
 
   final Future<List<SellerListingSummary>>? future;
-  final bool consentsComplete;
   final Future<void> Function() onRefresh;
   final Future<void> Function(String? listingId) onOpenListing;
-  final Future<void> Function() onCompleteConsents;
 
   @override
   Widget build(BuildContext context) {
-    if (!consentsComplete) {
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          SectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Complete seller consents',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Listings stay locked until the marketplace consents are accepted.',
-                  style: TextStyle(color: AppColors.ink500, height: 1.4),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      await onCompleteConsents();
-                    } on ApiException catch (error) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error.message)),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('Complete consents'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
     return FutureBuilder<List<SellerListingSummary>>(
       future: future,
       builder: (context, snapshot) {
+        final copy = AutoIqLocalizations.of(context);
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return AppLoadingView(label: copy.text('loadingSellerDashboard'));
         }
         if (snapshot.hasError) {
           return EmptyState(
-            title: 'Listings unavailable',
-            message: 'Refresh the dashboard after the API comes back.',
+            title: copy.text('listingsUnavailable'),
+            message: copy.text('listingsUnavailableMessage'),
             action: ElevatedButton(
               onPressed: onRefresh,
-              child: const Text('Retry'),
+              child: Text(copy.retry),
             ),
           );
         }
@@ -229,90 +181,147 @@ class _SellerDashboardTab extends StatelessWidget {
             listings.fold<int>(0, (sum, item) => sum + item.quoteCount);
         final viewingCount =
             listings.fold<int>(0, (sum, item) => sum + item.viewingCount);
-        return RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              SectionCard(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _StatBlock(label: 'Listings', value: '${listings.length}'),
-                    _StatBlock(label: 'Views', value: '$viewCount'),
-                    _StatBlock(label: 'Quotes', value: '$quoteCount'),
-                    _StatBlock(label: 'Viewings', value: '$viewingCount'),
-                  ],
+        return LayoutBuilder(
+          builder: (context, constraints) => RefreshIndicator(
+            onRefresh: onRefresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: adaptivePageInsets(constraints.maxWidth),
+              children: [
+                _StatsGrid(
+                  values: {
+                    copy.text('statsListings'): listings.length,
+                    copy.text('statsViews'): viewCount,
+                    copy.text('statsQuotes'): quoteCount,
+                    copy.text('statsViewings'): viewingCount,
+                  },
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (listings.isEmpty)
-                const EmptyState(
-                  title: 'No listings yet',
-                  message:
-                      'Create a draft, upload media, then submit it for review.',
-                )
-              else
-                ...listings.map(
-                  (listing) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
-                      onTap: () => onOpenListing(listing.id),
-                      child: SectionCard(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 100,
-                              child: VehicleImageView(
-                                imageUrl: listing.coverImageUrl,
-                                height: 84,
-                              ),
+                const SizedBox(height: 16),
+                if (listings.isEmpty)
+                  EmptyState(
+                    title: copy.text('noListings'),
+                    message: copy.text('noListingsMessage'),
+                  )
+                else
+                  ...listings.map(
+                    (listing) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Semantics(
+                        button: true,
+                        label: copy.formatText(
+                          'editVehicle',
+                          {'title': listing.title},
+                        ),
+                        child: SectionCard(
+                          padding: EdgeInsets.zero,
+                          child: InkWell(
+                            onTap: () => onOpenListing(listing.id),
+                            borderRadius: BorderRadius.circular(AppRadii.lg),
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.sm),
+                              child: _listingRow(context, listing),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  StatusChip(label: listing.status),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    listing.title,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.ink900,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Updated ${AppFormatters.shortDate(context, DateTime.parse(listing.updatedAt).toLocal())}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.ink500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  PriceDisplay(
-                                    amount:
-                                        listing.askPriceUsd.toStringAsFixed(0),
-                                    fontSize: 18,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right,
-                                color: AppColors.ink400),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _listingRow(
+    BuildContext context,
+    SellerListingSummary listing,
+  ) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 100,
+          child: VehicleImageView(
+            imageUrl: listing.coverImageUrl,
+            height: 84,
+            semanticLabel: AutoIqLocalizations.of(context).formatText(
+              'vehicleCoverPhoto',
+              {'title': listing.title},
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              StatusChip(label: listing.status),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                listing.title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                AutoIqLocalizations.of(context).formatText(
+                  'updatedOn',
+                  {
+                    'date': AppFormatters.shortDate(
+                      context,
+                      DateTime.parse(listing.updatedAt).toLocal(),
+                    ),
+                  },
+                ),
+                style: const TextStyle(fontSize: 12, color: AppColors.ink500),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              PriceDisplay(
+                amount: listing.askPriceUsd.toStringAsFixed(0),
+                fontSize: 18,
+              ),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right, color: AppColors.ink400),
+      ],
+    );
+  }
+}
+
+class _StatsGrid extends StatelessWidget {
+  const _StatsGrid({required this.values});
+
+  final Map<String, int> values;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth < 360
+              ? constraints.maxWidth / 2
+              : constraints.maxWidth / 4;
+          return Wrap(
+            runSpacing: AppSpacing.sm,
+            children: values.entries
+                .map(
+                  (entry) => SizedBox(
+                    width: width,
+                    child: _StatBlock(
+                      label: entry.key,
+                      value: '${entry.value}',
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          );
+        },
+      ),
     );
   }
 }
@@ -364,8 +373,9 @@ class _SellerViewingsTab extends StatelessWidget {
     return FutureBuilder<List<ViewingItem>>(
       future: future,
       builder: (context, snapshot) {
+        final copy = AutoIqLocalizations.of(context);
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return AppLoadingView(label: copy.text('loadingViewingRequests'));
         }
         if (snapshot.hasError) return _error(context);
         return _content(context, snapshot.data ?? const []);
@@ -387,7 +397,8 @@ class _SellerViewingsTab extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Text(copy.viewingRequests,
               style: Theme.of(context).textTheme.headlineSmall),
@@ -429,11 +440,15 @@ class _ViewingCardState extends State<_ViewingCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              StatusChip(label: item.status),
-              const Spacer(),
-              Text(_viewingDate(context, item)),
-            ]),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                StatusChip(label: item.status),
+                Text(_viewingDate(context, item)),
+              ],
+            ),
             const SizedBox(height: 10),
             Text(item.snapshotTitle,
                 style: Theme.of(context).textTheme.titleMedium),

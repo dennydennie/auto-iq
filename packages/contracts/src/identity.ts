@@ -166,6 +166,10 @@ export interface MeResponse extends TimestampFields {
   emailVerified: boolean;
   buyerProfile: BuyerProfileDto | null;
   sellerProfile: SellerProfileDto | null;
+  /** Consent types accepted for the current version. */
+  acceptedConsents: ConsentType[];
+  /** True only when every consent required by every active role is present. */
+  consentsComplete: boolean;
 }
 
 export interface UpdateMeRequest {

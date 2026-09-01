@@ -7,7 +7,10 @@ import { AbstractRepository } from "./abstract.repository";
 
 @Injectable()
 export class VehicleDocumentRepository extends AbstractRepository<VehicleDocumentEntity> {
-  constructor(@InjectRepository(VehicleDocumentEntity) repository: Repository<VehicleDocumentEntity>) {
+  constructor(
+    @InjectRepository(VehicleDocumentEntity)
+    repository: Repository<VehicleDocumentEntity>,
+  ) {
     super(repository);
   }
 
@@ -20,5 +23,9 @@ export class VehicleDocumentRepository extends AbstractRepository<VehicleDocumen
     documentType: DocumentType,
   ): Promise<VehicleDocumentEntity | null> {
     return this.repository.findOne({ where: { vehicleId, documentType } });
+  }
+
+  remove(document: VehicleDocumentEntity): Promise<VehicleDocumentEntity> {
+    return this.repository.remove(document);
   }
 }

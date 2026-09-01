@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../core/config/api_routes.dart';
 import '../core/files/local_upload.dart';
 import '../core/network/api_client.dart';
@@ -232,6 +234,8 @@ class SellerRepository {
     required LocalUpload file,
     required String slot,
     required bool isCover,
+    ProgressCallback? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final presign = await _apiClient.postJson<Map<String, dynamic>>(
       ApiRoutes.storageImagePresign,
@@ -239,15 +243,18 @@ class SellerRepository {
         'listingId': listingId,
         'slot': slot,
         'contentType': file.fileType.contentType,
-        'contentLength': file.bytes.length,
+        'contentLength': file.length,
       },
       (json) => (json as Map).cast<String, dynamic>(),
       includeCsrf: true,
     );
-    await _apiClient.uploadBinary(
+    await _apiClient.uploadStream(
       url: presign['uploadUrl']?.toString() ?? '',
-      bytes: file.bytes,
+      openRead: file.openRead,
+      contentLength: file.length,
       contentType: file.fileType.contentType,
+      onSendProgress: onProgress,
+      cancelToken: cancelToken,
     );
     await _apiClient.postJson<void>(
       ApiRoutes.listingImages(listingId),
@@ -255,7 +262,7 @@ class SellerRepository {
         'storageKey': presign['storageKey']?.toString(),
         'slot': slot,
         'contentType': file.fileType.contentType,
-        'contentLength': file.bytes.length,
+        'contentLength': file.length,
         'isCover': isCover,
       },
       (_) {},
@@ -267,6 +274,8 @@ class SellerRepository {
     required String listingId,
     required LocalUpload file,
     required String documentType,
+    ProgressCallback? onProgress,
+    CancelToken? cancelToken,
   }) async {
     final presign = await _apiClient.postJson<Map<String, dynamic>>(
       ApiRoutes.storageDocumentPresign,
@@ -274,15 +283,18 @@ class SellerRepository {
         'listingId': listingId,
         'documentType': documentType,
         'contentType': file.fileType.contentType,
-        'contentLength': file.bytes.length,
+        'contentLength': file.length,
       },
       (json) => (json as Map).cast<String, dynamic>(),
       includeCsrf: true,
     );
-    await _apiClient.uploadBinary(
+    await _apiClient.uploadStream(
       url: presign['uploadUrl']?.toString() ?? '',
-      bytes: file.bytes,
+      openRead: file.openRead,
+      contentLength: file.length,
       contentType: file.fileType.contentType,
+      onSendProgress: onProgress,
+      cancelToken: cancelToken,
     );
     await _apiClient.postJson<void>(
       ApiRoutes.listingDocuments(listingId),
@@ -290,9 +302,53 @@ class SellerRepository {
         'storageKey': presign['storageKey']?.toString(),
         'documentType': documentType,
         'contentType': file.fileType.contentType,
-        'contentLength': file.bytes.length,
+        'contentLength': file.length,
       },
       (_) {},
+      includeCsrf: true,
+    );
+  }
+
+  Future<void> setCoverImage({
+    required String listingId,
+    required String imageId,
+  }) async {
+    await _apiClient.patchJson<void>(
+      ApiRoutes.listingImage(listingId, imageId),
+      const {'isCover': true},
+      (_) {},
+      includeCsrf: true,
+    );
+  }
+
+  Future<void> reorderImages({
+    required String listingId,
+    required List<String> imageIds,
+  }) async {
+    await _apiClient.putJson<void>(
+      ApiRoutes.listingImageOrder(listingId),
+      {'imageIds': imageIds},
+      (_) {},
+      includeCsrf: true,
+    );
+  }
+
+  Future<void> deleteImage({
+    required String listingId,
+    required String imageId,
+  }) {
+    return _apiClient.delete(
+      ApiRoutes.listingImage(listingId, imageId),
+      includeCsrf: true,
+    );
+  }
+
+  Future<void> deleteDocument({
+    required String listingId,
+    required String documentId,
+  }) {
+    return _apiClient.delete(
+      ApiRoutes.listingDocument(listingId, documentId),
       includeCsrf: true,
     );
   }

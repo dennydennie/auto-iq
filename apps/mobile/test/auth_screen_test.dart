@@ -5,6 +5,7 @@ import 'package:autoiq_mobile/src/repositories/auth_repository.dart';
 import 'package:autoiq_mobile/src/state/session_controller.dart';
 import 'package:autoiq_mobile/src/screens/auth/auth_screen.dart';
 import 'package:autoiq_mobile/src/screens/auth/otp_verification_screen.dart';
+import 'package:autoiq_mobile/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -116,10 +117,68 @@ void main() {
     expect(find.text('List and sell a vehicle'), findsOneWidget);
     expect(find.textContaining('Inspector'), findsNothing);
   });
+
+  testWidgets('auth and OTP actions do not overflow at 320dp and 2x text',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final providers = [
+      ChangeNotifierProvider<SessionController>.value(
+        value: _PendingVerificationSession(),
+      ),
+      Provider<AuthRepository>.value(value: _UnusedAuthRepository()),
+    ];
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: providers,
+        child: _scaledApp(const AuthScreen()),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Register'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionController>.value(
+            value: _PendingVerificationSession(),
+          ),
+          Provider<AuthRepository>.value(value: _UnusedAuthRepository()),
+        ],
+        child: _scaledApp(
+          const OtpVerificationScreen(
+            identifier: 'buyer@example.com',
+            autoSend: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Widget _scaledApp(Widget home) {
+  return MaterialApp(
+    theme: AppTheme.theme,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: const TextScaler.linear(2),
+      ),
+      child: child!,
+    ),
+    home: home,
+  );
 }
 
 class _PendingVerificationSession extends ChangeNotifier
     implements SessionController {
+  @override
+  ApiException? get bootstrapError => null;
+
   @override
   String? get errorMessage => null;
 
@@ -131,6 +190,12 @@ class _PendingVerificationSession extends ChangeNotifier
 
   @override
   bool get isBusy => false;
+
+  @override
+  bool get isSessionUnavailable => false;
+
+  @override
+  List<String> get requiredConsents => const [];
 
   @override
   ReferenceDataSet? get referenceData => null;
@@ -145,7 +210,7 @@ class _PendingVerificationSession extends ChangeNotifier
   void clearError() {}
 
   @override
-  Future<void> completeRequiredConsents() async {}
+  Future<void> completeRequiredConsents(Set<String> acceptedConsents) async {}
 
   @override
   Future<void> login({
@@ -203,7 +268,10 @@ class _UnusedAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> recordConsent(String consentType) {
+  Future<void> recordConsent(
+    String consentType, {
+    String version = '1.0.0',
+  }) {
     throw UnimplementedError();
   }
 

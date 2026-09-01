@@ -1,6 +1,9 @@
 import type { PublicListingDto } from "../../../../packages/contracts/src/catalogue";
 import type { ApiError } from "../../../../packages/contracts/src/error";
-import type { CsrfResponse, MeResponse } from "../../../../packages/contracts/src/identity";
+import type {
+  CsrfResponse,
+  MeResponse,
+} from "../../../../packages/contracts/src/identity";
 import { ROUTES } from "../../../../packages/contracts/src/routes";
 
 describe("Phase 7 contracts", () => {
@@ -70,6 +73,8 @@ describe("Phase 7 contracts", () => {
       roles: ["BUYER"],
       phoneVerified: true,
       emailVerified: true,
+      acceptedConsents: ["TERMS", "PRIVACY", "BUYER_RULES", "NO_SIDE_DEAL"],
+      consentsComplete: true,
       buyerProfile: {
         id: "buyer-profile-1",
         city: "Harare",
@@ -94,6 +99,7 @@ describe("Phase 7 contracts", () => {
     };
 
     expect(me.roles).toContain("BUYER");
+    expect(me.consentsComplete).toBe(true);
     expect(me.buyerProfile?.city).toBe("Harare");
   });
 });

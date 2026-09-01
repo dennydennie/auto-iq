@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  MinLength,
   IsOptional,
   IsString,
   Max,
@@ -14,9 +15,7 @@ import {
   type ValidatorConstraintInterface,
 } from "class-validator";
 
-abstract class ValidNumericRangeConstraint
-  implements ValidatorConstraintInterface
-{
+abstract class ValidNumericRangeConstraint implements ValidatorConstraintInterface {
   protected abstract minimum(query: CatalogueQueryDto): number | undefined;
   protected abstract maximum(query: CatalogueQueryDto): number | undefined;
 
@@ -75,10 +74,16 @@ class ValidYearRangeConstraint extends ValidNumericRangeConstraint {
 
 function toArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
-    return value.flatMap((entry) => String(entry).split(",")).map((entry) => entry.trim()).filter(Boolean);
+    return value
+      .flatMap((entry) => String(entry).split(","))
+      .map((entry) => entry.trim())
+      .filter(Boolean);
   }
   if (typeof value === "string") {
-    return value.split(",").map((entry) => entry.trim()).filter(Boolean);
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
   }
   return undefined;
 }
@@ -99,6 +104,12 @@ function toBoolean(value: unknown): boolean | undefined {
 }
 
 export class CatalogueQueryDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  query?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(256)
@@ -191,7 +202,12 @@ export class CatalogueQueryDto {
 
   @IsOptional()
   @IsIn(["publishedAt", "askPriceUsd", "mileageKm", "year", "inspectionScore"])
-  sortBy?: "publishedAt" | "askPriceUsd" | "mileageKm" | "year" | "inspectionScore";
+  sortBy?:
+    | "publishedAt"
+    | "askPriceUsd"
+    | "mileageKm"
+    | "year"
+    | "inspectionScore";
 
   @IsOptional()
   @IsIn(["ASC", "DESC"])

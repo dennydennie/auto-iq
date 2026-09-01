@@ -8,43 +8,55 @@ class BiSellLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: size,
-          height: size,
-          child: CustomPaint(painter: _HexPainter()),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'BiSell.',
-              style: TextStyle(
-                fontSize: size * 0.60,
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink900,
-                letterSpacing: -0.5,
-                height: 1,
+    final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.3);
+    return Semantics(
+      image: true,
+      label: 'BiSell AutoIQ',
+      child: ExcludeSemantics(
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scale),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: size,
+                height: size,
+                child: CustomPaint(painter: _HexPainter()),
               ),
-            ),
-            Text(
-              'AUTO·IQ',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: size * 0.28,
-                fontWeight: FontWeight.w700,
-                color: AppColors.amber,
-                letterSpacing: 2,
-                height: 1.2,
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'BiSell.',
+                    style: TextStyle(
+                      fontSize: size * 0.60,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink900,
+                      letterSpacing: -0.5,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    'AUTO·IQ',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: size * 0.28,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.amber,
+                      letterSpacing: 2,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -42,6 +42,37 @@ describe("CatalogueQueryService", () => {
     });
   });
 
+  it("searches the complete published catalogue with an escaped parameter", async () => {
+    const { builder, service } = createHarness();
+
+    await service.list({ query: "Hilux_100%" });
+
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining("specs.make ILIKE :search"),
+      { search: "%Hilux\\_100\\%%" },
+    );
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining("seller.city ILIKE :search"),
+      { search: "%Hilux\\_100\\%%" },
+    );
+  });
+
+  it("applies a stable cursor after the requested sort value", async () => {
+    const { builder, service } = createHarness();
+    const cursor = Buffer.from(
+      JSON.stringify({ sortValue: 20_000, id: "vehicle-1" }),
+      "utf8",
+    ).toString("base64url");
+
+    await service.list({ cursor, sortBy: "askPriceUsd", sortDir: "DESC" });
+
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining("pricing.ask_price_usd < :cursorValue"),
+      { cursorValue: 20_000, cursorId: "vehicle-1" },
+    );
+    expect(builder.limit).toHaveBeenCalledWith(21);
+  });
+
   it("applies inclusive minimum and maximum price filters", async () => {
     const { builder, service } = createHarness();
 

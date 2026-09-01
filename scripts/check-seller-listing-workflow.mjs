@@ -29,6 +29,9 @@ const mobileRepository = read(
 const mobileEditor = read(
   "apps/mobile/lib/src/screens/seller/listing_editor_screen.dart",
 );
+const mobileReadiness = read(
+  "apps/mobile/lib/src/models/seller_listing_readiness.dart",
+);
 
 for (const title of [
   "Specs",
@@ -85,8 +88,13 @@ requireText(
 );
 requireText(
   mobileEditor,
-  "_submissionIssue",
+  "sellerReadinessIssues",
   "Mobile submission must run the local readiness check.",
+);
+requireText(
+  mobileReadiness,
+  "SellerRepository.requiredDocumentTypes",
+  "Mobile readiness must enforce the required document set.",
 );
 
 for (const documentType of [

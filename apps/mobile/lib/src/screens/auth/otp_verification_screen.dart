@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
+import '../../core/i18n/app_localizations.dart';
 import '../../core/network/api_exception.dart';
 import '../../repositories/auth_repository.dart';
 import '../../state/session_controller.dart';
@@ -80,17 +81,18 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify account')),
+      appBar: AppBar(title: Text(copy.text('verifyAccount'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Enter the 6-digit code',
-                style: TextStyle(
+              Text(
+                copy.text('enterOtp'),
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: AppColors.ink900,
@@ -99,10 +101,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               const SizedBox(height: 10),
               Text(
                 _testOtpCode == null
-                    ? 'We sent an SMS to the phone tied to ${widget.identifier}. '
-                        'The code arrives in a few seconds — your keyboard may fill it in automatically.'
-                    : 'This configured buyer test account uses an on-screen code. '
-                        'It expires after 5 minutes and works only once.',
+                    ? copy.formatText(
+                        'otpSentDescription',
+                        {'identifier': widget.identifier},
+                      )
+                    : copy.text('testOtpDescription'),
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.ink500,
@@ -135,8 +138,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
-                decoration: const InputDecoration(
-                  labelText: 'OTP code',
+                decoration: InputDecoration(
+                  labelText: copy.text('otpCode'),
                   hintText: '••••••',
                 ),
               ),
@@ -159,39 +162,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _busy || _resendIn > 0 ? null : _sendCode,
-                    icon: const Icon(Icons.sms_outlined),
-                    label: Text(_resendIn > 0
-                        ? 'Resend in ${_resendIn}s'
-                        : 'Send code'),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _busy || !_codeReady || _verificationLocked
-                          ? null
-                          : _verify,
-                      child: _busy
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Verify and sign in'),
-                    ),
-                  ),
-                ],
-              ),
+              _verificationActions(),
               const SizedBox(height: 12),
               Text(
                 _testOtpCode == null
-                    ? "Didn't receive it? Check your SMS after a minute, "
-                        'then tap Resend. Codes expire 5 minutes after they arrive.'
-                    : 'Tap Use code to fill the field, then verify and sign in. '
-                        'Resend creates a new code.',
+                    ? copy.text('otpHelp')
+                    : copy.text('testOtpHelp'),
                 style: TextStyle(
                   color: AppColors.ink500.withValues(alpha: 0.9),
                   fontSize: 12,
@@ -220,8 +196,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       setState(() {
         _testOtpCode = testOtpCode;
         _message = testOtpCode == null
-            ? 'Code sent. Check your SMS.'
-            : 'Test code generated. No SMS credit was used.';
+            ? AutoIqLocalizations.of(context).text('codeSent')
+            : AutoIqLocalizations.of(context).text('testCodeGenerated');
         _verificationLocked = false;
       });
       _startResendCooldown();
@@ -230,6 +206,50 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Widget _verificationActions() {
+    final copy = AutoIqLocalizations.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final resend = OutlinedButton.icon(
+          onPressed: _busy || _resendIn > 0 ? null : _sendCode,
+          icon: const Icon(Icons.sms_outlined),
+          label: Text(
+            _resendIn > 0
+                ? copy.formatText('resendIn', {'seconds': _resendIn})
+                : copy.text('sendCode'),
+          ),
+        );
+        final verify = ElevatedButton(
+          onPressed:
+              _busy || !_codeReady || _verificationLocked ? null : _verify,
+          child: _busy
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(copy.text('verifyAndSignIn')),
+        );
+        if (constraints.maxWidth < 480) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              resend,
+              const SizedBox(height: 12),
+              verify,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            resend,
+            const SizedBox(width: 12),
+            Expanded(child: verify),
+          ],
+        );
+      },
+    );
   }
 
   void _useTestCode() {
@@ -295,10 +315,11 @@ class _TestOtpCodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AutoIqLocalizations.of(context);
     return Semantics(
       container: true,
       liveRegion: true,
-      label: 'Testing verification code $code',
+      label: copy.formatText('testingCodeLabel', {'code': code}),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
@@ -313,9 +334,9 @@ class _TestOtpCodeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Testing code',
-                    style: TextStyle(
+                  Text(
+                    copy.text('testingCode'),
+                    style: const TextStyle(
                       color: AppColors.ink700,
                       fontWeight: FontWeight.w700,
                     ),
@@ -333,7 +354,10 @@ class _TestOtpCodeCard extends StatelessWidget {
                 ],
               ),
             ),
-            TextButton(onPressed: onUseCode, child: const Text('Use code')),
+            TextButton(
+              onPressed: onUseCode,
+              child: Text(copy.text('useCode')),
+            ),
           ],
         ),
       ),

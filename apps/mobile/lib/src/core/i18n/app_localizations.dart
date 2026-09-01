@@ -8,11 +8,29 @@ class AutoIqLocalizations {
   final Locale locale;
 
   static const delegate = _AutoIqLocalizationsDelegate();
-  static const supportedLocales = [
+  static const _previewLocalesEnabled = bool.fromEnvironment(
+    'AUTO_IQ_ENABLE_PREVIEW_LOCALES',
+  );
+  static const productionLocales = [Locale('en', 'ZW')];
+  static const previewLocales = [
     Locale('en', 'ZW'),
     Locale('sn', 'ZW'),
     Locale('ar'),
   ];
+
+  static List<Locale> get supportedLocales => localesFor(
+        isReleaseMode: kReleaseMode,
+        previewEnabled: _previewLocalesEnabled,
+      );
+
+  static List<Locale> localesFor({
+    required bool isReleaseMode,
+    required bool previewEnabled,
+  }) {
+    return !isReleaseMode || previewEnabled
+        ? previewLocales
+        : productionLocales;
+  }
 
   static AutoIqLocalizations of(BuildContext context) {
     return Localizations.of<AutoIqLocalizations>(
@@ -133,6 +151,57 @@ class AutoIqLocalizations {
   String get buyer => _read('buyer');
   String get acknowledgeRequest => _read('acknowledgeRequest');
   String get viewingAcknowledged => _read('viewingAcknowledged');
+  String get sessionUnavailable => _read('sessionUnavailable');
+  String get sessionUnavailableMessage => _read('sessionUnavailableMessage');
+  String get agreementsTitle => _read('agreementsTitle');
+  String get agreementsDescription => _read('agreementsDescription');
+  String get acceptAndContinue => _read('acceptAndContinue');
+  String get savingAgreements => _read('savingAgreements');
+  String get reviewAgreement => _read('reviewAgreement');
+  String get agreementVersion => _read('agreementVersion');
+  String get termsConsent => _read('termsConsent');
+  String get privacyConsent => _read('privacyConsent');
+  String get buyerRulesConsent => _read('buyerRulesConsent');
+  String get sellerRulesConsent => _read('sellerRulesConsent');
+  String get noSideDealConsent => _read('noSideDealConsent');
+  String get consentReviewNotice => _read('consentReviewNotice');
+  String get scoreIncomplete => _read('scoreIncomplete');
+  String get findingUnrated => _read('findingUnrated');
+  String get pass => _read('pass');
+  String get watch => _read('watch');
+  String get fail => _read('fail');
+  String get confirmReportTitle => _read('confirmReportTitle');
+  String get confirmReportMessage => _read('confirmReportMessage');
+  String get confirmSubmit => _read('confirmSubmit');
+  String get discardReportTitle => _read('discardReportTitle');
+  String get discardReportMessage => _read('discardReportMessage');
+  String get discardChanges => _read('discardChanges');
+  String get notRoadworthy => _read('notRoadworthy');
+
+  String text(String key) => _read(key);
+
+  String formatText(String key, Map<String, Object> values) {
+    return values.entries.fold(
+      _read(key),
+      (message, entry) =>
+          message.replaceAll('{${entry.key}}', '${entry.value}'),
+    );
+  }
+
+  String consentLabel(String type) {
+    switch (type) {
+      case 'TERMS':
+        return termsConsent;
+      case 'PRIVACY':
+        return privacyConsent;
+      case 'BUYER_RULES':
+        return buyerRulesConsent;
+      case 'SELLER_RULES':
+        return sellerRulesConsent;
+      default:
+        return noSideDealConsent;
+    }
+  }
 
   String filterStep(int current, int total) {
     return _read('filterStep')
@@ -182,7 +251,9 @@ class AutoIqLocalizations {
 
   String _read(String key) {
     final languageMessages = _messages[locale.languageCode] ?? _messages['en']!;
-    return languageMessages[key] ?? _messages['en']![key]!;
+    final fallback = _messages['en']![key] ?? _polishMessages[key];
+    assert(fallback != null, 'Missing localization key: $key');
+    return languageMessages[key] ?? fallback ?? key;
   }
 }
 
@@ -325,6 +396,40 @@ const _messages = <String, Map<String, String>>{
     'buyer': 'Buyer',
     'acknowledgeRequest': 'Acknowledge request',
     'viewingAcknowledged': 'Viewing acknowledged.',
+    'sessionUnavailable': 'We could not check your session',
+    'sessionUnavailableMessage':
+        'Your account has not been signed out. Check your connection and try again.',
+    'agreementsTitle': 'Review your agreements',
+    'agreementsDescription':
+        'Review and accept each agreement required for your marketplace role.',
+    'acceptAndContinue': 'Accept and continue',
+    'savingAgreements': 'Saving agreements…',
+    'reviewAgreement': 'Review',
+    'agreementVersion': 'Agreement version 1.0.0',
+    'termsConsent': 'I accept the platform terms of use.',
+    'privacyConsent':
+        'I accept the privacy notice and account data handling terms.',
+    'buyerRulesConsent':
+        'I accept the buyer quote, viewing, and marketplace rules.',
+    'sellerRulesConsent':
+        'I accept the seller listing, inspection, and moderation rules.',
+    'noSideDealConsent': 'I agree not to bypass the platform for side deals.',
+    'consentReviewNotice':
+        'This summary identifies the agreement being recorded. The approved terms and privacy notice remain the controlling documents.',
+    'scoreIncomplete': 'Complete all findings to calculate the score',
+    'findingUnrated': 'Not rated',
+    'pass': 'Pass',
+    'watch': 'Watch',
+    'fail': 'Fail',
+    'confirmReportTitle': 'Submit this inspection report?',
+    'confirmReportMessage':
+        'The ratings, evidence, roadworthiness decision, and summary will be sent for review.',
+    'confirmSubmit': 'Submit report',
+    'discardReportTitle': 'Discard inspection changes?',
+    'discardReportMessage':
+        'Your ratings, notes, and unsubmitted evidence selections will be lost.',
+    'discardChanges': 'Discard changes',
+    'notRoadworthy': 'Vehicle is not roadworthy',
   },
   'sn': {
     'appName': 'BiSell AutoIQ',
@@ -478,4 +583,276 @@ const _messages = <String, Map<String, String>>{
     'vehicleCountOne': 'مركبة واحدة',
     'vehicleCountOther': '{count} مركبات',
   },
+};
+
+const _polishMessages = <String, String>{
+  'close': 'Close',
+  'refresh': 'Refresh',
+  'loading': 'Loading',
+  'checkingSession': 'Checking session',
+  'loadingInspection': 'Loading inspection',
+  'somethingWentWrong': 'Something went wrong',
+  'continueAction': 'Continue',
+  'submit': 'Submit',
+  'tryAgain': 'Try again',
+  'vehicleRequestTitle': 'Request a vehicle',
+  'vehicleRequestDescription': 'Only the maximum budget is required.',
+  'maxBudgetUsd': 'Max budget (USD)',
+  'modelOptional': 'Model (optional)',
+  'noMakePreference': 'No make preference',
+  'noPreference': 'No preference',
+  'yearMin': 'Year min',
+  'yearMax': 'Year max',
+  'yearRangeError': 'Minimum year cannot exceed maximum.',
+  'maxOdometerKm': 'Max odometer (km)',
+  'urgency': 'Urgency',
+  'asap': 'ASAP',
+  'withinOneMonth': 'Within one month',
+  'stillBrowsing': 'Still browsing',
+  'notesOptional': 'Notes (optional)',
+  'createRequest': 'Create request',
+  'quoteRequestTitle': 'Request a quote',
+  'sendQuoteRequest': 'Send quote request',
+  'offerPriceUsd': 'Offer price (USD)',
+  'paymentPlan': 'Payment plan',
+  'fullCash': 'Full cash',
+  'bankTransfer': 'Bank transfer',
+  'other': 'Other',
+  'messageOptional': 'Message (optional)',
+  'viewingRequestTitle': 'Request a viewing',
+  'preferredDate': 'Preferred date',
+  'preferredTime': 'Preferred time',
+  'viewingLocation': 'Viewing location',
+  'chooseViewingLocation': 'Choose a viewing location.',
+  'noteOptional': 'Note (optional)',
+  'vehicleDetail': 'Vehicle detail',
+  'saveVehicle': 'Save vehicle',
+  'removeSavedVehicle': 'Remove saved vehicle',
+  'vehicleUnavailable': 'Vehicle unavailable',
+  'pleaseTryAgain': 'Please try again.',
+  'loadingVehicleDetails': 'Loading vehicle details',
+  'vehicleSaved': 'Vehicle saved.',
+  'vehicleRemovedSaved': 'Vehicle removed from Saved.',
+  'quoteSent': 'Quote request sent.',
+  'viewingRequested': 'Viewing requested.',
+  'openFullScreenGallery': 'Open full-screen gallery.',
+  'vehiclePhotos': '{count} vehicle photos',
+  'photoOf': '{title} photo {current} of {total}',
+  'imagePosition': '{current} / {total}',
+  'imagePositionOf': '{current} of {total}',
+  'negotiable': 'Negotiable',
+  'fixedAskingPrice': 'Fixed asking price',
+  'daysListed': '{count} days listed',
+  'inspectionSummary': 'Buyer-safe inspection summary',
+  'needsAttention': 'Needs attention',
+  'inspectionCompleted': 'Inspection completed.',
+  'allFindings': 'All findings ({count})',
+  'fuel': 'Fuel',
+  'drive': 'Drive',
+  'colour': 'Colour',
+  'sellerDisclosure': 'Seller disclosure',
+  'quote': 'Quote',
+  'viewing': 'Viewing',
+  'newListing': 'New listing',
+  'editListing': 'Edit listing',
+  'vehicleOptionsUnavailable': 'Vehicle options unavailable',
+  'vehicleOptionsUnavailableMessage':
+      'Refresh your profile before editing a listing.',
+  'listingUnavailable': 'Listing unavailable',
+  'loadingListingDraft': 'Loading listing draft',
+  'specifications': 'Vehicle specifications',
+  'specificationsDescription': 'Describe the vehicle buyers will inspect.',
+  'accidentHistory': 'Accident history',
+  'accidentNote': 'Accident note',
+  'pricing': 'Pricing',
+  'pricingDescription': 'Set a clear asking price before adding media.',
+  'askPriceUsd': 'Ask price (USD)',
+  'priceNegotiable': 'Price is negotiable',
+  'photos': 'Photos',
+  'photosDescription':
+      'Upload at least three photos, choose a cover, and drag to reorder.',
+  'noPhotos': 'No photos yet',
+  'noPhotosMessage': 'Add clear exterior and interior vehicle photos.',
+  'addPhotos': 'Add photos',
+  'documents': 'Documents',
+  'documentsDescription':
+      'Required ownership files remain private and are reviewed by the team.',
+  'documentType': 'Document type',
+  'addDocument': 'Add document',
+  'noDocuments': 'No documents yet',
+  'noDocumentsMessage': 'Upload the three required ownership documents.',
+  'reviewAndSubmit': 'Review and submit',
+  'reviewDescription': 'Resolve every checklist item before review.',
+  'disclosurePrompt': 'Ownership, service history, and known issues',
+  'noTimeline': 'No timeline history',
+  'noTimelineMessage': 'Status changes will appear after the draft is saved.',
+  'timelineUnavailable': 'Timeline unavailable',
+  'loadingTimeline': 'Loading timeline',
+  'saveAndExit': 'Save & Exit',
+  'stepSpecs': 'Specs',
+  'stepReview': 'Review',
+  'submitForReview': 'Submit for review',
+  'draftSaved': 'Draft saved.',
+  'completeBeforeUpload':
+      'Complete specifications and pricing before uploading.',
+  'photoLimit': 'Only 12 vehicle photos are allowed.',
+  'photoTypeError': 'Use JPEG, PNG, or WebP photos.',
+  'documentTypeError': 'Use a PDF, JPEG, or PNG document.',
+  'readyToSubmit': 'Ready to submit',
+  'readyToSubmitMessage': 'All listing requirements are complete.',
+  'publishingReadiness': 'Publishing readiness',
+  'timeline': 'Timeline',
+  'submitListingTitle': 'Submit listing?',
+  'submitListingMessage':
+      'The listing will be locked while the team reviews it.',
+  'leaveWithoutSaving': 'Leave without saving?',
+  'leaveWithoutSavingMessage': 'Unsaved listing changes will be discarded.',
+  'keepEditing': 'Keep editing',
+  'discard': 'Discard',
+  'cancelUploadsBeforeLeaving': 'Cancel active uploads before leaving.',
+  'coverPhoto': 'Cover photo',
+  'photoNumber': 'Photo {count}',
+  'currentCoverPhoto': 'Current cover photo',
+  'makeCoverPhoto': 'Make cover photo',
+  'deletePhoto': 'Delete photo',
+  'cancelUpload': 'Cancel upload',
+  'retryUpload': 'Retry upload',
+  'removeUploadItem': 'Remove upload item',
+  'queued': 'Queued',
+  'uploadingPercent': 'Uploading {percent} percent',
+  'uploadFailed': 'Upload failed',
+  'uploadCancelled': 'Upload cancelled',
+  'uploadComplete': 'Upload complete',
+  'makeLabel': 'Make',
+  'modelLabel': 'Model',
+  'yearLabel': 'Year',
+  'colourLabel': 'Colour',
+  'bodyTypeLabel': 'Body type',
+  'fuelTypeLabel': 'Fuel type',
+  'transmissionLabel': 'Transmission',
+  'driveTypeLabel': 'Drive type',
+  'conditionLabel': 'Condition',
+  'engineOptional': 'Engine (optional)',
+  'mileageKm': 'Mileage (km)',
+  'askPriceLabel': 'Ask price',
+  'useAtLeastCharacters': 'Use at least {count} characters.',
+  'checkConnection': 'Check your connection and try again.',
+  'deleteDocument': 'Delete {document}',
+  'requiredSuffix': 'Required',
+  'listingSubmitted': 'Listing submitted for review.',
+  'listingStepOf': 'Listing step {current} of {total}',
+  'listingPhoto': 'Listing photo {count}',
+  'photoSizeLimit': '{name} exceeds the 10 MB photo limit.',
+  'documentSizeLimit': '{name} exceeds the 15 MB document limit.',
+  'readinessSaveSpecs': 'Save the vehicle specifications and pricing.',
+  'readinessDisclosure': 'Add a seller disclosure of at least 20 characters.',
+  'readinessPhotos': 'Upload at least 3 vehicle photos.',
+  'readinessCover': 'Choose a cover photo.',
+  'readinessDocuments': 'Upload required documents: {documents}.',
+  'statusLabel': 'Status: {status}',
+  'inspectionScoreLabel': 'Inspection score {score} out of 100',
+  'loadingSellerDashboard': 'Loading seller dashboard',
+  'listingsUnavailable': 'Listings unavailable',
+  'listingsUnavailableMessage':
+      'Refresh the dashboard after the API comes back.',
+  'statsListings': 'Listings',
+  'statsViews': 'Views',
+  'statsQuotes': 'Quotes',
+  'statsViewings': 'Viewings',
+  'noListings': 'No listings yet',
+  'noListingsMessage':
+      'Create a draft, upload media, then submit it for review.',
+  'editVehicle': 'Edit {title}',
+  'vehicleCoverPhoto': '{title} cover photo',
+  'updatedOn': 'Updated {date}',
+  'loadingViewingRequests': 'Loading viewing requests',
+  'maximumBudget': 'Maximum budget',
+  'minimumYear': 'Minimum year',
+  'maximumYear': 'Maximum year',
+  'maximumOdometer': 'Maximum odometer',
+  'offerPrice': 'Offer price',
+  'searchingCatalogue': 'Searching the catalogue',
+  'loadMoreVehicles': 'Load more vehicles',
+  'loadingSavedVehicles': 'Loading saved vehicles',
+  'savedVehiclesUnavailable': 'Saved vehicles unavailable',
+  'noSavedVehicles': 'No saved vehicles',
+  'noSavedVehiclesMessage': 'Bookmark listings from Browse to keep them here.',
+  'needDifferentVehicle': 'Need a different vehicle?',
+  'sourcingPitch':
+      'Create a sourcing request and let the team look for a match.',
+  'newAction': 'New',
+  'quotesTitle': 'Quotes',
+  'loadingQuoteRequests': 'Loading quote requests',
+  'noQuoteRequests': 'No quote requests',
+  'noQuoteRequestsMessage':
+      'Quotes you send from listing detail will show here.',
+  'offerUsd': 'Offer USD {amount}',
+  'askUsdPlan': 'Ask USD {amount} · {plan}',
+  'sourcingRequestsTitle': 'Sourcing requests',
+  'loadingSourcingRequests': 'Loading sourcing requests',
+  'noSourcingRequests': 'No sourcing requests',
+  'noSourcingRequestsMessage':
+      'Create one when you want the team to source a vehicle.',
+  'anyMake': 'Any make',
+  'budgetUsdUrgency': 'Budget USD {amount} · {urgency}',
+  'loadingViewings': 'Loading viewings',
+  'viewingsUnavailable': 'Viewings unavailable',
+  'noViewingsScheduled': 'No viewings scheduled',
+  'noViewingsScheduledMessage':
+      'Confirmed and requested viewings will appear here.',
+  'unableToLoadSection': 'Unable to load this section',
+  'listingCardLabel': '{title}, {city}, USD {price}',
+  'vehiclePhoto': '{title} vehicle photo',
+  'welcomeBack': 'Welcome back',
+  'createAccountTitle': 'Create your account',
+  'registrationSubtitle':
+      'Sign up to browse verified vehicles or list your own.',
+  'signInSubtitle': 'Sign in to continue where you left off.',
+  'signIn': 'Sign in',
+  'register': 'Register',
+  'emailOrPhone': 'Email or phone',
+  'emailOrPhoneHint': 'you@example.com or +263...',
+  'password': 'Password',
+  'hidePassword': 'Hide password',
+  'showPassword': 'Show password',
+  'forgotPassword': 'Forgot password?',
+  'email': 'Email',
+  'phone': 'Phone',
+  'phoneHelper': 'E.164 format, e.g. +263771234567',
+  'rolePrompt': 'I want to',
+  'buyerRoleOption': 'Browse and buy vehicles',
+  'sellerRoleOption': 'List and sell a vehicle',
+  'agreementsAfterVerification':
+      'After verification, you will review each marketplace agreement before using your account.',
+  'passwordHelper': 'Min 8 characters, mix of letters and numbers.',
+  'confirmPassword': 'Confirm password',
+  'passwordsMismatch': "Passwords don't match.",
+  'createAccount': 'Create account',
+  'confirmYourPassword': 'Confirm your password.',
+  'required': 'Required',
+  'registrationStep': 'Registration step {current} of {total}',
+  'stepOf': 'Step {current} of {total}',
+  'insecureEndpoint':
+      'Talking to an insecure HTTP endpoint. Release builds require HTTPS.',
+  'verifyAccount': 'Verify account',
+  'enterOtp': 'Enter the 6-digit code',
+  'otpSentDescription':
+      'We sent an SMS to the phone tied to {identifier}. The code arrives in a few seconds — your keyboard may fill it in automatically.',
+  'testOtpDescription':
+      'This configured buyer test account uses an on-screen code. It expires after 5 minutes and works only once.',
+  'otpCode': 'OTP code',
+  'resendIn': 'Resend in {seconds}s',
+  'sendCode': 'Send code',
+  'verifyAndSignIn': 'Verify and sign in',
+  'otpHelp':
+      "Didn't receive it? Check your SMS after a minute, then tap Resend. Codes expire 5 minutes after they arrive.",
+  'testOtpHelp':
+      'Tap Use code to fill the field, then verify and sign in. Resend creates a new code.',
+  'codeSent': 'Code sent. Check your SMS.',
+  'testCodeGenerated': 'Test code generated. No SMS credit was used.',
+  'testingCode': 'Testing code',
+  'testingCodeLabel': 'Testing verification code {code}',
+  'useCode': 'Use code',
+  'bisellVerifiedLabel': 'BiSell Verified',
+  'priceSemanticLabel': 'USD {amount}',
 };

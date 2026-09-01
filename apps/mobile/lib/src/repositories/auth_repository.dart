@@ -163,10 +163,13 @@ class AuthRepository {
     );
   }
 
-  Future<void> recordConsent(String consentType) async {
+  Future<void> recordConsent(
+    String consentType, {
+    String version = '1.0.0',
+  }) async {
     await _apiClient.postJson<void>(
       ApiRoutes.meConsents,
-      {'consentType': consentType, 'version': '1.0.0', 'accepted': true},
+      {'consentType': consentType, 'version': version, 'accepted': true},
       (_) {},
       includeCsrf: true,
     );

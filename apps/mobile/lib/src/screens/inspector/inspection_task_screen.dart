@@ -1,17 +1,17 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/app_colors.dart';
-import '../../core/files/file_type_sniffer.dart';
+import '../../../theme/app_tokens.dart';
 import '../../core/files/local_upload.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/observability/mobile_analytics.dart';
 import '../../models/inspector_models.dart';
 import '../../repositories/inspector_repository.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/async_state_view.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/vehicle_image.dart';
@@ -43,7 +43,7 @@ class _InspectionTaskScreenState extends State<InspectionTaskScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return AppLoadingView(label: copy.text('loadingInspection'));
           }
           if (snapshot.hasError) return _error(context);
           return _TaskBody(detail: snapshot.data!, onSubmitted: _refresh);
@@ -80,60 +80,73 @@ class _TaskBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final task = detail.task;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: ListView(
+            padding: adaptivePageInsets(constraints.maxWidth),
             children: [
-              VehicleImageView(
-                imageUrl: task.listing.coverImageUrl,
-                height: 190,
+              SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    VehicleImageView(
+                      imageUrl: task.listing.coverImageUrl,
+                      height: 190,
+                      semanticLabel: task.listing.title,
+                    ),
+                    const SizedBox(height: 12),
+                    StatusChip(label: task.status),
+                    const SizedBox(height: 10),
+                    Text(
+                      task.listing.title,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(task.listing.city),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              StatusChip(label: task.status),
-              const SizedBox(height: 10),
-              Text(
-                task.listing.title,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(task.listing.city),
+              const SizedBox(height: 16),
+              if (detail.report != null)
+                _SubmittedReport(report: detail.report!)
+              else if (task.canSubmitReport)
+                InspectionReportForm(taskId: task.id, onSubmitted: onSubmitted)
+              else
+                const EmptyState(
+                  title: 'Report unavailable',
+                  message:
+                      'This task is not currently open for report capture.',
+                ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        if (detail.report != null)
-          _SubmittedReport(report: detail.report!)
-        else if (task.canSubmitReport)
-          _InspectionReportForm(taskId: task.id, onSubmitted: onSubmitted)
-        else
-          const EmptyState(
-            title: 'Report unavailable',
-            message: 'This task is not currently open for report capture.',
-          ),
-      ],
+      ),
     );
   }
 }
 
-class _InspectionReportForm extends StatefulWidget {
-  const _InspectionReportForm(
-      {required this.taskId, required this.onSubmitted});
+class InspectionReportForm extends StatefulWidget {
+  const InspectionReportForm({
+    super.key,
+    required this.taskId,
+    required this.onSubmitted,
+  });
 
   final String taskId;
   final Future<void> Function() onSubmitted;
 
   @override
-  State<_InspectionReportForm> createState() => _InspectionReportFormState();
+  State<InspectionReportForm> createState() => _InspectionReportFormState();
 }
 
-class _InspectionReportFormState extends State<_InspectionReportForm> {
+class _InspectionReportFormState extends State<InspectionReportForm> {
   final _summaryController = TextEditingController();
   var _findings = List<InspectionFindingDraft>.of(requiredInspectionFindings);
   var _roadworthy = true;
   var _submitting = false;
+  var _dirty = false;
   int? _uploadingIndex;
 
   @override
@@ -145,46 +158,61 @@ class _InspectionReportFormState extends State<_InspectionReportForm> {
   @override
   Widget build(BuildContext context) {
     final copy = AutoIqLocalizations.of(context);
-    return SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Score(value: inspectionScore(_findings)),
-          const SizedBox(height: 16),
-          ...List.generate(
-            _findings.length,
-            (index) => _FindingEditor(
-              finding: _findings[index],
-              uploading: _uploadingIndex == index,
-              onChanged: (finding) => _updateFinding(index, finding),
-              onPhoto: () => _pickPhoto(index),
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard();
+      },
+      child: SectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Score(value: inspectionScore(_findings)),
+            const SizedBox(height: 16),
+            ...List.generate(
+              _findings.length,
+              (index) => _FindingEditor(
+                finding: _findings[index],
+                uploading: _uploadingIndex == index,
+                onChanged: (finding) => _updateFinding(index, finding),
+                onPhoto: () => _pickPhoto(index),
+              ),
             ),
-          ),
-          TextField(
-            key: const Key('inspector-summary'),
-            controller: _summaryController,
-            minLines: 3,
-            maxLines: 6,
-            maxLength: 4000,
-            decoration: InputDecoration(labelText: copy.inspectorSummary),
-            onChanged: (_) => setState(() {}),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(copy.roadworthy),
-            value: _roadworthy,
-            onChanged: (value) => setState(() => _roadworthy = value),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              key: const Key('submit-inspection-report'),
-              onPressed: _canSubmit ? _submit : null,
-              child: Text(copy.submitInspectionReport),
+            TextField(
+              key: const Key('inspector-summary'),
+              controller: _summaryController,
+              minLines: 3,
+              maxLines: 6,
+              maxLength: 4000,
+              decoration: InputDecoration(labelText: copy.inspectorSummary),
+              onChanged: (_) => setState(() => _dirty = true),
             ),
-          ),
-        ],
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(copy.roadworthy),
+              value: _roadworthy,
+              onChanged: (value) => setState(() {
+                _roadworthy = value;
+                _dirty = true;
+              }),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                key: const Key('submit-inspection-report'),
+                onPressed: _canSubmit ? _submit : null,
+                child: _submitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(copy.submitInspectionReport),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -192,11 +220,13 @@ class _InspectionReportFormState extends State<_InspectionReportForm> {
   bool get _canSubmit {
     return !_submitting &&
         _uploadingIndex == null &&
-        _summaryController.text.trim().isNotEmpty;
+        _summaryController.text.trim().isNotEmpty &&
+        inspectionDraftIsComplete(_findings);
   }
 
   void _updateFinding(int index, InspectionFindingDraft finding) {
     setState(() {
+      _dirty = true;
       _findings = [
         ..._findings.take(index),
         finding,
@@ -258,21 +288,23 @@ class _InspectionReportFormState extends State<_InspectionReportForm> {
   }
 
   Future<LocalUpload> _toUpload(XFile file) async {
-    final bytes = Uint8List.fromList(await file.readAsBytes());
-    final type = FileTypeSniffer.sniff(bytes);
-    if (type == null || !type.isImage) {
+    final upload = await LocalUpload.fromXFile(file);
+    if (upload == null || !upload.fileType.isImage) {
       throw ApiException(
           message: 'Use a JPEG, PNG, or WebP image.', statusCode: 400);
     }
-    if (bytes.length > 10 * 1024 * 1024) {
+    if (upload.length > 10 * 1024 * 1024) {
       throw ApiException(
           message: 'Evidence photos must be 10 MB or smaller.',
           statusCode: 400);
     }
-    return LocalUpload(bytes: bytes, fileType: type, name: file.name);
+    return upload;
   }
 
   Future<void> _submit() async {
+    final confirmed = await _confirmSubmit();
+    if (!confirmed || !mounted) return;
+    final analytics = context.read<MobileAnalytics>();
     setState(() => _submitting = true);
     try {
       await context.read<InspectorRepository>().submitReport(
@@ -281,12 +313,64 @@ class _InspectionReportFormState extends State<_InspectionReportForm> {
             inspectorNote: _summaryController.text,
             roadworthy: _roadworthy,
           );
+      analytics.record(
+        MobileFunnelEvent.inspectionSubmitted,
+        attributes: {'finding_count': _findings.length},
+      );
       if (mounted) _show(AutoIqLocalizations.of(context).reportSubmitted);
+      _dirty = false;
       await widget.onSubmitted();
     } on ApiException catch (error) {
       _show(error.message);
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<bool> _confirmSubmit() async {
+    final copy = AutoIqLocalizations.of(context);
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(copy.confirmReportTitle),
+            content: Text(copy.confirmReportMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(copy.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(copy.confirmSubmit),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _confirmDiscard() async {
+    final copy = AutoIqLocalizations.of(context);
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(copy.discardReportTitle),
+        content: Text(copy.discardReportMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(copy.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(copy.discardChanges),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) {
+      setState(() => _dirty = false);
+      Navigator.of(context).pop();
     }
   }
 
@@ -300,18 +384,38 @@ class _InspectionReportFormState extends State<_InspectionReportForm> {
 class _Score extends StatelessWidget {
   const _Score({required this.value});
 
-  final int value;
+  final int? value;
 
   @override
   Widget build(BuildContext context) {
     final copy = AutoIqLocalizations.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(copy.computedScore,
-            style: Theme.of(context).textTheme.titleMedium),
-        Text('$value/100', style: Theme.of(context).textTheme.headlineSmall),
-      ],
+    final score = value;
+    return Semantics(
+      label: score == null
+          ? '${copy.computedScore}. ${copy.scoreIncomplete}'
+          : '${copy.computedScore}: $score out of 100',
+      excludeSemantics: true,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(copy.computedScore,
+                    style: Theme.of(context).textTheme.titleMedium),
+                if (score == null)
+                  Text(copy.scoreIncomplete,
+                      style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          Text(
+            score == null ? '—' : '$score/100',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -343,13 +447,20 @@ class _FindingEditor extends StatelessWidget {
             Text(finding.label, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             SegmentedButton<String>(
+              key: Key('finding-rating-${finding.category}'),
               segments: _ratings
-                  .map((value) =>
-                      ButtonSegment(value: value, label: Text(value)))
+                  .map((value) => ButtonSegment(
+                        value: value,
+                        label: Text(_ratingLabel(copy, value)),
+                      ))
                   .toList(growable: false),
-              selected: {finding.rating},
-              onSelectionChanged: (values) =>
-                  onChanged(finding.copyWith(rating: values.single)),
+              selected: finding.rating == null ? {} : {finding.rating!},
+              emptySelectionAllowed: true,
+              onSelectionChanged: (values) {
+                if (values.isNotEmpty) {
+                  onChanged(finding.copyWith(rating: values.single));
+                }
+              },
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -360,6 +471,25 @@ class _FindingEditor extends StatelessWidget {
               decoration: InputDecoration(labelText: copy.observationNote),
               onChanged: (value) => onChanged(finding.copyWith(note: value)),
             ),
+            if (!finding.isRated)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Text(
+                  copy.findingUnrated,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              )
+            else if (finding.validationMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Text(
+                  finding.validationMessage!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             OutlinedButton.icon(
               onPressed: uploading ? null : onPhoto,
               icon: Icon(
@@ -394,7 +524,7 @@ class _SubmittedReport extends StatelessWidget {
         children: [
           _Score(value: report.overallScore),
           const SizedBox(height: 8),
-          Text(report.roadworthy ? copy.roadworthy : 'Not roadworthy'),
+          Text(report.roadworthy ? copy.roadworthy : copy.notRoadworthy),
           const SizedBox(height: 8),
           StatusChip(
             label: report.buyerSummaryApproved
@@ -419,3 +549,9 @@ class _SubmittedReport extends StatelessWidget {
 }
 
 const _ratings = ['PASS', 'WATCH', 'FAIL'];
+
+String _ratingLabel(AutoIqLocalizations copy, String value) {
+  if (value == 'PASS') return copy.pass;
+  if (value == 'WATCH') return copy.watch;
+  return copy.fail;
+}
