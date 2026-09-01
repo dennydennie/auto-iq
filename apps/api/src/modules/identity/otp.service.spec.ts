@@ -107,9 +107,14 @@ describe("OtpService", () => {
       } as never,
     );
 
-    await expect(service.send("+263771234567")).rejects.toBeInstanceOf(
-      ServiceUnavailableException,
-    );
+    const error = await service.send("+263771234567").catch((value) => value);
+
+    expect(error).toBeInstanceOf(ServiceUnavailableException);
+    expect(error.getResponse()).toEqual({
+      code: "DELIVERY_UNAVAILABLE",
+      message:
+        "We couldn't send your code right now. Please try again shortly.",
+    });
     expect(notifyUser).toHaveBeenCalledWith(
       expect.objectContaining({
         channels: ["SMS", "EMAIL"],

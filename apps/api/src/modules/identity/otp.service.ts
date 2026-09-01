@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
+import { PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
 import { UserEntity } from "../../db/entity/user.entity";
 import { UserRepository } from "../../db/repository/user.repository";
 import { NotificationService } from "../notifications/notification.service";
@@ -83,11 +84,9 @@ export class OtpService {
     if (!deliveries.some((delivery) => delivery.status === "SENT")) {
       await this.redisService.del(this.key(user.phone));
       await this.redisService.del(this.deliveryKey(user.phone));
-      throw new ServiceUnavailableException({
-        code: "DELIVERY_UNAVAILABLE",
-        message:
-          "Unable to deliver a verification code right now. Please try again shortly.",
-      });
+      throw new ServiceUnavailableException(
+        PUBLIC_SERVER_ERRORS.DELIVERY_UNAVAILABLE,
+      );
     }
   }
 

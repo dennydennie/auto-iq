@@ -2,8 +2,9 @@ jest.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: jest.fn().mockResolvedValue("https://storage.example/upload"),
 }));
 
-import { StorageService } from "./storage.service";
+import { BadGatewayException } from "@nestjs/common";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { StorageService } from "./storage.service";
 
 describe("StorageService", () => {
   beforeEach(() => {
@@ -174,5 +175,22 @@ describe("StorageService", () => {
     await expect(service.getDisplayUrl("listing-images/2026/07/image.jpg"))
       .resolves.toBe("https://storage.example/upload");
     expect(getSignedUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it("classifies unreadable object bodies as a storage availability failure", async () => {
+    const service = new StorageService(createConfig(), createRedis());
+    const internals = service as never as {
+      client: { send: jest.Mock };
+      readSignature(storageKey: string): Promise<Uint8Array>;
+    };
+    internals.client.send = jest.fn().mockResolvedValue({ Body: undefined });
+
+    const error = await internals.readSignature("key").catch((value) => value);
+
+    expect(error).toBeInstanceOf(BadGatewayException);
+    expect(error.getResponse()).toEqual({
+      code: "STORAGE_INSPECTION_FAILED",
+      message: "We couldn't verify your uploaded file right now. Please try again shortly.",
+    });
   });
 });

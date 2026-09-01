@@ -2,7 +2,6 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
@@ -16,6 +15,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { randomUUID } from "node:crypto";
+import { PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
 import { TenantContext } from "../../common/tenancy/tenant-context";
 import { RedisService } from "../redis/redis.service";
 
@@ -279,10 +279,7 @@ export class StorageService {
         expiresAt: new Date(Date.now() + expiresIn * 1_000).toISOString(),
       };
     } catch {
-      throw new BadGatewayException({
-        code: "PRESIGN_FAILED",
-        message: "Failed to prepare upload URL",
-      });
+      throw new BadGatewayException(PUBLIC_SERVER_ERRORS.PRESIGN_FAILED);
     }
   }
 
@@ -378,10 +375,9 @@ export class StorageService {
       }),
     );
     if (!response.Body || !("transformToByteArray" in response.Body)) {
-      throw new InternalServerErrorException({
-        code: "INVALID_FILE_TYPE",
-        message: "Unable to inspect uploaded object bytes",
-      });
+      throw new BadGatewayException(
+        PUBLIC_SERVER_ERRORS.STORAGE_INSPECTION_FAILED,
+      );
     }
     return response.Body.transformToByteArray();
   }

@@ -49,14 +49,50 @@ describe("HttpExceptionFilter", () => {
     expect(json).not.toHaveBeenCalledWith(expect.objectContaining({ details: expect.anything() }));
   });
 
-  it("does not expose provider details in 5xx responses", () => {
+  it.each([
+    {
+      code: "DELIVERY_UNAVAILABLE",
+      message: "We couldn't send your code right now. Please try again shortly.",
+      statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+    },
+    {
+      code: "PRESIGN_FAILED",
+      message: "We couldn't prepare your upload right now. Please try again shortly.",
+      statusCode: HttpStatus.BAD_GATEWAY,
+    },
+    {
+      code: "STORAGE_INSPECTION_FAILED",
+      message: "We couldn't verify your uploaded file right now. Please try again shortly.",
+      statusCode: HttpStatus.BAD_GATEWAY,
+    },
+  ])("returns canonical feedback for $code without provider details", ({ code, message, statusCode }) => {
     const filter = new HttpExceptionFilter();
     const { host, json } = createHost();
 
     filter.catch(new HttpException({
-      code: "PRESIGN_FAILED",
+      code,
       message: "bucket=private-secret provider=credential-value",
       details: ["access-key=secret"],
+    }, statusCode), host);
+
+    expect(json).toHaveBeenCalledWith({
+      code,
+      message,
+      correlationId: "corr-1",
+      details: undefined,
+      statusCode,
+    });
+    expect(JSON.stringify(json.mock.calls)).not.toContain("private-secret");
+    expect(JSON.stringify(json.mock.calls)).not.toContain("access-key");
+  });
+
+  it("masks unapproved 5xx response bodies", () => {
+    const filter = new HttpExceptionFilter();
+    const { host, json } = createHost();
+
+    filter.catch(new HttpException({
+      code: "UPSTREAM_PROVIDER_FAILED",
+      message: "credential=private-secret",
     }, HttpStatus.BAD_GATEWAY), host);
 
     expect(json).toHaveBeenCalledWith(expect.objectContaining({
@@ -64,6 +100,7 @@ describe("HttpExceptionFilter", () => {
       message: "Internal server error",
       statusCode: HttpStatus.BAD_GATEWAY,
     }));
+    expect(JSON.stringify(json.mock.calls)).not.toContain("private-secret");
   });
 
   it("does not report expected 404 exceptions", () => {

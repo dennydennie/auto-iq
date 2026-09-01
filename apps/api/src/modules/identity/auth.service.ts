@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
+import { PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
 import { TenantContext } from "../../common/tenancy/tenant-context";
 import { AuditLogEntity } from "../../db/entity/audit-log.entity";
 import { BuyerProfileEntity } from "../../db/entity/buyer-profile.entity";
@@ -320,11 +321,9 @@ export class AuthService {
   }
 
   private resetDeliveryUnavailable() {
-    return new ServiceUnavailableException({
-      code: "DELIVERY_UNAVAILABLE",
-      message:
-        "Password reset is temporarily unavailable. Please try again shortly.",
-    });
+    return new ServiceUnavailableException(
+      PUBLIC_SERVER_ERRORS.DELIVERY_UNAVAILABLE,
+    );
   }
 
   private resetCodeKey(userId: string) {

@@ -6,6 +6,7 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
+import { getPublicServerError } from "../errors/public-server-errors";
 import { JsonLogger } from "../logging/json.logger";
 import type { CorrelatedRequest } from "../types/http";
 
@@ -52,15 +53,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
       });
     }
 
-    const safe = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR;
-    response.status(statusCode).json({
-      code: safe ? "INTERNAL_ERROR" : getErrorCode(exception, statusCode),
-      message: safe ? "Internal server error" : getErrorMessage(exception),
-      correlationId: request.correlationId ?? "",
-      details: safe ? undefined : getDetails(exception),
-      statusCode,
-    } satisfies ApiErrorEnvelope);
+    response.status(statusCode).json(
+      createErrorEnvelope(exception, statusCode, request.correlationId ?? ""),
+    );
   }
+}
+
+function createErrorEnvelope(
+  exception: unknown,
+  statusCode: number,
+  correlationId: string,
+): ApiErrorEnvelope {
+  const code = getErrorCode(exception, statusCode);
+  const publicError = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR
+    ? getPublicServerError(code)
+    : undefined;
+  const hidden = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR && !publicError;
+  return {
+    code: publicError?.code ?? (hidden ? "INTERNAL_ERROR" : code),
+    message: publicError?.message ?? (hidden ? "Internal server error" : getErrorMessage(exception)),
+    correlationId,
+    details: statusCode >= HttpStatus.INTERNAL_SERVER_ERROR ? undefined : getDetails(exception),
+    statusCode,
+  };
 }
 
 function exceptionDetails(exception: unknown) {

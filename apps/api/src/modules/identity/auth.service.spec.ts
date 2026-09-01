@@ -343,8 +343,15 @@ describe("AuthService", () => {
       notifyUser: jest.fn().mockResolvedValue([{ status: "FAILED" }]),
     });
 
-    await expect(
-      service.forgotPassword({ email: user.email }),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    const error = await service
+      .forgotPassword({ email: user.email })
+      .catch((value) => value);
+
+    expect(error).toBeInstanceOf(ServiceUnavailableException);
+    expect(error.getResponse()).toEqual({
+      code: "DELIVERY_UNAVAILABLE",
+      message:
+        "We couldn't send your code right now. Please try again shortly.",
+    });
   });
 });
