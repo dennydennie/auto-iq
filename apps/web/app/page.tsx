@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReferenceDataResponse } from "@auto-iq/contracts/reference-data";
 import { ROUTES } from "@auto-iq/contracts/routes";
 import { HomeLanding } from "@/components/marketing/home-landing";
+import { HomePageMotion } from "@/components/marketing/home-page-motion";
 import { SiteHeader } from "@/components/shared/site-header";
 import { absoluteSiteUrl } from "@/lib/site-url";
 import { PUBLIC_SITE_LINKS } from "@/lib/site-navigation";
@@ -45,12 +46,15 @@ export default async function HomePage() {
           __html: JSON.stringify(siteNavigationJsonLd),
         }}
       />
-      <SiteHeader
-        links={PUBLIC_SITE_LINKS}
-        homeHref="/"
-        primaryCta={{ href: "/auth/login", messageKey: "auth.signIn" }}
-      />
-      <HomeLanding searchOptions={searchOptions} />
+      <HomePageMotion>
+        <SiteHeader
+          links={PUBLIC_SITE_LINKS}
+          homeHref="/"
+          animateMenu
+          primaryCta={{ href: "/auth/login", messageKey: "auth.signIn" }}
+        />
+        <HomeLanding searchOptions={searchOptions} />
+      </HomePageMotion>
     </>
   );
 }

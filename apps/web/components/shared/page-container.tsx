@@ -12,14 +12,17 @@ export function PageContainer({
   size = "wide",
   className,
   children,
+  ...dataAttributes
 }: {
   as?: ElementType;
   size?: keyof typeof WIDTHS;
   className?: string;
   children: ReactNode;
+  [key: `data-${string}`]: string | undefined;
 }) {
   return (
     <Component
+      {...dataAttributes}
       className={cn(
         "mx-auto w-full px-4 sm:px-6 lg:px-8",
         WIDTHS[size],

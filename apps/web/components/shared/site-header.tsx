@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -27,6 +27,7 @@ export type SiteHeaderProps = {
   homeHref?: string;
   /** When true, show a Sign out button instead of the sign-in CTA. */
   signedIn?: boolean;
+  animateMenu?: boolean;
 };
 
 function matchesPath(pathname: string, href: string) {
@@ -46,6 +47,7 @@ export function SiteHeader({
   primaryCta,
   homeHref = "/",
   signedIn,
+  animateMenu = false,
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -58,17 +60,50 @@ export function SiteHeader({
   }, []);
   useOverlayDialog(isOpen, menuRef, closeMenu);
 
+  useEffect(() => {
+    const panel = menuRef.current;
+    if (
+      !animateMenu ||
+      !isOpen ||
+      !panel ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    let revert = () => {};
+    import("gsap").then(({ gsap }) => {
+      if (cancelled) return;
+      const context = gsap.context(() => {
+        gsap.fromTo(
+          panel,
+          { autoAlpha: 0, y: -8 },
+          { autoAlpha: 1, y: 0, duration: 0.24, ease: "power2.out" },
+        );
+      });
+      revert = () => context.revert();
+    });
+
+    return () => {
+      cancelled = true;
+      revert();
+    };
+  }, [animateMenu, isOpen]);
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/70 bg-[var(--paper)]/92 backdrop-blur">
       <PageContainer className="flex items-center justify-between gap-4 py-3">
         <Link
           href={homeHref}
+          data-gsap-header-item
           className="inline-flex items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-[0_16px_36px_-28px_rgba(22,31,58,0.4)]"
         >
           <BiSellLogo size={24} />
         </Link>
 
         <nav
+          data-gsap-header-item
           className="hidden items-center gap-1 lg:flex"
           aria-label={t("nav.primary")}
         >
@@ -92,7 +127,7 @@ export function SiteHeader({
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-gsap-header-item>
           <div className="hidden xl:block">
             <LocaleSwitcher compact />
           </div>
@@ -119,6 +154,7 @@ export function SiteHeader({
 
           <button
             ref={triggerRef}
+            data-gsap-header-item
             type="button"
             aria-controls="site-header-mobile-nav"
             aria-expanded={isOpen}
