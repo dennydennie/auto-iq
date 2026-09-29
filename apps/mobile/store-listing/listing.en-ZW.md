@@ -26,6 +26,10 @@ Full description:
 >
 > AutoIQ keeps marketplace activity structured from search to handover.
 
-Privacy policy URL: `<production-web-origin>/privacy`
+Support email: `support@bisellautoiq.co.zw`
 
-Account deletion URL: `<production-web-origin>/account-deletion`
+Website URL: `https://bisellautoiq.co.zw/`
+
+Privacy policy URL: `https://bisellautoiq.co.zw/privacy`
+
+Account deletion URL: `https://bisellautoiq.co.zw/account-deletion`
