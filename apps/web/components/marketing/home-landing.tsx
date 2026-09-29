@@ -100,11 +100,12 @@ function TrustStrip() {
       <PageContainer
         as="ul"
         className="grid gap-3 md:grid-cols-3"
-        data-gsap-stagger="slide"
+        data-motion-trust
       >
         {TRUST_ITEMS.map(({ icon: Icon, title, body }) => (
           <li
             key={title}
+            data-motion-trust-item
             className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4"
           >
             <Icon
@@ -124,8 +125,8 @@ function TrustStrip() {
 
 function MoveOptions() {
   return (
-    <PageContainer as="section" className="py-[var(--section-space)]">
-      <div className="max-w-2xl" data-gsap-reveal>
+    <PageContainer as="section" className="py-[var(--section-space)]" data-motion-choices>
+      <div className="max-w-2xl" data-motion-choices-intro>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber-dark)]">
           Start here
         </p>
@@ -137,11 +138,11 @@ function MoveOptions() {
           important details clear from first search to final handover.
         </p>
       </div>
-      <div className="mt-8 grid gap-5 md:grid-cols-2" data-gsap-stagger="rise">
+      <div className="mt-8 grid gap-5 md:grid-cols-2">
         {MOVE_OPTIONS.map(({ icon: Icon, title, body, href, label }) => (
           <article
             key={title}
-            data-gsap-stagger-children
+            data-motion-choice
             className="group rounded-[var(--radius-card)] border border-[var(--ink-100)] bg-white p-6 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:shadow-[0_28px_70px_-42px_rgba(10,30,77,0.7)] sm:p-8"
           >
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--amber-soft)] text-[var(--ink-900)]">
@@ -189,10 +190,10 @@ function HowItWorks() {
     ],
   ];
   return (
-    <section className="bg-white py-[var(--section-space)]">
+    <section className="bg-white py-[var(--section-space)]" data-motion-steps>
       <PageContainer>
-        <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-          <div data-gsap-reveal>
+        <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end" data-motion-steps-intro>
+          <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber-dark)]">
               Simple by design
             </p>
@@ -200,15 +201,16 @@ function HowItWorks() {
               From first search to a confident decision.
             </h2>
           </div>
-          <p className="max-w-2xl text-sm leading-6 text-[var(--ink-500)] sm:text-base" data-gsap-reveal>
+          <p className="max-w-2xl text-sm leading-6 text-[var(--ink-500)] sm:text-base">
             A clear marketplace experience for Zimbabwean buyers and sellers,
             with structured workflows behind every important step.
           </p>
         </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3" data-gsap-stagger="slide">
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
           {steps.map(([number, title, body]) => (
             <article
               key={number}
+              data-motion-step
               className="rounded-2xl border border-[var(--ink-100)] bg-[var(--paper)] p-5"
             >
               <span className="mono text-sm font-semibold text-[var(--amber-dark)]">
@@ -230,9 +232,9 @@ function HowItWorks() {
 
 function ProofGrid() {
   return (
-    <section className="bg-white py-[var(--section-space)]">
+    <section className="bg-white py-[var(--section-space)]" data-motion-proof>
       <PageContainer>
-        <div className="mx-auto max-w-2xl text-center" data-gsap-reveal>
+        <div className="mx-auto max-w-2xl text-center" data-motion-proof-intro>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber-dark)]">
             Why Auto IQ
           </p>
@@ -246,15 +248,15 @@ function ProofGrid() {
         </div>
         <ul
           className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          data-gsap-stagger="scale"
+          data-motion-proof-list
         >
           {PROOF_ITEMS.map(({ icon: Icon, title, body }) => (
             <li
               key={title}
-              data-gsap-stagger-children
+              data-motion-proof-item
               className="rounded-[var(--radius-card)] border border-[var(--ink-100)] bg-[var(--paper)] p-5 shadow-[var(--shadow-card)]"
             >
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--amber-soft)] text-[var(--ink-900)]">
+              <span data-motion-proof-icon className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--amber-soft)] text-[var(--ink-900)]">
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-lg font-semibold text-[var(--ink-900)]">
@@ -278,13 +280,13 @@ function TrustJourney() {
     "Protected request",
   ];
   return (
-    <section className="bg-[var(--paper)] py-[var(--section-space)]">
+    <section className="bg-[var(--paper)] py-[var(--section-space)]" data-motion-journey>
       <PageContainer>
         <div
           className="grid gap-8 rounded-[var(--radius-feature)] bg-[linear-gradient(135deg,#051438_0%,#0A1E4D_70%,#1D2944_100%)] p-7 text-white shadow-[0_30px_80px_-45px_rgba(5,20,56,0.8)] sm:p-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:p-14"
-          data-gsap-stagger="slide"
+          data-motion-journey-panel
         >
-          <div>
+          <div data-motion-journey-copy>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber)]">
               The Auto IQ difference
             </p>
@@ -309,13 +311,14 @@ function TrustJourney() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
               A clear vehicle journey
             </p>
-            <div className="mt-5 space-y-3" data-gsap-stagger="scale">
+            <div className="mt-5 space-y-3">
               {signals.map((signal, index) => (
                 <div
                   key={signal}
+                  data-motion-signal
                   className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4"
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--amber)] text-sm font-bold text-[var(--ink-900)]">
+                  <span data-motion-signal-number className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--amber)] text-sm font-bold text-[var(--ink-900)]">
                     {index + 1}
                   </span>
                   <div className="flex-1">
@@ -340,9 +343,9 @@ function TrustJourney() {
 
 function SellerCallout() {
   return (
-    <section className="bg-white py-[var(--section-space)]">
+    <section className="bg-white py-[var(--section-space)]" data-motion-seller>
       <PageContainer>
-        <div className="mx-auto max-w-2xl text-center" data-gsap-reveal>
+        <div className="mx-auto max-w-2xl text-center" data-motion-seller-intro>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber-dark)]">
             Ready to sell?
           </p>
@@ -357,7 +360,6 @@ function SellerCallout() {
         <div className="mt-10 overflow-hidden rounded-[var(--radius-feature)] border border-[var(--ink-100)] bg-[var(--ink-900)] shadow-[0_30px_70px_-45px_rgba(10,30,77,0.8)]">
           <div
             className="grid border-b border-white/10 text-sm font-semibold text-white/60 sm:grid-cols-3"
-            data-gsap-stagger="slide"
           >
             {[
               "1. Vehicle details",
@@ -366,6 +368,7 @@ function SellerCallout() {
             ].map((step, index) => (
               <div
                 key={step}
+                data-motion-seller-step
                 className={`flex items-center gap-3 px-5 py-4 ${index === 0 ? "bg-white/10 text-white" : ""}`}
               >
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--amber)] text-sm font-bold text-[var(--ink-900)]">
@@ -375,15 +378,16 @@ function SellerCallout() {
               </div>
             ))}
           </div>
-          <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1fr_auto] lg:items-end" data-gsap-stagger="rise">
+          <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <p className="text-sm font-semibold text-white">
                 What are you listing?
               </p>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4" data-gsap-stagger="scale">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {SELLER_BODY_TYPES.map((type) => (
                   <div
                     key={type}
+                    data-motion-body-type
                     className="rounded-2xl border border-white/15 bg-white/5 px-4 py-5 text-center text-sm font-semibold text-white/85"
                   >
                     <CarFront
@@ -423,24 +427,27 @@ export function HomeLanding({
   return (
     <main>
       <div className="flex flex-col bg-[var(--ink-900)] lg:min-h-[calc(100svh-4.25rem)]">
-        <section className="relative flex flex-1 flex-col justify-center overflow-x-hidden bg-[linear-gradient(135deg,#051438_0%,#0A1E4D_56%,#18233E_100%)] py-10 text-white sm:py-12" data-gsap-hero>
+        <section className="relative flex flex-1 flex-col justify-center overflow-x-hidden bg-[linear-gradient(135deg,#051438_0%,#0A1E4D_56%,#18233E_100%)] py-10 text-white sm:py-12" data-motion-hero>
           <div
             className="absolute -right-40 top-20 h-96 w-96 rounded-full bg-[var(--amber)]/10 blur-3xl"
             aria-hidden="true"
+            data-motion-car-glow
           />
           <PageContainer className="relative grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-            <div className="relative z-20" data-gsap-hero-copy>
-              <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber)]">
+            <div className="relative z-20">
+              <p data-motion-hero-copy className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--amber)]">
                 Zimbabwe&apos;s trust-first vehicle marketplace
               </p>
-              <h1 className="display mt-6 max-w-3xl text-5xl leading-[0.94] sm:text-7xl">
-                Your next car. Your next move.
+              <h1 aria-label="Your next car. Your next move." className="display mt-6 max-w-3xl text-5xl leading-[0.94] sm:text-7xl">
+                <span className="block overflow-hidden"><span aria-hidden="true" data-motion-headline-line className="block">Your next car.</span></span>
+                <span className="block overflow-hidden"><span aria-hidden="true" data-motion-headline-line className="block">Your next</span></span>
+                <span className="block overflow-hidden"><span aria-hidden="true" data-motion-headline-line className="block">move.</span></span>
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
+              <p data-motion-hero-copy className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
                 Buy and sell vehicles with the facts up front, structured
                 requests, and a clear path from search to handover.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div data-motion-hero-copy className="mt-8 flex flex-wrap gap-3">
                 <Link
                   href="/sell-my-car"
                   className={buttonVariants({
@@ -462,14 +469,14 @@ export function HomeLanding({
                 </Link>
               </div>
             </div>
-            <div data-gsap-hero-car>
+            <div data-motion-car>
               <HeroVehiclePhoto />
             </div>
           </PageContainer>
           <PageContainer
             size="content"
             className="relative z-20 mt-8"
-            data-gsap-hero-search="true"
+            data-motion-search
           >
             <VehicleSearchForm options={searchOptions} />
           </PageContainer>
@@ -485,9 +492,9 @@ export function HomeLanding({
         <PageContainer>
           <div
             className="flex flex-col gap-6 rounded-[var(--radius-feature)] bg-[var(--amber)] p-7 text-[var(--ink-900)] sm:flex-row sm:items-center sm:justify-between sm:p-10"
-            data-gsap-stagger="rise"
+            data-motion-closing
           >
-            <div data-gsap-stagger-children>
+            <div data-motion-closing-copy>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-900)]/65">
                 Ready when you are
               </p>
@@ -496,6 +503,7 @@ export function HomeLanding({
               </h2>
             </div>
             <Link
+              data-motion-closing-action
               href="/vehicles"
               className={buttonVariants({
                 variant: "default",

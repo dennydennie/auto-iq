@@ -32,20 +32,20 @@ const FOOTER_GROUPS = [
 
 export function SiteFooter() {
   return (
-    <footer className="bg-[var(--ink-900)] pb-8 pt-14 text-white">
+    <footer className="bg-[var(--ink-900)] pb-8 pt-14 text-white" data-motion-footer>
       <PageContainer>
-        <div className="border-b border-white/10 pb-8" data-gsap-reveal>
+        <div className="border-b border-white/10 pb-8">
           <p className="display text-2xl">BiSell AutoIQ</p>
           <p className="mt-2 max-w-md text-sm leading-6 text-white/60">
             A clearer way to buy and sell vehicles in Zimbabwe.
           </p>
         </div>
-        <div className="grid gap-8 py-10 sm:grid-cols-3" data-gsap-stagger="slide">
+        <div className="grid gap-8 py-10 sm:grid-cols-3">
           {FOOTER_GROUPS.map((group) => (
             <FooterGroup key={group.title} {...group} />
           ))}
         </div>
-        <div className="flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between" data-gsap-reveal>
+        <div className="flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} BiSell AutoIQ. All rights reserved.
           </p>
@@ -64,7 +64,7 @@ function FooterGroup({
   links: ReadonlyArray<readonly [string, string]>;
 }) {
   return (
-    <div data-gsap-stagger-children>
+    <div data-motion-footer-group>
       <h2 className="text-sm font-semibold text-white">{title}</h2>
       <ul className="mt-4 space-y-3">
         {links.map(([label, href]) => (

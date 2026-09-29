@@ -96,14 +96,14 @@ export function SiteHeader({
       <PageContainer className="flex items-center justify-between gap-4 py-3">
         <Link
           href={homeHref}
-          data-gsap-header-item
+          data-motion-header-item
           className="inline-flex items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-[0_16px_36px_-28px_rgba(22,31,58,0.4)]"
         >
           <BiSellLogo size={24} />
         </Link>
 
         <nav
-          data-gsap-header-item
+          data-motion-header-item
           className="hidden items-center gap-1 lg:flex"
           aria-label={t("nav.primary")}
         >
@@ -127,7 +127,7 @@ export function SiteHeader({
           })}
         </nav>
 
-        <div className="flex items-center gap-2" data-gsap-header-item>
+        <div className="flex items-center gap-2" data-motion-header-item>
           <div className="hidden xl:block">
             <LocaleSwitcher compact />
           </div>
@@ -154,7 +154,7 @@ export function SiteHeader({
 
           <button
             ref={triggerRef}
-            data-gsap-header-item
+            data-motion-header-item
             type="button"
             aria-controls="site-header-mobile-nav"
             aria-expanded={isOpen}
