@@ -21,7 +21,7 @@ request device location, contacts, SMS, call log, microphone, or broad storage
 permissions.
 
 Data is encrypted in transit. Account deletion can be requested in-app or at
-`https://web-production-dd0769.up.railway.app/account-deletion`.
+`https://bisellautoiq.co.zw/account-deletion`.
 
 Operators process requests from the role-gated admin deletion queue. Completion
 requires recorded identity-verification and data-handling attestations. The
