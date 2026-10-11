@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const files = {
   appConfig: read("apps/mobile/lib/src/core/config/app_config.dart"),
   apiClient: read("apps/mobile/lib/src/core/network/api_client.dart"),
+  dataSafety: read("apps/mobile/store-listing/data-safety-draft.md"),
   adminDeletionPage: read(
     "apps/web/app/admin/account-deletions/page.tsx",
   ),
@@ -28,6 +29,14 @@ const files = {
 };
 
 assert.doesNotMatch(files.gradle, /signingConfigs\.getByName\("debug"\)/);
+assert.match(
+  files.dataSafety,
+  /https:\/\/bisellautoiq\.co\.zw\/account-deletion/,
+);
+assert.doesNotMatch(
+  files.dataSafety,
+  /web-production-dd0769\.up\.railway\.app/,
+);
 for (const variable of [
   "AUTO_IQ_ANDROID_KEYSTORE_PATH",
   "AUTO_IQ_ANDROID_KEYSTORE_PASSWORD",
