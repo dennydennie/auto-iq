@@ -29,6 +29,9 @@ const files = {
 };
 
 assert.doesNotMatch(files.gradle, /signingConfigs\.getByName\("debug"\)/);
+assert.match(files.gradle, /apiOriginFromDartDefines/);
+assert.match(files.gradle, /gradleProperty\("dart-defines"\)/);
+assert.match(files.gradle, /Release builds require --dart-define=AUTO_IQ_API_BASE_URL/);
 assert.match(
   files.dataSafety,
   /https:\/\/bisellautoiq\.co\.zw\/account-deletion/,

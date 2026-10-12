@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -8,6 +10,24 @@ plugins {
 val releaseTaskRequested = gradle.startParameter.taskNames.any {
     it.contains("Release", ignoreCase = true)
 }
+
+fun apiOriginFromDartDefines(encodedDefines: String?): String? {
+    return encodedDefines.orEmpty().split(',').mapNotNull { encoded ->
+        runCatching { String(Base64.getDecoder().decode(encoded), Charsets.UTF_8) }.getOrNull()
+    }.firstOrNull { it.startsWith("AUTO_IQ_API_BASE_URL=") }
+        ?.substringAfter('=')?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+val releaseApiOrigin = apiOriginFromDartDefines(
+    providers.gradleProperty("dart-defines").orNull,
+)
+if (releaseTaskRequested && releaseApiOrigin == null) {
+    throw GradleException(
+        "Release builds require --dart-define=AUTO_IQ_API_BASE_URL=<api-origin>. " +
+            "Use scripts/mobile/build-play-bundle.sh for Google Play builds.",
+    )
+}
+
 val releaseKeystorePath = providers.environmentVariable(
     "AUTO_IQ_ANDROID_KEYSTORE_PATH",
 ).orNull?.trim()?.takeIf { it.isNotEmpty() }

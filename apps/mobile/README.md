@@ -61,6 +61,9 @@ checks the package, version, target SDK, cleartext policy, arm64 binary, API
 origin, account-deletion route, and signing certificate before reporting a
 successful artifact.
 
+Gradle also rejects any release build that omits `AUTO_IQ_API_BASE_URL`, including
+direct Flutter or Gradle builds, so an unconfigured bundle cannot reach Play.
+
 The Railway production origin was verified through both API health endpoints on
 12 August 2026. Store screenshots are under
 `apps/mobile/store-listing/screenshots`; they are rendered from the production

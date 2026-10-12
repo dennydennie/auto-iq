@@ -70,3 +70,19 @@ test("rejects bundles without an arm64 binary", () => {
     /arm64-v8a/,
   );
 });
+
+test("rejects a bundle compiled without its production API origin", () => {
+  assert.throws(
+    () => validatePlayBundleInspection(
+      {
+        ...validInspection,
+        appBinary: Buffer.from([
+          "/api/v1/me/account-deletion-requests",
+          "Request deletion of your AutoIQ account",
+        ].join("\n")),
+      },
+      expected,
+    ),
+    /Missing app binary string: https:\/\/api\.autoiq\.example/,
+  );
+});
