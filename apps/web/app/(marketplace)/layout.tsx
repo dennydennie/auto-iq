@@ -1,3 +1,4 @@
+import { PasskeyOffer } from "@/components/auth/passkey-offer";
 import type { ReactNode } from "react";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import { ROUTES } from "@auto-iq/contracts/routes";
@@ -36,6 +37,7 @@ export default async function MarketplaceLayout({
         }
         signedIn={signedIn}
       />
+      {me?.ok && !me.data.roles.includes("ADMIN") && <PasskeyOffer accountId={me.data.id} />}
       {children}
       {signedIn ? null : <SiteFooter />}
     </>

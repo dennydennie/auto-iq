@@ -66,7 +66,7 @@ function createErrorEnvelope(
 ): ApiErrorEnvelope {
   const code = getErrorCode(exception, statusCode);
   const publicError = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR
-    ? getPublicServerError(code)
+    ? getPublicServerError(code, getErrorMessage(exception))
     : undefined;
   const hidden = statusCode >= HttpStatus.INTERNAL_SERVER_ERROR && !publicError;
   return {

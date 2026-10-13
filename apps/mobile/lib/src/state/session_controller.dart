@@ -21,6 +21,18 @@ class SessionController extends ChangeNotifier {
   ReferenceDataSet? _referenceData;
   bool _booting = true;
   bool _busy = false;
+  bool _offerPasskey = false;
+
+  void requestPasskeyOffer() {
+    _offerPasskey = true;
+  }
+
+  bool takePasskeyOffer() {
+    final offer = _offerPasskey;
+    _offerPasskey = false;
+    return offer;
+  }
+
   String? _errorMessage;
   ApiException? _bootstrapError;
 
@@ -60,6 +72,7 @@ class SessionController extends ChangeNotifier {
     await _runBusy(() async {
       await _authRepository.login(identifier: identifier, password: password);
       await _hydrate();
+      requestPasskeyOffer();
     });
   }
 

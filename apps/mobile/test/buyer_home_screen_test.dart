@@ -414,6 +414,11 @@ class _BuyerListingApiClient extends _BuyerApiClient {
 
 class _BuyerSession extends ChangeNotifier implements SessionController {
   @override
+  void requestPasskeyOffer() {}
+  @override
+  bool takePasskeyOffer() => false;
+
+  @override
   ApiException? get bootstrapError => null;
 
   @override

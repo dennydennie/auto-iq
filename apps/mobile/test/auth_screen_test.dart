@@ -1,3 +1,5 @@
+import 'package:autoiq_mobile/src/repositories/passkey_repository.dart';
+import 'helpers/passkey_fakes.dart';
 import 'package:autoiq_mobile/src/core/network/api_exception.dart';
 import 'package:autoiq_mobile/src/models/app_user.dart';
 import 'package:autoiq_mobile/src/models/reference_data.dart';
@@ -24,6 +26,8 @@ void main() {
       ),
     );
 
+    await tester.tap(find.text('Sign in with a password'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Forgot password?'));
     await tester.pumpAndSettle();
 
@@ -45,6 +49,8 @@ void main() {
       ),
     );
 
+    await tester.tap(find.text('Sign in with a password'));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Email or phone'),
       'henrygowas@gmail.com',
@@ -177,6 +183,11 @@ Widget _scaledApp(Widget home) {
 class _PendingVerificationSession extends ChangeNotifier
     implements SessionController {
   @override
+  void requestPasskeyOffer() {}
+  @override
+  bool takePasskeyOffer() => false;
+
+  @override
   ApiException? get bootstrapError => null;
 
   @override
@@ -238,6 +249,13 @@ class _PendingVerificationSession extends ChangeNotifier
 }
 
 class _UnusedAuthRepository implements AuthRepository {
+  @override
+  PasskeyRepository get passkeys => UnavailablePasskeys();
+  @override
+  Future<void> requestLoginCode(String identifier, String channel) async {}
+  @override
+  Future<void> verifyLoginCode(String identifier, String code) async {}
+
   _UnusedAuthRepository({this.testOtpCode});
 
   final String? testOtpCode;

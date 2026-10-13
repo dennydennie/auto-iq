@@ -1,3 +1,4 @@
+import '../screens/auth/passkey_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -83,6 +84,8 @@ class _RoleAccountTabState extends State<RoleAccountTab> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        const PasskeyAccountAction(),
         const SizedBox(height: 16),
         const AccountDeletionCard(),
       ],

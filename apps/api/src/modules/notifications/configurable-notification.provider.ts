@@ -182,6 +182,7 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
   }
 
   private async sendGikkoSms(input: ProviderSendInput) {
+    if (!this.gikkoEnabled()) throw new Error("Gikko SMS is disabled");
     const message = renderNotificationMessage(input);
     const notifyUrl = this.optionalString("GIKKO_SMS_NOTIFY_URL") ?? this.optionalString("GIKKO_DELIVERY_REPORT_URL");
     const response = await this.fetchWithTimeout(
@@ -209,17 +210,20 @@ export class ConfigurableNotificationProvider extends NotificationProvider {
     const payload = await this.readResponseBody(response);
 
     if (!response.ok) {
-      throw new Error(`Gikko SMS delivery failed with status ${response.status}${responseErrorSuffix(payload)}`);
+      throw new Error(`Gikko SMS delivery failed with status ${response.status}`);
     }
 
     const firstMessage = readFirstMessage(payload);
     const messageId = firstMessage ? readStringField(firstMessage, "messageId") ?? readStringField(firstMessage, "id") : null;
-    return {
-      providerRef: messageId ? `gikko:${messageId}` : `gikko:${Date.now()}`,
-    };
+    const status = firstMessage?.status as { groupId?: number } | undefined;
+    if (!messageId || (status?.groupId !== undefined && ![1, 3].includes(status.groupId))) {
+      throw new Error("Gikko SMS was not accepted by the provider");
+    }
+    return { providerRef: `gikko:${messageId}` };
   }
 
   private sendStubSms(input: ProviderSendInput) {
+    if (this.configService.get<string>("NODE_ENV") === "production") throw new Error("Stub SMS is unavailable in production");
     return Promise.resolve({
       providerRef: `stub:${input.channel.toLowerCase()}:${Date.now()}`,
     });

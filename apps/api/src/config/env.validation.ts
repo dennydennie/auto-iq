@@ -328,6 +328,11 @@ class EnvironmentVariables {
   GIKKO_SMS_ENABLED?: boolean;
 
   @IsOptional()
+  @IsString()
+  @Matches(/^(android:apk-key-hash:[A-Za-z0-9_-]{43})(,\s*android:apk-key-hash:[A-Za-z0-9_-]{43})*$/)
+  PASSKEY_ANDROID_ORIGINS?: string;
+
+  @IsOptional()
   @IsBoolean()
   @Transform(
     ({ value }: { value: unknown }) => value === "true" || value === true,
@@ -384,6 +389,7 @@ export function validateEnv(config: Record<string, unknown>) {
   const env = plainToInstance(EnvironmentVariables, withStorageAliases(config));
   assertValidEnv(env);
   assertOtpTestConfig(env);
+  assertSmsConfig(env);
 
   assertProductionEnv(env);
 
@@ -566,4 +572,18 @@ function storageUrlStyleToForcePathStyle(value: unknown): boolean | undefined {
   if (value === "path") return true;
   if (value === "virtual") return false;
   return undefined;
+}
+
+function assertSmsConfig(env: ValidatedEnvironment) {
+  if (env.NODE_ENV === "production" && env.NOTIFICATION_SMS_PROVIDER === "stub") {
+    throw new Error("Stub SMS is unavailable in production");
+  }
+  if (env.NOTIFICATION_SMS_PROVIDER !== "gikko") return;
+  if (env.GIKKO_SMS_ENABLED === false || !(env.GIKKO_SMS_API_KEY || env.GIKKO_API_KEY) || !(env.GIKKO_SMS_SENDER || env.GIKKO_SENDER_NAME)) {
+    throw new Error("Gikko SMS requires an enabled provider, API key and approved sender");
+  }
+  const endpoint = env.GIKKO_SMS_SEND_URL ?? env.GIKKO_BASE_URL;
+  if (endpoint && env.NODE_ENV === "production" && !isHttpsNonLocalhost(endpoint)) {
+    throw new Error("Gikko SMS requires a non-localhost HTTPS endpoint in production");
+  }
 }

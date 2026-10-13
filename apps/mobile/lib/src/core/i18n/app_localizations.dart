@@ -276,6 +276,29 @@ class _AutoIqLocalizationsDelegate
 
 const _messages = <String, Map<String, String>>{
   'en': {
+    'phoneNumber': 'Phone number',
+    'passkeyUnavailable': 'Passkeys are currently unavailable here. Sign in with a code or password.',
+    'passkeys': 'Passkeys',
+    'passkeyDescription':
+        'Sign in with your fingerprint, face or screen lock instead of waiting for a code.',
+    'createPasskey': 'Create a passkey',
+    'passkeyCreated': 'Passkey created. Use it the next time you sign in.',
+    'passkeyFailed':
+        'That passkey could not be used. Sign in with a code or password.',
+    'passkeyName': 'Passkey name',
+    'defaultPasskeyLabel': 'My device',
+    'removePasskey': 'Remove',
+    'noPasskeys': 'You have no saved passkeys yet.',
+    'passkeyOffer': 'Make your next sign-in easier',
+    'notNow': 'Not now',
+    'signInWithPasskey': 'Sign in with a passkey',
+    'signInWithPassword': 'Sign in with a password',
+    'signInWithCode': 'Sign in with a code',
+    'smsChannel': 'SMS',
+    'emailChannel': 'Email',
+    'sendSignInCode': 'Send sign-in code',
+    'codeLoginDescription':
+        'Choose where to receive your six-digit sign-in code.',
     'appName': 'BiSell AutoIQ',
     'unsupportedRole':
         'This mobile build supports buyer, seller, and inspector workflows.',

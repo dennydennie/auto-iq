@@ -232,6 +232,11 @@ class _SellerApiClient extends Fake implements ApiClient {
 
 class _WizardSession extends ChangeNotifier implements SessionController {
   @override
+  void requestPasskeyOffer() {}
+  @override
+  bool takePasskeyOffer() => false;
+
+  @override
   ApiException? get bootstrapError => null;
 
   @override

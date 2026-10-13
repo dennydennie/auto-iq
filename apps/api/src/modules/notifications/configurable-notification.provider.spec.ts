@@ -168,9 +168,20 @@ describe("ConfigurableNotificationProvider", () => {
     });
   });
 
+  it("refuses a stub as production delivery", async () => {
+    const provider = createProvider({ NODE_ENV: "production", NOTIFICATION_SMS_PROVIDER: "stub" });
+    await expect(provider.send({ channel: "SMS", recipientAddress: "+263771234567", template: "OTP_VERIFY", payload: { code: "123456" } })).rejects.toThrow("Stub SMS is unavailable in production");
+  });
+
+  it("rejects an HTTP-success SMS response that the provider rejected", async () => {
+    jest.spyOn(global, "fetch").mockResolvedValue(new Response(JSON.stringify({ messages: [{ messageId: "rejected-id", status: { groupId: 5 } }] }), { status: 200 }));
+    const provider = createProvider({ NOTIFICATION_SMS_PROVIDER: "gikko", GIKKO_SMS_API_KEY: "test-key", GIKKO_SMS_SENDER: "test-sender" });
+    await expect(provider.send({ channel: "SMS", recipientAddress: "+263771234567", template: "OTP_VERIFY", payload: { code: "123456" } })).rejects.toThrow("Gikko SMS was not accepted");
+  });
+
   it("supports explicit stub SMS delivery for staging without vendor credentials", async () => {
     const provider = createProvider({
-      NODE_ENV: "production",
+      NODE_ENV: "staging",
       NOTIFICATION_SMS_PROVIDER: "stub",
     });
 

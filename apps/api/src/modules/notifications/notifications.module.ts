@@ -19,6 +19,6 @@ import { NotificationService } from "./notification.service";
     NotificationService,
     { provide: NotificationProvider, useExisting: ConfigurableNotificationProvider },
   ],
-  exports: [NotificationService],
+  exports: [NotificationService, NotificationProvider],
 })
 export class NotificationsModule {}

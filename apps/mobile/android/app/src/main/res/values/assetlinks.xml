@@ -1,0 +1,3 @@
+<resources>
+    <string name="asset_statements" translatable="false">[{\"relation\":[\"delegate_permission/common.get_login_creds\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://bisellautoiq.co.zw\"}}]</string>
+</resources>

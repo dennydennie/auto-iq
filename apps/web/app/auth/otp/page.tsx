@@ -1,76 +1,22 @@
 import { OtpForm } from "@/components/auth/otp-form";
 import { AuthShell } from "@/components/shared/auth-shell";
-import { StepIndicator } from "@/components/shared/step-indicator";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { authDestination } from "@/lib/auth-proxy";
 
-type SearchParams = Promise<{
-  identifier?: string | string[];
-  registered?: string | string[];
-}>;
-
-function readParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function OtpPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+function value(input: string | string[] | undefined) { return Array.isArray(input) ? input[0] : input; }
+export default async function OtpPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const identifier = readParam(params.identifier) ?? null;
-  const autoSend = readParam(params.registered) === "1";
-
-  return (
-    <AuthShell
-      eyebrow="Account verification"
-      title="Confirm your identity with a one-time code."
-      description="We send a 6-digit code to the contact channels on file. Enter it below to complete verification."
-      ctaLabel="Wrong contact details?"
-      ctaHref="/auth/signup"
-      highlight={
-        <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#FFC72C]">
-            Didn&apos;t receive a code?
-          </p>
-          <p className="text-sm leading-7 text-white/72">
-            Check your SMS inbox and account email, or tap &ldquo;Resend
-            code&rdquo; below. Codes expire after 5 minutes. Make sure the
-            number you registered is correct.
-          </p>
-        </div>
-      }
-    >
-      <div className="space-y-6">
-        <StepIndicator currentStep={2} totalSteps={3} label="Verify identity" />
-        <div className="space-y-2">
-          <Badge variant="outline">Verification</Badge>
-          <h2 className="display text-3xl text-[var(--ink-900)]">
-            Enter the 6-digit code
-          </h2>
-          <p className="text-sm leading-7 text-[var(--ink-500)]">
-            {identifier ? (
-              <>
-                We&apos;ve sent a one-time code to the SMS and email channels
-                tied to{" "}
-                <span className="font-semibold text-[var(--ink-700)]">
-                  {identifier}
-                </span>
-                .
-              </>
-            ) : (
-              "Open this page from login or registration so we know which account to verify."
-            )}
-          </p>
-        </div>
-
-        <Card>
-          <CardContent className="p-6">
-            <OtpForm identifier={identifier} autoSend={autoSend} />
-          </CardContent>
-        </Card>
-      </div>
-    </AuthShell>
-  );
+  const identifier = value(params.identifier) ?? null;
+  const login = value(params.purpose) === "login";
+  const channel = value(params.channel) === "EMAIL" ? "EMAIL" : "SMS";
+  return <AuthShell title="Enter your sign-in code"
+    description="Use the six-digit code to securely access your Auto IQ account."
+    ctaLabel="Back to sign in" ctaHref="/auth/login"
+    highlight={<p>Codes expire after five minutes. You can request a new code if yours does not arrive.</p>}>
+    <div className="space-y-6"><h2 className="text-2xl font-semibold">Enter the six-digit code</h2>
+      <p>Check {login ? (channel === "SMS" ? "your SMS inbox" : "your email inbox") : "your SMS and email inboxes"} for the code for {identifier}.</p>
+      <OtpForm identifier={identifier} autoSend={!login && value(params.registered) === "1"}
+        purpose={login ? "login" : "registration"} channel={channel} nextHref={authDestination(value(params.next))} />
+    </div>
+  </AuthShell>;
 }

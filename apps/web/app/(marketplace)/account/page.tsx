@@ -1,3 +1,4 @@
+import { PasskeySettings } from "@/components/account/passkey-settings";
 import { UserRound } from "lucide-react";
 import type { MeResponse } from "@auto-iq/contracts/identity";
 import { ROUTES } from "@auto-iq/contracts/routes";
@@ -53,10 +54,10 @@ export default async function AccountPage() {
   return (
     <WorkspacePage size="content" className="space-y-8 pt-10">
       <PageHeader
-        eyebrow="Account settings"
         title="Manage your account"
         description="Keep your profile and vehicle preferences up to date. Email, phone, and password changes are managed separately."
       />
+      {!result.data.roles.includes("ADMIN") && <PasskeySettings />}
       <AccountForm profile={result.data} referenceData={referenceResult.data} />
     </WorkspacePage>
   );

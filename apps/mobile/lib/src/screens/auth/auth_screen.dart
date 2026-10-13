@@ -1,3 +1,4 @@
+import 'code_login_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _cityController = TextEditingController(text: 'Harare');
 
   bool _isRegisterMode = false;
+  bool _passwordMode = false;
   bool _busy = false;
   bool _showLoginPassword = false;
   bool _showRegisterPassword = false;
@@ -115,11 +117,19 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildLoginCard() {
+    if (!_passwordMode) {
+      return CodeLoginForm(
+          onPassword: () => setState(() => _passwordMode = true));
+    }
     return Form(
       key: _loginFormKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          TextButton(
+              onPressed:
+                  _busy ? null : () => setState(() => _passwordMode = false),
+              child: Text(_copy.text('signInWithCode'))),
           TextFormField(
             controller: _loginIdentifierController,
             keyboardType: TextInputType.emailAddress,

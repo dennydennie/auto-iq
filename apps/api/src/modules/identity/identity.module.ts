@@ -1,3 +1,10 @@
+import { LoginCodeController } from "./login-code.controller";
+import { LoginCodeService } from "./login-code.service";
+import { PasskeyController } from "./passkey.controller";
+import { PasskeyService } from "./passkey.service";
+import { PasskeyStoreService } from "./passkey-store.service";
+import { PasskeySettingsService } from "./passkey-settings.service";
+import { PasskeyChallengeService } from "./passkey-challenge.service";
 import { forwardRef, Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AuthGuard } from "../../common/guards/auth.guard";
@@ -16,9 +23,10 @@ import { SessionService } from "./session.service";
 
 @Module({
   imports: [ConfigModule, DbModule, RedisModule, forwardRef(() => NotificationsModule)],
-  controllers: [AuthController],
+  controllers: [AuthController, LoginCodeController, PasskeyController],
   providers: [
     AuthGuard,
+    LoginCodeService, PasskeyService, PasskeyStoreService, PasskeySettingsService, PasskeyChallengeService,
     AuthService,
     CsrfGuard,
     CsrfService,

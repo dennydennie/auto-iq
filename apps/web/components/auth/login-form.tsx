@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { rememberPasskeyOffer } from "@/lib/passkey-client";
+import { CodeLoginForm } from "./code-login-form";
+import { AUTH_COPY as copy } from "@/lib/auth-copy";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
@@ -8,7 +11,7 @@ import type { ApiError } from "@auto-iq/contracts/error";
 import type { LoginRequest, LoginResponse } from "@auto-iq/contracts/identity";
 import { ErrorBanner } from "@/components/shared/error-banner";
 
-import { isApiFailure, postJson } from "@/lib/web-api";
+import { getJson, isApiFailure, postJson } from "@/lib/web-api";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +54,16 @@ export function LoginForm({
   nextHref?: string;
 }) {
   const router = useRouter();
+  const [passwordMode, setPasswordMode] = useState(mode === "admin");
+  const [codeAvailable, setCodeAvailable] = useState<boolean | null>(mode === "admin" ? false : null);
+  useEffect(() => {
+    if (mode === "admin") return;
+    let active = true;
+    void getJson<{ enabled: boolean }>("/api/auth/passkeys/config").then(result => {
+      if (active) setCodeAvailable(result.ok && result.data.enabled);
+    });
+    return () => { active = false; };
+  }, [mode]);
   const [form, setForm] = useState<LoginRequest>({
     identifier: defaultIdentifier,
     password: "",
@@ -104,12 +117,17 @@ export function LoginForm({
       // Hard reload so RSC caches for the authenticated view are cleared.
       // router.push + refresh() alone doesn't consistently repopulate the
       // marketplace layout's `signedIn` state fast enough.
+      if (mode !== "admin" && result.data.role !== "ADMIN") rememberPasskeyOffer(result.data.userId);
       window.location.assign(destination);
     });
   }
 
+  if (codeAvailable === null) return <p role="status">{copy.loadingSignIn}</p>;
+  if (codeAvailable && !passwordMode) return <CodeLoginForm onPassword={() => setPasswordMode(true)} defaultIdentifier={defaultIdentifier} nextHref={nextHref} />;
+
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
+      {mode !== "admin" && codeAvailable && <Button type="button" variant="ghost" onClick={() => setPasswordMode(false)}>{copy.codeLogin}</Button>}
       {error ? (
         <ErrorBanner
           message={error.message}
@@ -124,7 +142,7 @@ export function LoginForm({
           <Input
             id={`${mode}-identifier`}
             name="identifier"
-            type="email"
+            type="text"
             // Mobile keyboards react to inputMode. Email variant lets iOS/Android
             // offer @ and . without switching. Users who paste a phone (+263…)
             // still work because the API accepts either.

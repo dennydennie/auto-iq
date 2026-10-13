@@ -1,3 +1,5 @@
+import '../core/auth/passkey_device.dart';
+import 'passkey_repository.dart';
 import '../core/config/api_routes.dart';
 import '../core/network/api_client.dart';
 import '../models/app_user.dart';
@@ -36,7 +38,10 @@ class RegisterResult {
 }
 
 class AuthRepository {
-  AuthRepository(this._apiClient);
+  AuthRepository(this._apiClient, {PasskeyDevice? passkeyDevice})
+      : passkeys = PasskeyRepository(_apiClient, device: passkeyDevice);
+
+  final PasskeyRepository passkeys;
 
   final ApiClient _apiClient;
 
@@ -66,6 +71,19 @@ class AuthRepository {
         },
         (_) {});
   }
+
+  Future<void> requestLoginCode(String identifier, String channel) =>
+      _apiClient.postJson<void>(
+          '/api/v1/auth/login-code/request',
+          {
+            'identifier': identifier.trim(),
+            'channels': [channel]
+          },
+          (_) {});
+
+  Future<void> verifyLoginCode(String identifier, String code) =>
+      _apiClient.postJson<void>('/api/v1/auth/login-code/verify',
+          {'identifier': identifier.trim(), 'code': code.trim()}, (_) {});
 
   Future<void> forgotPassword(String email) async {
     await _apiClient.postJson<void>(

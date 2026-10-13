@@ -1,3 +1,7 @@
+import { createRequire } from "node:module";
+const requireApi = createRequire(new URL("../../api/package.json", import.meta.url));
+const { generateRegistrationOptions, generateAuthenticationOptions, verifyRegistrationResponse, verifyAuthenticationResponse } = requireApi("@simplewebauthn/server");
+const passkeyTestOrigin = "http://localhost:3200";
 import { createServer } from "node:http";
 
 const host = "127.0.0.1";
@@ -47,7 +51,7 @@ const listings = [
 ];
 
 function initialState() {
-  return { saved: new Set(), quotes: [], requests: [], viewings: [], notifications: [] };
+  return { loginRequests: [], passkeys: [], passkeyChallenges: new Map(), passkeyKeys: new Map(), saved: new Set(), quotes: [], requests: [], viewings: [], notifications: [] };
 }
 
 let state = initialState();
@@ -397,6 +401,67 @@ async function handleNotification(request, response, url) {
   return true;
 }
 
+async function handleAuthentication(request, response, url) {
+  const path = url.pathname;
+  if (path === "/api/v1/auth/passkeys/config") return send(response, 200, { enabled: true, android: true }), true;
+  if (path === "/__auth-state") return send(response, 200, { loginRequests: state.loginRequests, passkeys: state.passkeys }), true;
+  if (path === "/api/v1/auth/passkeys") {
+    return send(response, 200, { data: state.passkeys }), true;
+  }
+  if (path.startsWith("/api/v1/auth/passkeys/") && request.method === "DELETE") {
+    state.passkeys = state.passkeys.filter(item => item.id !== path.split("/").at(-1));
+    return send(response, 200, { removed: true }), true;
+  }
+  if (path === "/api/v1/auth/login-code/request") {
+    state.loginRequests.push(await readBody(request));
+    return send(response, 200, { expiresIn: 300, resendAfter: 30 }), true;
+  }
+  if (path === "/api/v1/auth/login-code/verify") {
+    const body = await readBody(request);
+    if (body.code !== "246810") return send(response, 401, { code: "OTP_INVALID", message: "Invalid code", statusCode: 401 }), true;
+    response.setHeader("Set-Cookie", "auto_iq_session=buyer-e2e-session; Path=/; HttpOnly; SameSite=Lax");
+    return send(response, 200, { userId: me().id, email: me().email, role: "BUYER", status: "ACTIVE" }), true;
+  }
+  if (path.startsWith("/api/v1/auth/passkeys/")) return handlePasskeys(request, response, path);
+  return false;
+}
+
+async function handlePasskeys(request, response, path) {
+  const registration = path.includes("/registration/");
+  if (registration && (!request.headers.cookie?.includes("buyer-e2e-session") || request.headers["x-csrf-token"] !== "buyer-e2e-csrf")) {
+    return send(response, 403, apiError("Authentication and CSRF are required", 403)), true;
+  }
+  const options = path.endsWith("/options");
+  if (options) {
+    const data = registration
+      ? await generateRegistrationOptions({ rpID: "localhost", rpName: "Auto IQ test", userName: me().email, userID: new TextEncoder().encode(me().id), supportedAlgorithmIDs: [-7], authenticatorSelection: { residentKey: "required", userVerification: "required" } })
+      : await generateAuthenticationOptions({ rpID: "localhost", userVerification: "required" });
+    const challengeId = crypto.randomUUID();
+    state.passkeyChallenges.set(challengeId, data.challenge);
+    return send(response, 200, { challengeId, options: data }), true;
+  }
+  const body = await readBody(request);
+  const expectedChallenge = state.passkeyChallenges.get(body.challengeId);
+  state.passkeyChallenges.delete(body.challengeId);
+  if (!expectedChallenge) return send(response, 401, apiError("Invalid challenge", 401)), true;
+  const verificationOptions = { response: body.response, expectedChallenge, expectedRPID: "localhost", expectedOrigin: passkeyTestOrigin, requireUserVerification: true };
+  if (registration) {
+    const result = await verifyRegistrationResponse(verificationOptions);
+    if (!result.verified) return send(response, 401, apiError("Invalid passkey", 401)), true;
+    state.passkeyKeys.set(result.registrationInfo.credential.id, result.registrationInfo.credential);
+    const row = { id: "11111111-1111-4111-8111-111111111118", label: body.label, createdAt: now };
+    state.passkeys.push(row);
+    return send(response, 201, row), true;
+  }
+  const credential = state.passkeyKeys.get(body.response.id);
+  if (!credential) return send(response, 401, apiError("Unknown passkey", 401)), true;
+  const result = await verifyAuthenticationResponse({ ...verificationOptions, credential });
+  if (!result.verified) return send(response, 401, apiError("Invalid signature", 401)), true;
+  credential.counter = result.authenticationInfo.newCounter;
+  response.setHeader("Set-Cookie", "auto_iq_session=buyer-e2e-session; Path=/; HttpOnly; SameSite=Lax");
+  return send(response, 200, { userId: me().id, email: me().email, role: "BUYER", status: "ACTIVE" }), true;
+}
+
 async function handle(request, response) {
   const url = new URL(request.url ?? "/", `http://${host}:${port}`);
   if (url.pathname === "/health") return send(response, 200, { ok: true });
@@ -405,6 +470,7 @@ async function handle(request, response) {
     return send(response, 204);
   }
   if (url.pathname === "/api/v1/auth/csrf") return send(response, 200, { token: "buyer-e2e-csrf" });
+  if (await handleAuthentication(request, response, url)) return;
   if (request.method === "GET" && handleRead(url, response) !== false) return;
   if (request.method === "GET" && handleCatalogue(url, response) !== false) return;
   if (await handleSaved(request, response, url)) return;

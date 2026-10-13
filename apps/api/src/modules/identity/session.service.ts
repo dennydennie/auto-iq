@@ -27,6 +27,7 @@ export class SessionService {
       userId,
       SESSION_TTL_SECONDS,
     );
+    await this.redisService.set(`recent_auth:${this.sign(sessionId)}`, userId, 300);
     response.cookie(this.cookieName(), sessionId, {
       ...this.cookieOptions(),
       httpOnly: true,
@@ -66,6 +67,7 @@ export class SessionService {
     if (sessionId) {
       await this.redisService.del(this.key(sessionId));
       await this.redisService.del(`csrf:${this.sign(sessionId)}`);
+      await this.redisService.del(`recent_auth:${this.sign(sessionId)}`);
     }
     response.clearCookie(this.cookieName(), this.cookieOptions());
   }

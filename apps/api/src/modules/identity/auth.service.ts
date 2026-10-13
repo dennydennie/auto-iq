@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
-import { PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
+import { DELIVERY_MESSAGES, PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
 import { TenantContext } from "../../common/tenancy/tenant-context";
 import { AuditLogEntity } from "../../db/entity/audit-log.entity";
 import { BuyerProfileEntity } from "../../db/entity/buyer-profile.entity";
@@ -322,7 +322,7 @@ export class AuthService {
 
   private resetDeliveryUnavailable() {
     return new ServiceUnavailableException(
-      PUBLIC_SERVER_ERRORS.DELIVERY_UNAVAILABLE,
+      { ...PUBLIC_SERVER_ERRORS.DELIVERY_UNAVAILABLE, message: DELIVERY_MESSAGES.passwordReset },
     );
   }
 

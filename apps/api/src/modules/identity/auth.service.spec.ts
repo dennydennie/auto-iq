@@ -351,7 +351,7 @@ describe("AuthService", () => {
     expect(error.getResponse()).toEqual({
       code: "DELIVERY_UNAVAILABLE",
       message:
-        "We couldn't send your code right now. Please try again shortly.",
+        "Password reset is temporarily unavailable. Please try again shortly.",
     });
   });
 });

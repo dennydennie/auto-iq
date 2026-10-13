@@ -77,6 +77,11 @@ class _InspectorApiClient extends Fake implements ApiClient {
 
 class _WorkspaceSession extends ChangeNotifier implements SessionController {
   @override
+  void requestPasskeyOffer() {}
+  @override
+  bool takePasskeyOffer() => false;
+
+  @override
   ApiException? get bootstrapError => null;
 
   @override

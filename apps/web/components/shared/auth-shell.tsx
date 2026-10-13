@@ -2,10 +2,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { BiSellLogo } from "@/components/ui/bisell-logo";
-import { Badge } from "@/components/ui/badge";
 
 export function AuthShell({
-  eyebrow,
   title,
   description,
   ctaLabel,
@@ -13,7 +11,7 @@ export function AuthShell({
   highlight,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: string;
   ctaLabel: string;
@@ -43,9 +41,6 @@ export function AuthShell({
           </div>
 
           <div className="relative mt-10">
-            <Badge variant="amber" className="bg-white/10 text-[#FFC72C]">
-              {eyebrow}
-            </Badge>
             <h1 className="display mt-5 max-w-xl text-4xl leading-[1.02] sm:text-5xl">
               {title}
             </h1>

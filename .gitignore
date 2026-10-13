@@ -31,3 +31,7 @@ output
 .vscode
 .agent
 .playwright-cli
+
+# Browser test artifacts
+**/test-results/
+**/playwright-report/

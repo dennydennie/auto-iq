@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
-import { PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
+import { DELIVERY_MESSAGES, PUBLIC_SERVER_ERRORS } from "../../common/errors/public-server-errors";
 import { UserEntity } from "../../db/entity/user.entity";
 import { UserRepository } from "../../db/repository/user.repository";
 import { NotificationService } from "../notifications/notification.service";
@@ -85,7 +85,7 @@ export class OtpService {
       await this.redisService.del(this.key(user.phone));
       await this.redisService.del(this.deliveryKey(user.phone));
       throw new ServiceUnavailableException(
-        PUBLIC_SERVER_ERRORS.DELIVERY_UNAVAILABLE,
+        { ...PUBLIC_SERVER_ERRORS.DELIVERY_UNAVAILABLE, message: DELIVERY_MESSAGES.verification },
       );
     }
   }
@@ -112,6 +112,7 @@ export class OtpService {
     if (stored !== this.hash(code)) {
       await this.rejectInvalidCode(user.phone);
     }
+    if (!await this.redisService.takeIfEqual(this.key(user.phone), this.hash(code))) throw this.invalidOtp();
     user.phoneVerified = true;
     user.status = "ACTIVE";
     await this.userRepository.save(user);

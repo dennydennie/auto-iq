@@ -1,3 +1,5 @@
+import 'package:autoiq_mobile/src/repositories/passkey_repository.dart';
+import 'helpers/passkey_fakes.dart';
 import 'package:autoiq_mobile/src/models/app_user.dart';
 import 'package:autoiq_mobile/src/repositories/auth_repository.dart';
 import 'package:autoiq_mobile/src/screens/auth/forgot_password_screen.dart';
@@ -91,6 +93,13 @@ void main() {
 }
 
 class _RecordingAuthRepository implements AuthRepository {
+  @override
+  PasskeyRepository get passkeys => UnavailablePasskeys();
+  @override
+  Future<void> requestLoginCode(String identifier, String channel) async {}
+  @override
+  Future<void> verifyLoginCode(String identifier, String code) async {}
+
   String? forgottenEmail;
   String? resetCode;
   String? resetEmail;

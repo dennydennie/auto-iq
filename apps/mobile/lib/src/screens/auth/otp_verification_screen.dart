@@ -19,6 +19,8 @@ class OtpVerificationScreen extends StatefulWidget {
     this.phone,
     required this.identifier,
     this.autoSend = true,
+    this.login = false,
+    this.channel = 'SMS',
   });
 
   final String? phone;
@@ -28,6 +30,8 @@ class OtpVerificationScreen extends StatefulWidget {
   /// know the backend already fired one during the previous step can set this
   /// to false to avoid a doubled SMS.
   final bool autoSend;
+  final bool login;
+  final String channel;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -48,6 +52,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.login) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _startResendCooldown());
+    }
     if (widget.autoSend) {
       // Delay one frame so the widget is mounted before we call the API.
       WidgetsBinding.instance.addPostFrameCallback((_) => _sendCode());
@@ -188,10 +196,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
     try {
       final repository = context.read<AuthRepository>();
-      final testOtpCode = await repository.sendOtp(
-        identifier: widget.identifier,
-        phone: widget.phone,
-      );
+      final String? testOtpCode;
+      if (widget.login) {
+        await repository.requestLoginCode(widget.identifier, widget.channel);
+        testOtpCode = null;
+      } else {
+        testOtpCode = await repository.sendOtp(
+            identifier: widget.identifier, phone: widget.phone);
+      }
       if (!mounted) return;
       setState(() {
         _testOtpCode = testOtpCode;
@@ -272,11 +284,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     try {
       final authRepository = context.read<AuthRepository>();
       final sessionController = context.read<SessionController>();
-      await authRepository.verifyOtp(
-        identifier: widget.identifier,
-        phone: widget.phone,
-        code: _codeController.text,
-      );
+      if (widget.login) {
+        await authRepository.verifyLoginCode(
+            widget.identifier, _codeController.text);
+      } else {
+        await authRepository.verifyOtp(
+            identifier: widget.identifier,
+            phone: widget.phone,
+            code: _codeController.text);
+      }
+      sessionController.requestPasskeyOffer();
       await sessionController.refreshProfile();
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);

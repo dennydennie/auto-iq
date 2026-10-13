@@ -1,3 +1,4 @@
+import '../auth/passkey_settings_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -2571,6 +2572,8 @@ class _BuyerAccountTabState extends State<_BuyerAccountTab> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        const PasskeyAccountAction(),
         const SizedBox(height: 16),
         const AccountDeletionCard(),
       ],

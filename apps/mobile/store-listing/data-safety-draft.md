@@ -41,3 +41,14 @@ The corrected questionnaire is saved as a draft in Play Console. Final
 submission requires completing reviewer sign-in details and the target-audience
 declaration. Retention claims remain limited to the published privacy notice;
 no automatic 90-day deletion or independent security certification is claimed.
+
+## SMS and passkey update (13 October 2026)
+
+The new release configures Gikko via the existing BluWorx Infobip endpoint for
+authentication SMS. Phone numbers and message contents are processed by that
+provider; the historical stub statement above describes the previous release.
+Passkey enrollment stores a credential public key and account-linked label.
+Fingerprint/face data and passkey private keys remain on the user's device or
+credential manager. Review the Play declaration and published privacy notice
+against the enabled production vendors before the Android update is submitted.
+No production passkey or successful real SMS receipt is claimed by build tests.

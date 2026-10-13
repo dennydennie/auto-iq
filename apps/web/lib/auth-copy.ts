@@ -1,0 +1,18 @@
+export const AUTH_COPY = {
+  loadingSignIn: "Loading sign-in options…",
+  loginTitle: "Sign in to Auto IQ", loginDescription: "Access your saved vehicles, listings, requests and viewings.",
+  enterCode: "Enter the six-digit code", backToSignIn: "Back to sign in",
+  sms: "SMS", email: "Email", phone: "Phone number", emailAddress: "Email address",
+  getCode: "Send sign-in code", sending: "Sending code…", password: "Sign in with a password",
+  codeLogin: "Sign in with a code", codeDescription: "Choose where to receive your six-digit sign-in code.",
+  passkey: "Sign in with a passkey", createPasskey: "Create a passkey", passkeys: "Passkeys",
+  passkeyDescription: "Sign in with your fingerprint, face, or screen lock instead of waiting for a code.",
+  passkeyFallback: "That passkey could not be used. Sign in with a code or password.",
+  passkeySetupFailed: "The passkey could not be created. Try again.",
+  passkeyCreated: "Passkey created. You can use it the next time you sign in.",
+  noPasskeys: "You have no saved passkeys yet.", remove: "Remove", removing: "Removing…",
+  creating: "Creating…", loading: "Loading passkeys…", retry: "Try again",
+  signInAgain: "Sign in again to manage passkeys", passkeyLabel: "Passkey name", defaultLabel: "My device",
+  codePlaceholder: "Enter the six-digit code", verify: "Verify and sign in",
+  passkeyOffer: "Make your next sign-in easier", later: "Not now",
+} as const;

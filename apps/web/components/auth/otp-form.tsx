@@ -1,4 +1,5 @@
 "use client";
+import { rememberPasskeyOffer } from "@/lib/passkey-client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -31,16 +32,22 @@ function verifyPayload(identifier: string, code: string): VerifyOtpRequest {
 export function OtpForm({
   identifier,
   autoSend = false,
+  purpose = "registration",
+  channel = "SMS",
+  nextHref,
 }: {
   identifier: string | null;
   autoSend?: boolean;
+  purpose?: "registration" | "login";
+  channel?: "SMS" | "EMAIL";
+  nextHref?: string;
 }) {
   const [code, setCode] = useState("");
   // Live countdown mirrors backend TTL. Ticks down every second so users see
   // the code approach expiry — critical on mobile where SMS delivery can
   // stall.
-  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(purpose === "login" ? 300 : null);
+  const [resendCooldown, setResendCooldown] = useState(purpose === "login" ? 30 : 0);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(
     null,
   );
@@ -60,7 +67,7 @@ export function OtpForm({
   function applyOtpMeta(payload: SendOtpResponse) {
     setSecondsRemaining(payload.expiresIn);
     setResendCooldown(RESEND_COOLDOWN_SECONDS);
-    setAttemptsRemaining(payload.attemptsRemaining);
+    setAttemptsRemaining(payload.attemptsRemaining ?? null);
   }
 
   const requestOtp = useCallback((accountIdentifier: string) => {
@@ -69,8 +76,8 @@ export function OtpForm({
 
     startTransition(async () => {
       const result = await postJson<SendOtpResponse>(
-        "/api/auth/otp/send",
-        sendPayload(accountIdentifier),
+        purpose === "login" ? "/api/auth/login-code/request" : "/api/auth/otp/send",
+        purpose === "login" ? { identifier: accountIdentifier, channels: [channel] } : sendPayload(accountIdentifier),
       );
       if (isApiFailure(result)) {
         setError(result.error);
@@ -81,7 +88,7 @@ export function OtpForm({
       setVerificationLocked(false);
       setNotice("A fresh verification code has been sent.");
     });
-  }, []);
+  }, [purpose, channel]);
 
   function sendOtp() {
     if (!identifier) {
@@ -108,7 +115,7 @@ export function OtpForm({
 
     if (!isCodeReady) {
       setError({
-        message: `Enter the ${CODE_LENGTH}-digit code from your SMS.`,
+        message: `Enter the ${CODE_LENGTH}-digit code sent to your ${channel === "SMS" ? "phone" : "email"}.`,
       });
       return;
     }
@@ -118,7 +125,7 @@ export function OtpForm({
 
     startTransition(async () => {
       const result = await postJson<VerifyOtpResponse>(
-        "/api/auth/otp/verify",
+        purpose === "login" ? "/api/auth/login-code/verify" : "/api/auth/otp/verify",
         verifyPayload(identifier, code.trim()),
       );
 
@@ -135,8 +142,13 @@ export function OtpForm({
 
       const profile = await getJson<MeResponse>("/api/me");
       const destination =
-        profile.ok && profile.data.roles.includes("SELLER") ? "/seller" : "/";
-      window.location.assign(destination);
+        profile.ok && profile.data.roles.includes("SELLER")
+          ? "/seller"
+          : profile.ok && profile.data.roles.includes("INSPECTOR")
+            ? "/inspector/tasks"
+            : "/";
+      if (profile.ok) rememberPasskeyOffer(profile.data.id);
+      window.location.assign(nextHref ?? destination);
     });
   }
 

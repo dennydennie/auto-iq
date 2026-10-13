@@ -1,3 +1,4 @@
+import 'screens/auth/passkey_offer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -128,7 +129,10 @@ class SessionGate extends StatelessWidget {
         }
         final user = session.user!;
         if (!user.consentsComplete) return ConsentScreen(user: user);
-        return AuthenticatedWorkspace(user: user);
+        return PasskeyOffer(
+            key: ValueKey(user.id),
+            accountId: user.id,
+            child: AuthenticatedWorkspace(user: user));
       },
     );
   }
